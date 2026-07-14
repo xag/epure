@@ -85,3 +85,12 @@ dependencies by range.
 
 A plain `import epure` pulls in no domain: no vocabulary registered, no natives installed,
 nothing read. The doors are the submodules, and each costs only what the caller asked for.
+
+And it knows nothing else. Not who uses it, not what they use it for — a substrate that names
+its consumers has inverted the dependency it depends on. `tools/open_ready.py` checks that on
+every commit, and it checks it with an allowlist, since a list of the projects we may not
+mention would be a list of our consumers sitting in our own source.
+
+---
+
+Apache-2.0. © 2026 Xavier Grehant.

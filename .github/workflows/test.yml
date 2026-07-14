@@ -1,3 +1,11 @@
+# Two jobs, and the split is deliberate.
+#
+# `open-ready` needs nothing: no dependencies, no credentials, no network, no install step. It
+# is the gate from #7 — nothing personal, no consumers named, in the tree AND in the history —
+# and it must be green from the first commit and stay that way. So it is wired to depend on
+# nothing that could turn it red for an unrelated reason: a gate that goes red for reasons
+# other than the thing it guards is a gate people learn to ignore.
+#
 # `test` needs the estate: `uv sync` fetches `bom` and `flight-recorder` from git, and
 # `epure.check` consumes `ledger@0.1.0` from the sibling registry checkout. While those repos
 # are private, this job needs a read credential — the same constraint bom-registry's own
@@ -14,6 +22,14 @@ on:
   pull_request:
 
 jobs:
+  open-ready:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # --history reads every commit's diff, so it needs every commit
+      - run: python tools/open_ready.py --history
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
