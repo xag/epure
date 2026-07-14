@@ -1,0 +1,39 @@
+[project]
+name = "epure"
+version = "0.1.0"
+description = "Semantic models, proven once and refined by every tape: model |= predicates at design time, code <= model on every execution."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # The substrate. A model is a bom package, a proof is an artifact, a conformance
+    # check is a solver contract the rule language reaches with solve().
+    "bom",
+    # Tapes. epure reads them; it never records one. The dependency is on the tape's
+    # shape (spec/tape-v1.md), and the library is how that shape is loaded.
+    "flight-recorder",
+]
+
+[tool.uv.sources]
+# Pinned by rev, always. Both are pre-1.0 and bom's own doctrine is fork-or-republish
+# over resolver algebra: a range would let the meaning of a pinned package drift under a
+# repo whose whole subject is that meanings do not drift.
+bom = { git = "https://github.com/xag/bom", rev = "4dd8328" }
+flight-recorder = { git = "https://github.com/xag/flight-recorder", rev = "b6e3ab4" }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["epure"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
