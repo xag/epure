@@ -9,6 +9,11 @@
       "name": "grounding",
       "version": "1.0.0",
       "sha256": "0214f91c1094ef8d4aa0aca6d103653dbd05befdb5a312c88ab2dcb996c6ebe7"
+    },
+    {
+      "name": "semantic-model",
+      "version": "0.1.0",
+      "sha256": "89454d5a8060f212f92e6ffb749ef9392ad03e11a9058cf2f35dfcc0f65d924b"
     }
   ]
 }

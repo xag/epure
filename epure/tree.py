@@ -18,6 +18,7 @@ from pathlib import Path
 import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
 from quern import Quern, Node
 from quern.library import consume
+from quern.provenance import Quantity
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,15 +27,9 @@ def build() -> Quern:
     lib, refs = consume(_ROOT, os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
     quern = Quern(packages=[next(r for r in refs if r.name == "ledger")])
     quern = lib.effective(quern)
-    quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _EXPLICIT_STATE_SUFFICES]
+    quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _OBSERVATION_CHILD,
+                           _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE]
     return quern
-
-
-# There is deliberately no `gate` node yet. A gate with no `admits` links is vacuously green,
-# and a green gate is worth exactly what its links are worth — so planting one now would buy a
-# reassuring line of output and nothing else. The first thing this repo will ask a gate to
-# admit is a published claim (`semantic-model@0.1.0`, then a proof artifact), and the gate
-# arrives with the thing it guards.
 
 
 _NAME = Node(
@@ -158,6 +153,147 @@ _NATIVES_FIRST = Node(
                       "new machinery -- which requires the check to be a `solve()` call like "
                       "any other."}),
     ],
+)
+
+
+_OBSERVATION_CHILD = Node(
+    id="observability-is-a-child-node",
+    kind="decision",
+    name="An action's observability is an `observation` child node, referencing its "
+         "event-kind by id",
+    payload={
+        "rationale":
+            "The rule that needs it — an-action-is-observable — is written in the rule "
+            "grammar, and the grammar reaches children (nodes(kind, self)) and never "
+            "arbitrary links: the only link readers it has are the reserved structural "
+            "verbs. A requirement the enforcing rule cannot see is decoration, so the "
+            "witness relation is a child node the rule can count. The child references its "
+            "event-kind by id, not by path: link targets are absolute tree paths, and a "
+            "model subtree that moved would silently break its own internal references. An "
+            "id resolves within the enclosing model wherever it is mounted.",
+        "consequence":
+            "Presence is the grammar's check; resolution is not. A dangling event id — an "
+            "observation naming an event-kind the model does not declare — passes the "
+            "package rule and is the conformance natives' catch, where full traversal "
+            "exists. The split is deliberate: each layer refuses what it can actually see.",
+    },
+    children=[
+        Node(id="alt-observed-as-link", kind="alternative",
+             name="A domain link `observed-as` from the action to its event-kind",
+             payload={"why":
+                      "The natural shape, and unreachable: no rule builtin reads arbitrary "
+                      "links, so the observability rule could not be written in the language "
+                      "that must enforce it. Growing the grammar a links() reader to serve "
+                      "one package inverts the doctrine that the grammar never grows toward "
+                      "a domain — if a structural links reader ever earns its place, it will "
+                      "be because several vocabularies needed it, and this decision is "
+                      "superseded then, not bent now."}),
+        Node(id="alt-reuse-verb", kind="alternative",
+             name="Overload the reserved `uses` verb: action uses -> event-kind",
+             payload={"why":
+                      "Reachable today — uses() is in the grammar — and a misuse: `uses` "
+                      "means resolves-through (params and kind read through the definition, "
+                      "and explode() grafts the definition's children beneath the usage), so "
+                      "every action would inherit its event-kind's licenses as phantom "
+                      "children in every expansion. Reachability is not license to bend a "
+                      "reserved verb's meaning."}),
+    ],
+)
+
+
+_TEMPORAL_DEBT = Node(
+    id="temporal-predicates-are-inexpressible",
+    kind="debt",
+    name="semantic-model@0.1.0 has one predicate kind — the state invariant; liveness and "
+         "ordering claims have no vocabulary",
+    params={
+        # Ungrounded by construction: the number states what 0.1.0 can express, and nobody
+        # competent has established that one kind is enough — the explicit-state hypothesis
+        # below carries the falsification that would settle it.
+        "predicate_kinds": Quantity(
+            value=1, unit="kind", provenance="asserted", grounded=False,
+            source="invariant is the only predicate kind in semantic-model@0.1.0; "
+                   "eventually/until/leads-to cannot be written down"),
+    },
+    payload={
+        "note":
+            "Deliberate, not forgotten. The same trigger is recorded twice on purpose, in "
+            "two substrates of record: the explicit-state hypothesis says the CHECKER "
+            "suffices until a liveness predicate arrives, and this debt says the VOCABULARY "
+            "cannot even carry one. The first liveness claim a domain genuinely needs kills "
+            "the hypothesis and discharges this debt in the same act.",
+    },
+    children=[
+        Node(id="a-temporal-kind-ships", kind="discharge",
+             payload={
+                 "condition":
+                     "A later semantic-model version publishes a temporal predicate kind "
+                     "behind the unchanged model/prove contract — authored when the first "
+                     "domain predicate genuinely needs it, not before. Whoever does that "
+                     "work grounds the param above with what the new version expresses.",
+             }),
+    ],
+)
+
+
+_PUBLISH = Node(
+    id="publish-semantic-model-0-1-0",
+    kind="decision",
+    name="Publish semantic-model@0.1.0 before any machinery exists to evaluate it",
+    payload={
+        "rationale":
+            "The vocabulary is the contract everything downstream is built against: the "
+            "importer, the prover and the conformance natives should be written against a "
+            "pinned digest, not a Python constant that can drift under them in the same "
+            "repo. Publishing first costs one command and the proof gate; publishing after "
+            "the machinery means the machinery was built against a moving target and nobody "
+            "can say which meaning it was tested under.",
+        "note":
+            "The package carries exprs and evaluates nothing — no solvers travel in it. "
+            "That is what makes publishing safe this early: there is no behavior to get "
+            "wrong, only meaning, and meaning is exactly what the gate proves (every rule "
+            "exercised by the turnstile example, every rule refuted by a counter-example "
+            "staged alone).",
+    },
+    params={
+        "rules": Quantity(
+            value=3, unit="rule", provenance="verified", grounded=True,
+            source="the registry publish gate: each rule exercised by the turnstile "
+                   "example and refuted by its counter-example staged alone; the digest is "
+                   "pinned in quern.lock and re-checked by tests/test_package.py"),
+    },
+    children=[
+        Node(id="alt-author-in-repo-until-machinery", kind="alternative",
+             name="Keep the vocabulary a Python constant here until the prover and "
+                  "conformance natives exist, publish then",
+             payload={"why":
+                      "The machinery would be built against a file that drifts under it — "
+                      "the exact pathology the registry channel dissolves. The channel's "
+                      "argument was that the third consumer pins; here even the first "
+                      "consumers, in this same repo, deserve a pinned meaning."}),
+        Node(id="alt-fold-into-ledger-package", kind="alternative",
+             name="Extend an existing package instead of rooting a new name",
+             payload={"why":
+                      "A semantic model is not a design ledger; cohabiting vocabularies "
+                      "couple their release clocks, so refining one would wait on the "
+                      "other. One package, one subject, its own version line."}),
+    ],
+)
+
+
+_GATE = Node(
+    id="publication",
+    kind="gate",
+    name="What leaves this repo as a pinned, citable claim",
+    links={"admits": ["publish-semantic-model-0-1-0"]},
+    payload={
+        "note":
+            "The gate this ledger deliberately did not plant while it had nothing to admit "
+            "— a gate with no admits links is vacuously green, and green that guards "
+            "nothing is decoration. It arrives with the first published claim, which is "
+            "what it was waiting for: if an ungrounded param ever lands under an admitted "
+            "node, nothing-unsound-passes-a-gate goes red and the check exits 1.",
+    },
 )
 
 

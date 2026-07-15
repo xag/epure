@@ -42,12 +42,15 @@ confusion, tone, the real world — is not this substrate's job and never will b
 
 ## The state of it
 
-Early. Today this repo holds its own design ledger, its boundary declaration, and nothing
-else; the substrate itself is being built in the open, in this order:
+Early. Today this repo holds its own design ledger, its boundary declaration, and
+**`semantic-model@0.1.0`** — the meta-vocabulary a model is written in (`model`, `state-var`,
+`event-kind`, `license`, `action`, `observation`, `invariant`), published to the registry
+through the proof gate and pinned here by digest (`epure/package.py` is the authored source;
+the pin, not the file, is the meaning). The rest of the substrate is being built in the open,
+in this order:
 
 | | |
 |---|---|
-| `semantic-model@0.1.0` | the meta-vocabulary a model is written in: `model`, `state-var`, `event-kind`, `license`, `action`, `invariant` |
 | tape importer | a semantic tape becomes a tree the rule language can ask questions of |
 | conformance natives | `model/licensed`, `model/total`, `model/refines` — counts, `== 0` in an ordinary rule |
 | `model/prove` | exhaustive explicit-state checking of finite models; proofs as artifacts |
