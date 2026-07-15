@@ -35,7 +35,12 @@ import sys
 # What this substrate is allowed to know: what it stands on, and where it publishes. Adding a
 # name here is a claim that this repo DEPENDS on it. If you are adding one to silence a
 # finding about something that uses epure, the finding is right and you are wrong.
-ALLOWED_REPOS = frozenset({"quern", "flight-recorder", "quern-registry", "epure"})
+#
+# `bom` and `bom-registry` are the FORMER names of `quern` and `quern-registry`: this repo's
+# early history references its dependencies under those names, and the history scan reads
+# every commit. A former name of a dependency is still a dependency, not a consumer.
+ALLOWED_REPOS = frozenset({"quern", "flight-recorder", "quern-registry", "epure",
+                           "bom", "bom-registry"})
 
 # Third-party owners whose repos this repo legitimately references (CI actions, toolchains).
 # Estate references go through ALLOWED_REPOS above, whatever the URL shape.
