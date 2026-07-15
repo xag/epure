@@ -1,7 +1,7 @@
 """The open-ready gate, exercised by what it must REFUSE.
 
 A check that has only ever been seen green proves nothing — that is this estate's founding
-scar, and it is not going to be reproduced inside the tool that exists to prevent it. bom's
+scar, and it is not going to be reproduced inside the tool that exists to prevent it. quern's
 publish gate makes the same demand of every package: a rule must ship the counter-example that
 trips it, or it does not enter. Same discipline, same reason.
 
@@ -31,9 +31,9 @@ def _findings(line: str) -> list[str]:
 
 def test_it_is_green_on_what_belongs_here():
     for line in [
-        f'bom = {{ git = "https://github.com/{ESTATE}/bom", rev = "4dd8328" }}',
+        f'quern = {{ git = "https://github.com/{ESTATE}/quern", rev = "edd0d31" }}',
         f"See https://github.com/{ESTATE}/flight-recorder for the tape's frozen shape.",
-        f"{ESTATE}/bom-registry is the transport.",
+        f"{ESTATE}/quern-registry is the transport.",
         "      - uses: actions/checkout@v4",
         "Apache-2.0. (c) 2026 Xavier Grehant.",
     ]:
@@ -69,4 +69,4 @@ def test_a_clone_url_is_not_a_different_repo():
     A gate that goes red on a legitimate line is a gate people learn to ignore, and that is a
     slower, quieter failure than one that never fires at all."""
     assert not _findings(f"git clone https://github.com/{ESTATE}/epure.git")
-    assert not _findings(f"It stands on {ESTATE}/bom, {ESTATE}/flight-recorder.")
+    assert not _findings(f"It stands on {ESTATE}/quern, {ESTATE}/flight-recorder.")

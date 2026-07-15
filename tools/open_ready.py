@@ -11,8 +11,8 @@ is a switch rather than a project. Two properties, both cheap now and expensive 
 **Nothing personal is ever committed.** Not a home path, not an address, not a token, not a
 fixture derived from anyone's real data. History is forever and a scrub is a rewrite.
 
-**This substrate names its dependencies and nothing else.** It knows `bom` and
-`flight-recorder`, it publishes through `bom-registry`, and it does not know who uses it. A
+**This substrate names its dependencies and nothing else.** It knows `quern` and
+`flight-recorder`, it publishes through `quern-registry`, and it does not know who uses it. A
 library that names its consumers has inverted the dependency it depends on.
 
 Which is why the repo check is an **allowlist and not a denylist**, and that is not a
@@ -35,7 +35,7 @@ import sys
 # What this substrate is allowed to know: what it stands on, and where it publishes. Adding a
 # name here is a claim that this repo DEPENDS on it. If you are adding one to silence a
 # finding about something that uses epure, the finding is right and you are wrong.
-ALLOWED_REPOS = frozenset({"bom", "flight-recorder", "bom-registry", "epure"})
+ALLOWED_REPOS = frozenset({"quern", "flight-recorder", "quern-registry", "epure"})
 
 # Third-party owners whose repos this repo legitimately references (CI actions, toolchains).
 # Estate references go through ALLOWED_REPOS above, whatever the URL shape.

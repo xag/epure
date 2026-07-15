@@ -78,7 +78,7 @@ three lines, because a boundary retrofitted after the IO has spread is an archae
 
 ## What this depends on
 
-`bom` (the substrate: meaning is data, rules are data, and a package must demonstrate itself
+`quern` (the substrate: meaning is data, rules are data, and a package must demonstrate itself
 to be published) and `flight-recorder` (the tape, and its frozen shape). Both pinned by rev,
 always — a repo whose whole subject is that meanings do not drift does not resolve its own
 dependencies by range.

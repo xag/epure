@@ -8,7 +8,7 @@ red, and `epure.check` carries the signal to CI. A skipped guard guards nothing.
 
 from __future__ import annotations
 
-from bom import run_rules
+from quern import run_rules
 
 from epure.tree import build
 
@@ -32,7 +32,7 @@ def test_the_rules_are_the_pinned_packages_own():
 
     A project that quietly redefines `a-decision-names-what-it-rejected` to mean something
     laxer has a green check and no guard at all, and the check reads exactly the same. The
-    tree's own vocabulary always wins over a package's (that is bom's precedence rule, and it
+    tree's own vocabulary always wins over a package's (that is quern's precedence rule, and it
     is the right rule), which is precisely why "we did not use it here" is worth pinning.
     """
     tree = build()

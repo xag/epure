@@ -1,6 +1,6 @@
 """`import epure` pulls in no domain.
 
-bom's own rule — a plain import installs no meaning — applies to every package built on it,
+quern's own rule — a plain import installs no meaning — applies to every package built on it,
 and it is worth a test rather than a comment because the failure is silent: someone adds a
 convenience re-export to `epure/__init__.py`, every consumer starts paying for a vocabulary
 and a set of natives it never asked for, and nothing goes red. The cost lands on whoever
@@ -30,7 +30,7 @@ def test_importing_epure_does_not_even_pull_in_the_substrate():
     out = _in_a_fresh_interpreter("""
         import sys
         import epure
-        leaked = sorted(m for m in sys.modules if m == "bom" or m.startswith("bom."))
+        leaked = sorted(m for m in sys.modules if m == "quern" or m.startswith("quern."))
         print(",".join(leaked))
     """)
     assert out == "", f"`import epure` dragged in {out} — the domain must arrive by a door"
@@ -39,7 +39,7 @@ def test_importing_epure_does_not_even_pull_in_the_substrate():
 def test_importing_epure_registers_no_natives():
     out = _in_a_fresh_interpreter("""
         import epure
-        from bom.tree import NATIVE
+        from quern.tree import NATIVE
         print(",".join(sorted(n for n in NATIVE if n.startswith("model/"))))
     """)
     assert out == "", f"`import epure` registered {out} before anyone asked for it"

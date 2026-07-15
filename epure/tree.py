@@ -15,19 +15,19 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import bom.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
-from bom import Bom, Node
-from bom.library import consume
+import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
+from quern import Quern, Node
+from quern.library import consume
 
 _ROOT = Path(__file__).resolve().parents[1]
 
 
-def build() -> Bom:
-    lib, refs = consume(_ROOT, os.environ.get("BOM_REGISTRY", _ROOT.parent / "bom-registry"))
-    bom = Bom(packages=[next(r for r in refs if r.name == "ledger")])
-    bom = lib.effective(bom)
-    bom.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _EXPLICIT_STATE_SUFFICES]
-    return bom
+def build() -> Quern:
+    lib, refs = consume(_ROOT, os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
+    quern = Quern(packages=[next(r for r in refs if r.name == "ledger")])
+    quern = lib.effective(quern)
+    quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _EXPLICIT_STATE_SUFFICES]
+    return quern
 
 
 # There is deliberately no `gate` node yet. A gate with no `admits` links is vacuously green,

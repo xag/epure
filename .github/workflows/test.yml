@@ -6,11 +6,11 @@
 # nothing that could turn it red for an unrelated reason: a gate that goes red for reasons
 # other than the thing it guards is a gate people learn to ignore.
 #
-# `test` needs the estate: `uv sync` fetches `bom` and `flight-recorder` from git, and
+# `test` needs the estate: `uv sync` fetches `quern` and `flight-recorder` from git, and
 # `epure.check` consumes `ledger@0.1.0` from the sibling registry checkout. While those repos
-# are private, this job needs a read credential — the same constraint bom-registry's own
-# workflow already records ("full validate_package CI needs bom installable here — deferred
-# while bom is a private repo"). Set `ESTATE_READ_TOKEN` (a read-only, contents-scoped
+# are private, this job needs a read credential — the same constraint quern-registry's own
+# workflow already records ("full validate_package CI needs quern installable here — deferred
+# while quern is a private repo"). Set `ESTATE_READ_TOKEN` (a read-only, contents-scoped
 # fine-grained PAT over the estate) and it runs today. When the open repos flip public, the
 # secret stops being needed and this keeps working with the default token: nothing here has
 # to change at launch, which is the point of writing it this way now rather than later.
@@ -48,15 +48,15 @@ jobs:
           token: ${{ secrets.ESTATE_READ_TOKEN || github.token }}
 
       # The registry, as a sibling — the same layout as a developer's machine, so
-      # `epure.check`'s default (`../bom-registry`) is the path in CI too and there is no
+      # `epure.check`'s default (`../quern-registry`) is the path in CI too and there is no
       # CI-only configuration to drift out of step with the real one.
       - uses: actions/checkout@v4
         with:
-          repository: xag/bom-registry
-          path: bom-registry
+          repository: xag/quern-registry
+          path: quern-registry
           token: ${{ secrets.ESTATE_READ_TOKEN || github.token }}
 
-      # uv fetches `bom` and `flight-recorder` over https. A token in the git config is how
+      # uv fetches `quern` and `flight-recorder` over https. A token in the git config is how
       # it reaches them while they are private; harmless, and unused, once they are not.
       - if: env.ESTATE_READ_TOKEN != ''
         run: git config --global url."https://x-access-token:${ESTATE_READ_TOKEN}@github.com/".insteadOf "https://github.com/"

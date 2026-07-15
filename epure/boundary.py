@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from flight_recorder import Boundary
 
-import bom.library
+import quern.library
 
 from epure import tape
 
@@ -30,8 +30,8 @@ def boundary() -> Boundary:
             # Reading the registry, and writing to it. `publish` is where a claim leaves this
             # process and becomes something another project can pin, so it is the effect that
             # matters most: the proof gate runs inside it.
-            (bom.library, ["consume", "sync", "read_lock", "write_lock"]),
-            (bom.library.Library, ["publish", "get", "list"], {"method": True}),
+            (quern.library, ["consume", "sync", "read_lock", "write_lock"]),
+            (quern.library.Library, ["publish", "get", "list"], {"method": True}),
             # The tapes. One function, by construction (see `epure.tape`).
             (tape, ["read_tape"]),
         ],

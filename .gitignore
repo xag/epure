@@ -4,5 +4,5 @@ __pycache__/
 .pytest_cache/
 uv.lock
 
-# synced bom package cache (bom.lock is the source of truth)
-.bom/
+# synced quern package cache (quern.lock is the source of truth)
+.quern/

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sys
 
-from bom import get_node, run_rules
+from quern import get_node, run_rules
 
 from .tree import build
 

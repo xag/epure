@@ -27,7 +27,7 @@ hold them again.
 
 ## This repo names its dependencies and nothing else
 
-It knows `bom` and `flight-recorder`, it publishes through `bom-registry`, and it does not know
+It knows `quern` and `flight-recorder`, it publishes through `quern-registry`, and it does not know
 who uses it — not in the README, not in a docstring, not in a test fixture. `tools/open_ready.py`
 enforces it, and it does so with an allowlist, because a list of the projects we may *not*
 mention would be a list of our consumers sitting in our own source.
