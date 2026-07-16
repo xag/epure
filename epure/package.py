@@ -1,13 +1,16 @@
-"""semantic-model@0.1.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.1.1 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
 (`model/licensed`, `model/total`, `model/refines`) check every tape against it forever. This
-package is neither of those things. It is pure vocabulary and rules — no solvers — exactly as
-`ledger@0.1.0` is: it says what a model IS, and it carries the exprs a model's author writes
-(guards, updates, licenses, invariants) without evaluating any of them. Evaluation is the
-machinery's job; meaning travels first, pinned, so the machinery is built against a digest
-rather than a file that can drift under it.
+package is neither of those things: it says what a model IS, and it carries the exprs a
+model's author writes (guards, updates, licenses, invariants) without evaluating any of them.
+Evaluation is the machinery's job; meaning travels first, pinned, so the machinery is built
+against a digest rather than a file that can drift under it. Since 0.1.1 the four contracts
+travel here too — as DATA (native solver descriptors and per-kind operations, the geometry
+pattern), never as behavior: the implementations are host code, installed by importing
+`epure.prove` and `epure.conformance`, and a native that disagrees with its descriptor's
+contract is the bug.
 
 Three rules, in the house style — each a structural claim a package cannot be published
 without demonstrating and refuting:
@@ -28,7 +31,7 @@ the two shapes it rejected, are in this repo's ledger (`epure/tree.py`).
 
 from __future__ import annotations
 
-from quern import KindDef, Node, Rule
+from quern import KindDef, Node, OperationDef, Rule, SolverDef
 from quern.library import CounterExample, Package
 
 VOCABULARY = [
@@ -41,6 +44,30 @@ VOCABULARY = [
         "proof at design time, refinement/licensing/totality on every tape — is bought here, "
         "at authoring time, and nowhere else. A domain that resists a small finite model is "
         "not a limitation to hide; it is a modeling decision to journal.",
+        operations={
+            "prove": OperationDef(
+                contract="model/prove",
+                description="Exhaustive explicit-state check of every invariant over every "
+                "reachable state — `solve('model/prove', self)` on the model node returns "
+                "the count of refuted invariants. Bounded, never silently: exceeding the "
+                "state cap is a refusal, not a partial pass.",
+                params_doc={"cap": "optional bound on explored states (default 1e6)"}),
+            "total": OperationDef(
+                contract="model/total",
+                description="No raw event escapes semantics: "
+                "`solve('model/total', scenario, 'model')` on a scenario/session node whose "
+                "`model` link names a node of this kind counts the raw boundary events no "
+                "span encloses.",
+                params_doc={"rel": "the link from the scenario to this model"}),
+            "refines": OperationDef(
+                contract="model/refines",
+                description="The semantic trace is a behavior of the model: "
+                "`solve('model/refines', scenario, 'model')` runs this model as an "
+                "automaton over the scenario's top-level spans — args bound from span "
+                "data, guards and domains respected, every invariant re-checked at every "
+                "step — and counts divergences, naming the first divergent span.",
+                params_doc={"rel": "the link from the scenario to this model"}),
+        },
     ),
     KindDef(
         kind="state-var",
@@ -61,6 +88,18 @@ VOCABULARY = [
         "type}) — the data a claiming span carries. Must carry at least one `license` child: "
         "an event-kind is the unit of testimony, and testimony without an evidence "
         "requirement is not checkable, merely recorded.",
+        operations={
+            "licensed": OperationDef(
+                contract="model/licensed",
+                description="Testimony is justified by evidence: "
+                "`solve('model/licensed', scenario, 'model')` on a scenario/session node "
+                "holds every claiming span to this kind's licenses — each license expr "
+                "evaluated with ctx('events') bound to the span's own raw window and the "
+                "declared args bound from its data — and counts the spans convicted. A "
+                "span naming no event-kind of the model counts too: unknown testimony is "
+                "unlicensed by definition.",
+                params_doc={"rel": "the link from the scenario to the enclosing model"}),
+        },
     ),
     KindDef(
         kind="license",
@@ -238,9 +277,34 @@ COUNTER_EXAMPLES = [
 ]
 
 
+# The four contracts of the family, as data a tree pins: descriptors only (native=True, no
+# blob) — the implementations are host code (`epure.prove`, `epure.conformance`), installed
+# by importing the modules, exactly the geometry pattern. The descriptor is the stable
+# surface; whatever honours it may serve it, and a native that disagrees is the bug.
+SOLVERS = [
+    SolverDef(
+        name="model/prove", native=True,
+        description="model |= invariants, established exhaustively over every reachable "
+        "state of the (finite) model at `path`; returns the count of refuted invariants. "
+        "Design-time, once; the artifact a green run emits grounds evidence."),
+    SolverDef(
+        name="model/licensed", native=True,
+        description="(path, rel): count the spans under `path` whose claim their own raw "
+        "events do not justify, per the linked model's licenses — unknown kinds included."),
+    SolverDef(
+        name="model/total", native=True,
+        description="(path, rel): count the raw boundary events under `path` enclosed by "
+        "no span — behavior the linked model does not know exists."),
+    SolverDef(
+        name="model/refines", native=True,
+        description="(path, rel): 0 iff the top-level span trace under `path` is a legal "
+        "path of the linked model; on divergence, 1, naming the first illegal step."),
+]
+
+
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.1.0",
+    version="0.1.1",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -249,10 +313,15 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "with, forever. The package carries exprs and evaluates nothing — meaning "
                 "travels first, pinned, and the machinery is built against the digest. Its "
                 "rules refuse the three ways a model quietly stops describing a system: no "
-                "alphabet, unlicensed testimony, unobservable actions.",
+                "alphabet, unlicensed testimony, unobservable actions. 0.1.1 adds the four "
+                "contracts of the family as data — solver descriptors and per-kind "
+                "operations, so semantics_at answers 'what can be computed here' — and "
+                "changes no kind, rule or example: the meaning is 0.1.0's, now carrying "
+                "its own checkers' contracts.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,
+    solvers=SOLVERS,
     examples=EXAMPLES,
     counter_examples=COUNTER_EXAMPLES,
 )

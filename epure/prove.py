@@ -102,15 +102,16 @@ class Proof(BaseModel):
     violations: list[Violation] = Field(default_factory=list)
 
 
-def _compile(src: str, where: str) -> Callable[[dict[str, Any]], Any]:
-    """One expr, tokenized once, evaluated many times — the walk's inner loop."""
+def _compile(src: str, where: str, env: dict[str, Any] = _ENV) -> Callable[..., Any]:
+    """One expr, tokenized once, evaluated many times — the walk's inner loop. A caller
+    whose environment varies per evaluation (a license's ctx window) passes it at run time."""
     try:
         tokens = _tokenize(src)
     except ValueError as e:
         raise ValueError(f"{where}: {e}") from e
 
-    def run(variables: dict[str, Any]) -> Any:
-        value, pos = _parse_or(tokens, 0, _ENV, variables)
+    def run(variables: dict[str, Any], _env: dict[str, Any] | None = None) -> Any:
+        value, pos = _parse_or(tokens, 0, _env or env, variables)
         if pos != len(tokens):
             raise ValueError(f"{where}: unexpected '{tokens[pos][1]}'")
         return value
