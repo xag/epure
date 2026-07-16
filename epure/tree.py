@@ -29,7 +29,8 @@ def build() -> Quern:
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _OBSERVATION_CHILD,
                            _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE,
-                           _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN, _FAIRNESS_DEBT]
+                           _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN, _FAIRNESS_DEBT,
+                           _TOP_LEVEL_SPANS]
     return quern
 
 
@@ -393,6 +394,47 @@ _OUT_OF_DOMAIN = Node(
                       "Fabricates a state no update computed and proves invariants over "
                       "the fabrication. A checker that invents states proves things about "
                       "its inventions."}),
+    ],
+)
+
+
+_TOP_LEVEL_SPANS = Node(
+    id="refinement-consumes-top-level-spans",
+    kind="decision",
+    name="model/refines consumes only a scenario's top-level spans; nested spans are the "
+         "act's own decomposition, not further transitions",
+    payload={
+        "rationale":
+            "A span tree is testimony at two granularities at once: the top level says WHAT "
+            "semantic acts happened, the nesting says HOW each was carried out. The model's "
+            "alphabet speaks at the first granularity — one action per act — so refinement "
+            "reads exactly that level, and the decomposition stays what it is: evidence, "
+            "held to its own licenses by model/licensed, span by span, at every depth.",
+        "consequence":
+            "An app may nest freely for auditability without every helper span needing an "
+            "action of the model — instrumentation detail cannot force model growth. The "
+            "cost: a genuine sub-transition mistakenly emitted as a nested span is invisible "
+            "to refinement (its parent act testifies for both); it is still licensed, and "
+            "totality still sees its raw events. Sessions refine as one continuous behavior "
+            "— scenarios' top-level spans concatenated in tape order — because the calls of "
+            "one recording ran against one accumulating state.",
+    },
+    children=[
+        Node(id="alt-flatten-all-spans", kind="alternative",
+             name="Refine over the flattening: every span at every depth is a transition",
+             payload={"why":
+                      "Forces the model to declare an action for every decomposition step "
+                      "of every implementation — the model becomes a shadow of the code, "
+                      "which is the exact inversion of the substrate's split: the code "
+                      "refines the model, the model does not transcribe the code. And a "
+                      "refactor that reshuffles helper spans would become a refinement "
+                      "violation with no semantic change."}),
+        Node(id="alt-explicit-depth-marker", kind="alternative",
+             name="Let each span declare whether it is a transition or decomposition",
+             payload={"why":
+                      "A second channel for the instrumentation to lie through, and a "
+                      "decision pushed to every call site forever. Structure already says "
+                      "it: position IS the declaration."}),
     ],
 )
 
