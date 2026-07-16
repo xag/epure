@@ -28,7 +28,8 @@ def build() -> Quern:
     quern = Quern(packages=[next(r for r in refs if r.name == "ledger")])
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _OBSERVATION_CHILD,
-                           _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE]
+                           _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE,
+                           _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN, _FAIRNESS_DEBT]
     return quern
 
 
@@ -294,6 +295,138 @@ _GATE = Node(
             "what it was waiting for: if an ungrounded param ever lands under an admitted "
             "node, nothing-unsound-passes-a-gate goes red and the check exits 1.",
     },
+)
+
+
+_ONE_EVALUATOR = Node(
+    id="one-grammar-one-evaluator",
+    kind="decision",
+    name="model/prove evaluates guards, updates and invariants with quern's own evaluator, "
+         "reached through its private surface at the pinned rev",
+    payload={
+        "rationale":
+            "The exprs a model carries are declared to be in the quern rule grammar, and a "
+            "grammar with two implementations is one text with two meanings — the checker's "
+            "reading and the rule language's reading would drift, and a proof issued under "
+            "the wrong reading is worse than no proof. quern exposes no public compile API, "
+            "so the import is of `_tokenize`/`_parse_or` from the rev pyproject pins: a "
+            "private surface, frozen by the pin, from a repo in the same estate.",
+        "note":
+            "If quern ever grows a public expr-compilation API, this import moves to it and "
+            "the decision is superseded — the point is single evaluation semantics, not the "
+            "underscore.",
+    },
+    children=[
+        Node(id="alt-reimplement-the-grammar", kind="alternative",
+             name="Re-implement the expr grammar inside epure",
+             payload={"why":
+                      "The drift machine itself: every future quern grammar fix would have "
+                      "to be mirrored by hand, and the first missed mirror is a checker that "
+                      "silently reads a guard differently than the rules that compose with "
+                      "its verdicts."}),
+        Node(id="alt-eval-via-run-rules", kind="alternative",
+             name="Stage each expr as a throwaway rule and evaluate through run_rules",
+             payload={"why":
+                      "Public API, and wrong at both ends: a synthetic tree per state per "
+                      "expr turns the walk's inner loop into tree construction, and the expr "
+                      "environment (state variables, action args) would have to be smuggled "
+                      "in as fake params — a contortion that obscures exactly the semantics "
+                      "the checker exists to make plain."}),
+    ],
+)
+
+
+_PRE_STATE = Node(
+    id="updates-read-the-pre-state",
+    kind="decision",
+    name="An action's updates all read the pre-state and apply simultaneously",
+    payload={
+        "rationale":
+            "Simultaneous assignment is the established semantics of every state-machine "
+            "formalism a model here might one day compile to (TLA+'s primed variables, "
+            "guarded commands), and it is the one an author can read off the page: each "
+            "update expr means 'the next value, in terms of the state the action fired "
+            "from', independent of the order the updates are written in.",
+        "consequence":
+            "A swap is two updates ({x: y, y: x}) with no temporary, and reordering a "
+            "payload's update list can never change a model's meaning.",
+    },
+    children=[
+        Node(id="alt-sequential-assignment", kind="alternative",
+             name="Apply updates top to bottom, each seeing the previous one's writes",
+             payload={"why":
+                      "Makes the update list's ORDER load-bearing, invisibly: two models "
+                      "differing only in payload ordering would have different behaviors, "
+                      "and the difference survives every structural diff. Imperative "
+                      "intuition bought at the price of the checker's whole claim to be "
+                      "checking a mathematical object."}),
+    ],
+)
+
+
+_OUT_OF_DOMAIN = Node(
+    id="out-of-domain-is-a-refusal",
+    kind="decision",
+    name="An update that drives a variable outside its domain refuses the whole run — "
+         "never an implicit guard, never a clamp",
+    payload={
+        "rationale":
+            "A domain is the author's claim about what values a variable can hold, and a "
+            "transition that breaks it means the model contradicts itself. Both silent "
+            "readings are worse: an implicit guard quietly prunes exactly the behaviors the "
+            "author most needs to know exist (the turnstile's 'coins < 3' guard is the "
+            "author saying out loud what happens at the bound), and a clamp fabricates a "
+            "state the updates never computed. The refusal names the action and binding, so "
+            "the fix is one edit away.",
+    },
+    children=[
+        Node(id="alt-implicit-guard", kind="alternative",
+             name="Treat an out-of-domain successor as the action being disabled",
+             payload={"why":
+                      "TLA+'s own convention, and honest there because the type invariant "
+                      "is stated and checked. Here it would make the domain bound a silent "
+                      "extra conjunct of every guard — a proof could hold precisely because "
+                      "the interesting transition was pruned, and nothing would say so."}),
+        Node(id="alt-clamp", kind="alternative",
+             name="Saturate at the domain edge",
+             payload={"why":
+                      "Fabricates a state no update computed and proves invariants over "
+                      "the fabrication. A checker that invents states proves things about "
+                      "its inventions."}),
+    ],
+)
+
+
+_FAIRNESS_DEBT = Node(
+    id="fairness-is-inexpressible",
+    kind="debt",
+    name="model/prove v0 has no fairness assumptions — and safety checking cannot miss them",
+    params={
+        # Ungrounded on purpose: nothing establishes that zero fairness vocabulary is
+        # enough; the explicit-state hypothesis carries the falsification that would.
+        "fairness_kinds": Quantity(
+            value=0, unit="kind", provenance="asserted", grounded=False,
+            source="no weak/strong fairness can be declared on an action; irrelevant to "
+                   "safety verdicts, load-bearing the day a liveness predicate arrives"),
+    },
+    payload={
+        "note":
+            "Fairness only matters to liveness — an unfair path can postpone progress "
+            "forever but cannot reach a state a fair one could not — so v0's safety-only "
+            "verdicts are complete without it. Recorded now because the day the temporal "
+            "backend lands, a liveness claim proven WITHOUT fairness assumptions is "
+            "usually vacuously false, and whoever builds it must find this waiting.",
+    },
+    children=[
+        Node(id="fairness-ships-with-the-temporal-backend", kind="discharge",
+             payload={
+                 "condition":
+                     "The temporal backend (the discharge of "
+                     "temporal-predicates-are-inexpressible) ships fairness annotations "
+                     "with its first liveness predicate, and grounds the param above with "
+                     "what can then be declared.",
+             }),
+    ],
 )
 
 

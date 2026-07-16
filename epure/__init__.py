@@ -16,7 +16,8 @@ Verification then splits into two obligations of different character:
 
 A plain `import epure` pulls in no domain: no vocabulary is registered, no natives are
 installed, nothing is read from disk. The subpackages are the doors — `epure.tree` for this
-repo's own design ledger, `epure.tape` for the one IO seam — and each costs only what the
+repo's own design ledger, `epure.tape` for the one IO seam, `epure.prove` for the design-time
+checker (importing it registers the `model/prove` native) — and each costs only what the
 caller asked for. The substrate learned this the hard way and it is not a style preference:
 a library that installs meaning at import time makes every consumer pay for a domain it may
 never touch.

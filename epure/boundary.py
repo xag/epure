@@ -18,6 +18,7 @@ from __future__ import annotations
 from flight_recorder import Boundary
 
 import quern.library
+import quern.solver
 
 from epure import tape
 
@@ -34,5 +35,10 @@ def boundary() -> Boundary:
             (quern.library.Library, ["publish", "get", "list"], {"method": True}),
             # The tapes. One function, by construction (see `epure.tape`).
             (tape, ["read_tape"]),
+            # The blob store. Every content-addressed write — a proof artifact leaving
+            # `epure.prove.attest`, a solver blob entering a library — lands through this
+            # one function, declared at the module that owns it so patching the seam
+            # catches every caller.
+            (quern.solver, ["save_blob"]),
         ],
     )
