@@ -18,7 +18,7 @@ dependencies = [
 # over resolver algebra: a range would let the meaning of a pinned package drift under a
 # repo whose whole subject is that meanings do not drift.
 quern = { git = "https://github.com/xag/quern", rev = "edd0d31" }
-flight-recorder = { git = "https://github.com/xag/flight-recorder", rev = "b6e3ab4" }
+flight-recorder = { git = "https://github.com/xag/flight-recorder", rev = "1f71003" }
 
 [dependency-groups]
 dev = [
