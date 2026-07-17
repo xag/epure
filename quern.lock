@@ -12,8 +12,8 @@
     },
     {
       "name": "semantic-model",
-      "version": "0.1.1",
-      "sha256": "7fc53dbba504b0dbee2174433281614817f1843b5ecf4cffacf3db919193093a"
+      "version": "0.2.0",
+      "sha256": "712cef7e76fb6030bd3b6256d630f2db3a790c1f279294c0a8505b10112a06d3"
     }
   ]
 }

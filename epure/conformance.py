@@ -5,7 +5,9 @@ still the thing the model describes. Never proven, so checked on *every* executi
 a different angle:
 
 - **model/licensed** — testimony is justified by evidence: every span's claim is convicted or
-  acquitted by the raw boundary events beneath it, per its event-kind's license.
+  acquitted by raw boundary events, per its event-kind's license — its own window by default,
+  or evidence NAMED along its lineage (`evidence(pattern, 'enclosing')`): a wider gaze must
+  name what it looks for, or widening would quietly license everything.
 - **model/total** — no raw event escapes semantics: a boundary exchange no span encloses is
   something the system did that the model does not know it can do. The strongest and
   easiest-to-skip check; silence is a lie.
@@ -40,6 +42,7 @@ event-kind enables two actions at once is reported, not guessed about.
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from typing import Any, Callable
 
 from pydantic import BaseModel, Field
@@ -143,40 +146,73 @@ def _normalize(value: Any) -> Any:
 # --- model/licensed: testimony is justified by evidence -------------------------------
 
 
+def _named(event: dict[str, Any]) -> str:
+    """A raw event's name, as the estate already reads one: the called function for an
+    effect, the operation for a store exchange, the kind for everything else."""
+    return str(event.get("fn") or event.get("op") or event.get("k") or "")
+
+
 def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
-    """How many spans under `path` claim more than their own raw events justify.
+    """How many spans under `path` claim more than the evidence their licenses name.
 
     Every testimony node — top-level acts, nested decomposition, points alike — is held to
-    its event-kind's licenses: each license expr is evaluated with `ctx('events')` bound to
-    the span's OWN raw window and the event's declared args bound from the span's data. A
-    kind naming no event-kind of the model counts too: unknown testimony is unlicensed by
+    its event-kind's licenses, each expr evaluated with the event's declared args bound from
+    the span's data and two evidence readers in the environment:
+
+    - `ctx('events')` — the claiming span's OWN raw window, exactly as in v0.
+    - `evidence(pattern, scope='own')` — the raw events whose name (fn / op / k) matches the
+      fnmatch `pattern`; scope `'enclosing'` widens the pool to the claim's lineage: its own
+      window plus every raw event a testimony ancestor directly encloses, outermost first.
+
+    The cut is deliberate: a license may look beyond its own window ONLY by naming what it
+    looks for — a bare count over an ancestor's window would be satisfied by any unrelated
+    I/O above the claim, which is the `true` expr with extra steps. Structural nodes
+    contribute nothing to any lineage: raw events parked on a scenario are totality
+    violations, and behavior the model does not know exists must never license a claim.
+
+    A kind naming no event-kind of the model counts too: unknown testimony is unlicensed by
     definition. Each offending span counts once, whatever the number of its failures.
     """
-    _, model = _confront(tree, path, rel)
+    node, model = _confront(tree, path, rel)
     alphabet = _events(model)
     diagnostics: list[str] = []
-    for p, span in tree.walk(path):
-        if span.kind in _STRUCTURE:
-            continue
+
+    def judge(p: str, span: Node, lineage: list[dict[str, Any]]) -> None:
         entry = alphabet.get(span.kind)
         if entry is None:
             diagnostics.append(f"{p}: '{span.kind}' names no event-kind of the model — "
                                "unknown testimony is unlicensed by definition")
-            continue
+            return
         data = span.payload.get("data") or {}
         missing = [a for a in entry["args"] if a not in data]
         if missing:
             diagnostics.append(f"{p}: '{span.kind}' claims without its declared "
                                f"arg(s) {missing} — the testimony is not even well-formed")
-            continue
+            return
         window = span.payload.get("events") or []
 
-        def ctx(name: str, _w=window):
+        def ctx(name: str, scope: str | None = None, _w=window):
+            if scope is not None:
+                raise ValueError("ctx sees the claiming span's own raw events and nothing "
+                                 "else — a license that reaches beyond its own window "
+                                 "names its evidence: evidence(pattern, 'enclosing')")
             if name != "events":
                 raise ValueError(f"nothing named '{name}' in a license's context — "
                                  "it sees the claiming span's raw events and nothing else")
             return _w
-        env = {**_ENV, "ctx": ctx}
+
+        def evidence(pattern: str, scope: str = "own", _w=window, _lineage=lineage):
+            if scope == "own":
+                pool = _w
+            elif scope == "enclosing":
+                pool = _lineage + _w
+            else:
+                raise ValueError(f"unknown evidence scope '{scope}' — a license looks in "
+                                 "'own' (the claiming span's window) or 'enclosing' "
+                                 "(its window plus its testimony ancestors')")
+            return [e for e in pool if fnmatch(_named(e), pattern)]
+
+        env = {**_ENV, "ctx": ctx, "evidence": evidence}
         variables = {**{a: data[a] for a in entry["args"]}, **_LITERALS}
         for lid, expr in entry["licenses"]:
             try:
@@ -186,9 +222,23 @@ def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                                    f"evaluated against this claim: {e}")
                 break
             if not ok:
-                diagnostics.append(f"{p}: '{span.kind}' license '{lid}' is not satisfied "
-                                   f"by the {len(window)} raw event(s) the span encloses")
+                diagnostics.append(
+                    f"{p}: '{span.kind}' license '{lid}' is not satisfied by the "
+                    f"{len(window)} raw event(s) the span encloses "
+                    f"({len(lineage)} more along its lineage)")
                 break
+
+    def walk(p: str, span: Node, lineage: list[dict[str, Any]]) -> None:
+        if span.kind in _STRUCTURE:
+            for c in span.children:
+                walk(f"{p}/{c.id}", c, [])
+            return
+        judge(p, span, lineage)
+        below = lineage + (span.payload.get("events") or [])
+        for c in span.children:
+            walk(f"{p}/{c.id}", c, below)
+
+    walk(path, node, [])
     return Conformance(check="model/licensed", violations=len(diagnostics),
                        diagnostics=diagnostics)
 

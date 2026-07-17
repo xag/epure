@@ -30,7 +30,7 @@ def build() -> Quern:
     quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _OBSERVATION_CHILD,
                            _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE,
                            _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN, _FAIRNESS_DEBT,
-                           _TOP_LEVEL_SPANS]
+                           _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT]
     return quern
 
 
@@ -467,6 +467,110 @@ _FAIRNESS_DEBT = Node(
                      "temporal-predicates-are-inexpressible) ships fairness annotations "
                      "with its first liveness predicate, and grounds the param above with "
                      "what can then be declared.",
+             }),
+    ],
+)
+
+
+_WIDER_GAZE = Node(
+    id="a-wider-gaze-names-its-evidence",
+    kind="decision",
+    name="A license reaches beyond the claiming span's own window only by naming what it "
+         "looks for: evidence(pattern, scope), never a bare count over an ancestor's window",
+    payload={
+        "rationale":
+            "An emission's evidence is very often not inside it. A derived, instantaneous "
+            "act — 'the pick was shown', 'a day ticked over' — encloses nothing by "
+            "construction, and the read that justifies it happened in the act that produced "
+            "it, one level up. Under the v0 own-window-only contract the licensable set was "
+            "'testimony that did its own I/O', when the promise is 'testimony anchored to "
+            "evidence'; sibling acts derived from one read competed for the one innermost "
+            "span that owned it, and the winner was decided by nesting order, not evidence. "
+            "But the invariant that made v0 draw the cut tight still binds: silence is a "
+            "lie, and a license that licenses anything is the `true` expr with extra steps. "
+            "So the widening is asymmetric: `ctx('events')` stays exactly v0 (the own "
+            "window, where a bare count is an honest 'I did I/O'), and the only way to look "
+            "wider is `evidence(pattern, 'enclosing')` — a named pattern over the claim's "
+            "lineage (its own window plus every raw event a testimony ancestor directly "
+            "encloses). Naming is what keeps the check alive at width: unrelated ancestor "
+            "I/O matches no pattern, and a claim with no matching evidence anywhere along "
+            "its lineage is still convicted. Scopes are monotone (enclosing contains own), "
+            "so widening a license can never convict a claim the narrow scope acquits; "
+            "structural nodes contribute nothing to any lineage — a raw event parked on a "
+            "scenario is a totality violation, and behavior the model does not know exists "
+            "must never license a claim.",
+        "consequence":
+            "Points need no special casing: a point's own window is empty and its license "
+            "names its evidence one level up — the delegation is written in the license, "
+            "where a reader can refute it, not wired into the checker. Naming also "
+            "sharpens own-window licenses for free: a span wrapping the WRONG I/O is now "
+            "convicted where a bare count acquitted it.",
+    },
+    children=[
+        Node(id="alt-blanket-enclosing-scope", kind="alternative",
+             name="Give ctx a scope argument: ctx('events', 'enclosing') sees the "
+                  "ancestors' windows",
+             payload={"why":
+                      "Symmetric and simple, and it dissolves the check it widens: the "
+                      "idiomatic license is a count, and a count over an ancestor's window "
+                      "is satisfied by ANY unrelated I/O above the claim — every "
+                      "unfalsifiable claim in the estate quietly goes green. The refusal "
+                      "is enforced, not advised: ctx with a scope argument raises, and the "
+                      "message names the road that is open."}),
+        Node(id="alt-point-delegates", kind="alternative",
+             name="A point's evidence IS its enclosing span's window, by definition of "
+                  "being a point",
+             payload={"why":
+                      "The narrow fix, and implicit: the author never says where the "
+                      "evidence lives, so the delegation cannot be refuted by reading the "
+                      "model. It fixes only points (sibling SPANS derived from one read "
+                      "still compete for it), and at top level it delegates to structure, "
+                      "whose parked events are totality violations licensing claims."}),
+        Node(id="alt-explicit-licensor", kind="alternative",
+             name="An act declares which other claim licenses it, and the link is checked",
+             payload={"why":
+                      "A second channel for the instrumentation to lie through — 'I am "
+                      "licensed by that span over there' is itself unlicensed testimony — "
+                      "and a placement decision pushed to every call site forever. The "
+                      "license already knows what evidence justifies the kind; making each "
+                      "emission repeat it invites the copies to disagree."}),
+    ],
+)
+
+
+_DIRECTION_DEBT = Node(
+    id="license-direction-is-blind",
+    kind="debt",
+    name="A license is satisfied by evidence anywhere in scope — before or after the "
+         "claim; no direction can be expressed",
+    params={
+        # Ungrounded on purpose: nothing establishes that zero directional vocabulary is
+        # enough — the first license that genuinely needs before/after grounds it or
+        # discharges the debt.
+        "directions_expressible": Quantity(
+            value=0, unit="direction", provenance="asserted", grounded=False,
+            source="evidence(pattern, scope) filters by name only; 'the write landed' "
+                   "(a following write) and 'the shown pick was read first' (a preceding "
+                   "read) compile to the same expr"),
+    },
+    payload={
+        "note":
+            "Decided out loud, not overlooked: the tape defines enclosure by order, but "
+            "the span tree separates a node's own events from its children, so a point's "
+            "position among its parent's raw events does not survive import — a "
+            "directional license would be judged against an order the judged object no "
+            "longer carries. Blind is honest; pretending to direction against lost "
+            "interleaving would convict and acquit by accident.",
+    },
+    children=[
+        Node(id="direction-ships-with-interleaving", kind="discharge",
+             payload={
+                 "condition":
+                     "The importer preserves the interleaving of a span's own events and "
+                     "its children (a positional index on both), and evidence() grows a "
+                     "direction — built when the first consumer's license genuinely needs "
+                     "before/after, not before. Whoever builds it grounds the param above "
+                     "with what can then be declared.",
              }),
     ],
 )

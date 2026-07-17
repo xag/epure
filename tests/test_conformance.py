@@ -103,6 +103,78 @@ def test_nested_spans_are_licensed_at_every_depth(tmp_path):
     assert "s0/s0" in verdict.diagnostics[0]
 
 
+# --- evidence beyond the claiming span's own window --------------------------------------
+
+
+_SENSOR = {"k": "fx", "fn": "sensor.read", "args": [], "kwargs": {}, "res": 1}
+_TALLY = _sem("passage-counted", "point", 3, data={})
+
+
+def test_a_derived_point_is_licensed_by_its_ancestors_read(tmp_path):
+    # the instantaneous act encloses nothing; its license names the sensor read one level
+    # up — and the point stays decomposition: refinement never sees it
+    ride = _COIN + [_sem("push", "begin", 2), _SENSOR, _TALLY,
+                    _sem("push", "end", 2, outcome="ok")]
+    tree = _tree(tmp_path, ride)
+    assert licensed(tree, "session", "model").violations == 0
+    assert refines(tree, "session", "model").violations == 0
+
+
+def test_sibling_acts_derived_from_one_read_are_all_licensed(tmp_path):
+    # v0's mutual exclusion dissolves: one read, two claims above it, both acquitted
+    ride = _COIN + [_sem("push", "begin", 2), _SENSOR,
+                    _sem("passage-counted", "point", 3, data={}),
+                    _sem("passage-counted", "point", 4, data={}),
+                    _sem("push", "end", 2, outcome="ok")]
+    assert licensed(_tree(tmp_path, ride), "session", "model").violations == 0
+
+
+def test_a_claim_with_no_evidence_anywhere_still_goes_red(tmp_path):
+    # the widening did not dissolve the check: no sensor.read along the lineage, convicted
+    verdict = licensed(_tree(tmp_path, _COIN + _PUSH + [_TALLY]), "session", "model")
+    assert verdict.violations == 1
+    assert "passage-counted-license" in verdict.diagnostics[0]
+
+
+def test_unrelated_ancestor_io_does_not_license_a_named_claim(tmp_path):
+    # nested under coin, whose window holds an acceptor.read: I/O above the claim, and the
+    # wrong I/O — a bare enclosing count would acquit here, which is why it is not offered
+    ride = [_sem("coin", "begin", 1),
+            {"k": "fx", "fn": "acceptor.read", "args": [], "kwargs": {}, "res": 1},
+            _TALLY,
+            _sem("coin", "end", 1, outcome="ok")] + _PUSH
+    verdict = licensed(_tree(tmp_path, ride), "session", "model")
+    assert verdict.violations == 1
+    assert "passage-counted-license" in verdict.diagnostics[0]
+
+
+def test_a_span_wrapping_the_wrong_io_is_convicted(tmp_path):
+    # naming sharpens the own window too: a coin span enclosing a sensor read counted
+    # under v0's bare len(ctx('events')) — now the acceptor is named, so it convicts
+    wrong = [_sem("coin", "begin", 1), _SENSOR, _sem("coin", "end", 1, outcome="ok")]
+    verdict = licensed(_tree(tmp_path, wrong + _PUSH), "session", "model")
+    assert verdict.violations == 1
+    assert "coin-license" in verdict.diagnostics[0]
+
+
+def test_orphan_raw_events_never_license(tmp_path):
+    # the sensor read is enclosed by NO span: totality's violation must not double as
+    # licensing's evidence — behavior the model does not know exists licenses nothing
+    tree = _tree(tmp_path, _COIN + _PUSH + [_SENSOR, _TALLY])
+    assert licensed(tree, "session", "model").violations == 1
+    assert total(tree, "session", "model").violations == 1
+
+
+def test_a_wider_gaze_through_ctx_is_refused_with_the_road_named(tmp_path):
+    tree = _tree(tmp_path, _COIN + _PUSH)
+    model = tree.root.children[0]
+    model.child("coin").child("coin-license").payload["expr"] = \
+        "len(ctx('events', 'enclosing')) >= 1"
+    verdict = licensed(tree, "session", "model")
+    assert verdict.violations == 1
+    assert "names its evidence" in verdict.diagnostics[0]
+
+
 # --- model/total -------------------------------------------------------------------------
 
 
