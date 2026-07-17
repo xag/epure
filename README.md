@@ -9,7 +9,10 @@ centuries before anyone wrote a model checker.
 
 Here the drawing is a **semantic model** — a small, finite mathematical object: state
 variables, actions with guards and updates, invariants. The piece is a running program that
-**testifies**, on its own recording, which semantic acts it just performed. Verification then
+**testifies**, on its own recording, which semantic acts it just performed — the recording
+being a [flight-recorder](https://github.com/xag/flight-recorder) *tape*: one file per
+request logging every database answer, HTTP response, clock read and random draw, with the
+app's named acts written in-stream above those raw events. Verification then
 splits into two obligations, and the point of the split is that they are not the same kind of
 thing at all:
 
@@ -81,8 +84,10 @@ three lines, because a boundary retrofitted after the IO has spread is an archae
 
 ## What this depends on
 
-`quern` (the substrate: meaning is data, rules are data, and a package must demonstrate itself
-to be published) and `flight-recorder` (the tape, and its frozen shape). Both pinned by rev,
+[`quern`](https://github.com/xag/quern) (rules and vocabulary kept as data, published as
+versioned packages that must demonstrate themselves) and
+[`flight-recorder`](https://github.com/xag/flight-recorder) (the tape, and its frozen
+shape). Both pinned by rev,
 always — a repo whose whole subject is that meanings do not drift does not resolve its own
 dependencies by range.
 
