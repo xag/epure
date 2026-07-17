@@ -27,10 +27,10 @@ def build() -> Quern:
     lib, refs = consume(_ROOT, os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
     quern = Quern(packages=[next(r for r in refs if r.name == "ledger")])
     quern = lib.effective(quern)
-    quern.root.children = [_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST, _OBSERVATION_CHILD,
-                           _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT, _PUBLISH, _GATE,
-                           _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN, _FAIRNESS_DEBT,
-                           _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT]
+    quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
+                           _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT,
+                           _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
+                           _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT]
     return quern
 
 
@@ -69,6 +69,43 @@ _NAME = Node(
                       "promises more than the thing does is a name that will be quoted back "
                       "at us the first time a proven model turns out to be wrong about the "
                       "world -- which it will be, and which the substrate says out loud."}),
+    ],
+)
+
+
+_DIST_NAME = Node(
+    id="the-dist-name-is-epure-py",
+    kind="decision",
+    name="The PyPI dist name is epure-py, settled before any adopter asks: "
+         "`pip install epure-py`, `import epure`",
+    payload={
+        "rationale":
+            "PyPI's `epure` has been another project's name for years (62 releases; a "
+            "real package, not a squatter, so the name will not fall to a reclaim). "
+            "Dist name and import name are independent, so the drawing keeps its word "
+            "where it matters — in the code — and the dist takes the opencv-python "
+            "convention: base name plus language marker, zero cleverness to defend. "
+            "Settled now, ahead of any pull, because a name chosen under adopter "
+            "pressure is chosen badly and a free name does not stay free (the estate "
+            "ledger's names-reserve-ahead-of-pull records the same call for the whole "
+            "fleet).",
+        "consequence":
+            "The name is reserved on PyPI the day a credential exists; no dist ships "
+            "until someone asks for one — today's consumers pin the repo by rev and "
+            "lose nothing. The decision is the artifact here, not a release.",
+    },
+    children=[
+        Node(id="alt-pyepure", kind="alternative",
+             name="pyepure — the py-prefix register (pytest, pydantic)",
+             payload={"why":
+                      "Reads as its own project rather than as the distribution of "
+                      "this one; the suffix form says plainly 'epure, for Python'."}),
+        Node(id="alt-wait-for-an-adopter", kind="alternative",
+             name="Leave the dist name open until an adopter asks for pip install",
+             payload={"why":
+                      "The name is the one part of a dist that cannot be produced on "
+                      "demand without risk: free names get taken, and deciding costs "
+                      "nothing today. Only the release waits for pull."}),
     ],
 )
 
