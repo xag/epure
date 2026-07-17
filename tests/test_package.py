@@ -1,4 +1,4 @@
-"""semantic-model@0.1.0 is what the lock says it is, and it still demonstrates itself.
+"""semantic-model is what the lock says it is, and it still demonstrates itself.
 
 Two different failures are guarded here. The digest test catches DRIFT: someone edits
 `epure/package.py` after publication, and the authored content quietly stops being the

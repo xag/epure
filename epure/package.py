@@ -1,4 +1,4 @@
-"""semantic-model@0.1.1 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.2.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -10,7 +10,10 @@ against a digest rather than a file that can drift under it. Since 0.1.1 the fou
 travel here too — as DATA (native solver descriptors and per-kind operations, the geometry
 pattern), never as behavior: the implementations are host code, installed by importing
 `epure.prove` and `epure.conformance`, and a native that disagrees with its descriptor's
-contract is the bug.
+contract is the bug. 0.2.0 restates the license contract: evidence may be named beyond the
+claiming span's own window (`evidence(pattern, 'enclosing')`), because an instantaneous
+act encloses nothing and was unlicensable by construction — the debt the 0.1.x license
+KindDef carried as "richer window predicates arrive as natives", now due and paid.
 
 Three rules, in the house style — each a structural claim a package cannot be published
 without demonstrating and refuting:
@@ -94,23 +97,31 @@ VOCABULARY = [
                 description="Testimony is justified by evidence: "
                 "`solve('model/licensed', scenario, 'model')` on a scenario/session node "
                 "holds every claiming span to this kind's licenses — each license expr "
-                "evaluated with ctx('events') bound to the span's own raw window and the "
-                "declared args bound from its data — and counts the spans convicted. A "
-                "span naming no event-kind of the model counts too: unknown testimony is "
-                "unlicensed by definition.",
+                "evaluated with the declared args bound from the span's data, ctx('events') "
+                "bound to its own raw window, and evidence(pattern, scope) reading named "
+                "events from that window or, with scope 'enclosing', from its lineage — "
+                "and counts the spans convicted. A span naming no event-kind of the model "
+                "counts too: unknown testimony is unlicensed by definition.",
                 params_doc={"rel": "the link from the scenario to the enclosing model"}),
         },
     ),
     KindDef(
         kind="license",
         description="The observation that justifies an emission of its parent event-kind: a "
-        "predicate over the raw boundary events enclosed by the claiming span. Payload: "
-        "`expr` (rule grammar; its environment provides ctx('events') — the enclosed raw "
-        "events, in order — plus the event's args as variables) and `note` (prose: what the "
-        "evidence means). This package carries the expr and never evaluates it — evaluation "
-        "is `model/licensed`'s contract, and richer window predicates arrive as natives "
-        "behind solve(). The move is the same one `ledger@`'s falsification.expr makes: "
-        "prose that can already fire.",
+        "predicate over raw boundary events. Payload: `expr` (rule grammar) and `note` "
+        "(prose: what the evidence means). The expr's environment provides the event's args "
+        "as variables and two evidence readers: `ctx('events')` — the claiming span's own "
+        "raw window, in order — and `evidence(pattern, scope)` — the events whose name "
+        "(fn / op / k) matches the fnmatch pattern, where scope 'own' (default) is that "
+        "same window and 'enclosing' is the claim's lineage: its window plus every raw "
+        "event a testimony ancestor directly encloses. The cut: a license may look beyond "
+        "its own window ONLY by naming what it looks for — an instantaneous act's evidence "
+        "usually lives one level up, in the act that produced it, but a bare count over an "
+        "ancestor's window would be satisfied by any unrelated I/O, which is no license at "
+        "all. Direction-blind: evidence anywhere in scope satisfies, before or after the "
+        "claim. This package carries the expr and never evaluates it — evaluation is "
+        "`model/licensed`'s contract. The move is the same one `ledger@`'s "
+        "falsification.expr makes: prose that can already fire.",
     ),
     KindDef(
         kind="action",
@@ -194,19 +205,33 @@ EXAMPLES = [
                  payload={"args": {}},
                  children=[
                      Node(id="coin-license", kind="license",
-                          payload={"expr": "len(ctx('events')) >= 1",
-                                   "note": "the claiming span encloses at least one raw "
-                                           "exchange with the coin acceptor; sharpened to "
-                                           "name the acceptor's endpoint when the window "
-                                           "predicates land as natives"}),
+                          payload={"expr": "len(evidence('acceptor.read')) >= 1",
+                                   "note": "the claiming span encloses a raw exchange "
+                                           "with the coin acceptor — named, so a span "
+                                           "wrapping the wrong I/O is convicted, not "
+                                           "counted"}),
                  ]),
             Node(id="push", kind="event-kind",
                  payload={"args": {}},
                  children=[
                      Node(id="push-license", kind="license",
-                          payload={"expr": "len(ctx('events')) >= 1",
-                                   "note": "the claiming span encloses at least one raw "
-                                           "reading from the rotation sensor"}),
+                          payload={"expr": "len(evidence('sensor.read')) >= 1",
+                                   "note": "the claiming span encloses a raw reading "
+                                           "from the rotation sensor"}),
+                 ]),
+            Node(id="passage-counted", kind="event-kind",
+                 payload={"args": {}},
+                 children=[
+                     Node(id="passage-counted-license", kind="license",
+                          payload={"expr": "len(evidence('sensor.read', 'enclosing')) >= 1",
+                                   "note": "the derived, instantaneous act: the tally "
+                                           "increments because the rotation sensor read a "
+                                           "passage, but the read happened in the act that "
+                                           "detected it, one level up — a point encloses "
+                                           "nothing, so its license names the evidence and "
+                                           "looks along its lineage. Decomposition, not a "
+                                           "transition: it nests under the push that "
+                                           "counted it and no action witnesses it"}),
                  ]),
             Node(id="insert-coin", kind="action",
                  payload={"guard": "state == 'locked' and coins < 3",
@@ -289,8 +314,9 @@ SOLVERS = [
         "Design-time, once; the artifact a green run emits grounds evidence."),
     SolverDef(
         name="model/licensed", native=True,
-        description="(path, rel): count the spans under `path` whose claim their own raw "
-        "events do not justify, per the linked model's licenses — unknown kinds included."),
+        description="(path, rel): count the spans under `path` whose claim the evidence "
+        "their licenses name does not justify — own window by default, named evidence "
+        "along the lineage via evidence(pattern, 'enclosing') — unknown kinds included."),
     SolverDef(
         name="model/total", native=True,
         description="(path, rel): count the raw boundary events under `path` enclosed by "
@@ -304,7 +330,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.1.1",
+    version="0.2.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -313,11 +339,14 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "with, forever. The package carries exprs and evaluates nothing — meaning "
                 "travels first, pinned, and the machinery is built against the digest. Its "
                 "rules refuse the three ways a model quietly stops describing a system: no "
-                "alphabet, unlicensed testimony, unobservable actions. 0.1.1 adds the four "
-                "contracts of the family as data — solver descriptors and per-kind "
-                "operations, so semantics_at answers 'what can be computed here' — and "
-                "changes no kind, rule or example: the meaning is 0.1.0's, now carrying "
-                "its own checkers' contracts.",
+                "alphabet, unlicensed testimony, unobservable actions. 0.2.0 pays the "
+                "license KindDef's standing debt: an instantaneous act encloses nothing, so "
+                "under the own-window-only contract it was unlicensable by construction — "
+                "now a license reaches beyond its own window by NAMING its evidence "
+                "(evidence(pattern, 'enclosing')), and only so: a bare count over an "
+                "ancestor's window would license anything, which is no license at all. The "
+                "turnstile grows the derived act (passage-counted) that exercises this; "
+                "kinds and rules are otherwise 0.1.1's.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,
