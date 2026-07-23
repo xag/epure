@@ -6,14 +6,11 @@
 # nothing that could turn it red for an unrelated reason: a gate that goes red for reasons
 # other than the thing it guards is a gate people learn to ignore.
 #
-# `test` needs the estate: `uv sync` fetches `quern` and `flight-recorder` from git, and
-# `epure.check` consumes `ledger@0.1.0` from the sibling registry checkout. While those repos
-# are private, this job needs a read credential — the same constraint quern-registry's own
-# workflow already records ("full validate_package CI needs quern installable here — deferred
-# while quern is a private repo"). Set `ESTATE_READ_TOKEN` (a read-only, contents-scoped
-# fine-grained PAT over the estate) and it runs today. When the open repos flip public, the
-# secret stops being needed and this keeps working with the default token: nothing here has
-# to change at launch, which is the point of writing it this way now rather than later.
+# `test` needed the estate when quern and flight-recorder were private and the vocabulary came
+# from a sibling registry checkout. Both conditions are gone: those repos are public, and the
+# pinned packages are committed under .quern/library. ESTATE_READ_TOKEN is still honoured where
+# it is set (uv's git fetches), and nothing here requires it — which is what the original note
+# promised would happen at launch, arriving one failure late.
 name: tests
 
 on:
@@ -47,14 +44,12 @@ jobs:
           path: epure
           token: ${{ secrets.ESTATE_READ_TOKEN || github.token }}
 
-      # The registry, as a sibling — the same layout as a developer's machine, so
-      # `epure.check`'s default (`../quern-registry`) is the path in CI too and there is no
-      # CI-only configuration to drift out of step with the real one.
-      - uses: actions/checkout@v4
-        with:
-          repository: xag/quern-registry
-          path: quern-registry
-          token: ${{ secrets.ESTATE_READ_TOKEN || github.token }}
+      # NO REGISTRY CHECKOUT. It used to clone xag/quern-registry as a sibling, matching a
+      # developer's layout — and that registry is frozen at ledger@0.4.1, so from the repin
+      # onward every run failed with "ledger@0.5.0 (pinned) is not in the library". The pinned
+      # packages are committed under .quern/library now, so the layout that matters is the one
+      # inside the repo: consume() falls back to the cache when no registry is reachable, which
+      # is also what a developer gets on a laptop with no sibling checkout.
 
       # uv fetches `quern` and `flight-recorder` over https. A token in the git config is how
       # it reaches them while they are private; harmless, and unused, once they are not.
