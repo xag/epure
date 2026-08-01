@@ -370,6 +370,8 @@ def refines_count(tree: Quern | TreeStore, path: str, rel: str) -> float:
     return float(refines(tree, path, rel).violations)
 
 
-register_native("model/licensed", licensed_count)
-register_native("model/total", total_count)
-register_native("model/refines", refines_count)
+from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
+
+register_native("model/licensed", licensed_count, SEMANTIC_MODEL_SPEC["model/licensed"])
+register_native("model/total", total_count, SEMANTIC_MODEL_SPEC["model/total"])
+register_native("model/refines", refines_count, SEMANTIC_MODEL_SPEC["model/refines"])

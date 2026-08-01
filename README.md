@@ -2,55 +2,28 @@
 
 **What does it mean, and will it always hold.**
 
-An *épure* is the stonecutter's full-scale working drawing. The mason does not cut the block
-and then wonder whether it fits: the geometry is settled on the drawing first, and the piece
-is cut to it and checked against it. That is the whole idea, and the trade had it four
-centuries before anyone wrote a model checker.
+An *épure* is the stonecutter's full-scale working drawing. The mason does not cut the block and then wonder whether it fits: the geometry is settled on the drawing first, and the piece is cut to it and checked against it. That is the whole idea, and the trade had it four centuries before anyone wrote a model checker.
 
-Here the drawing is a **semantic model** — a small, finite mathematical object: state
-variables, actions with guards and updates, invariants. The piece is a running program that
-**testifies**, on its own recording, which semantic acts it just performed — the recording
-being a [flight-recorder](https://github.com/xag/flight-recorder) *tape*: one file per
-request logging every database answer, HTTP response, clock read and random draw, with the
-app's named acts written in-stream above those raw events. Verification then
-splits into two obligations, and the point of the split is that they are not the same kind of
-thing at all:
+Here the drawing is a **semantic model** — a small, finite mathematical object: state variables, actions with guards and updates, invariants. The piece is a running program that **testifies**, on its own recording, which semantic acts it just performed — the recording being a [flight-recorder](https://github.com/xag/flight-recorder) *tape*: one file per request logging every database answer, HTTP response, clock read and random draw, with the app's named acts written in-stream above those raw events. Verification then splits into two obligations, and the point of the split is that they are not the same kind of thing at all:
 
 | | obligation | how it is discharged | when |
 |---|---|---|---|
 | 1 | **model ⊨ predicates** | proven, exhaustively, over every behavior the model admits | once, at design time |
 | 2 | **code ⊑ model** | never provable — so checked mechanically, against evidence | on every execution |
 
-The first is real proof, and it is cheap because the model is small. The second can never be
-proved — the code talks to a database, a clock and a network — so it is *checked*, on every
-tape, three ways:
+The first is real proof, and it is cheap because the model is small. The second can never be proved — the code talks to a database, a clock and a network — so it is *checked*, on every tape, three ways:
 
-- **refinement** — the semantic trace is a legal path of the model. If it is not, the tape
-  names the first illegal step.
-- **licensing** — each semantic claim is justified by the raw boundary events inside its span.
-  Testimony, anchored to evidence: a program may not claim it charged a card unless the tape
-  shows it calling the thing that charges cards.
-- **totality** — no raw event escapes semantics. Behavior nobody modelled goes red rather than
-  passing unnoticed, because unmodelled behavior is exactly where the bugs are.
+- **refinement** — the semantic trace is a legal path of the model. If it is not, the tape names the first illegal step.
+- **licensing** — each semantic claim is justified by the raw boundary events inside its span. Testimony, anchored to evidence: a program may not claim it charged a card unless the tape shows it calling the thing that charges cards.
+- **totality** — no raw event escapes semantics. Behavior nobody modelled goes red rather than passing unnoticed, because unmodelled behavior is exactly where the bugs are.
 
-What that buys is a decomposition. A predicate violation in the wild is impossible without a
-refinement violation first, so a red result always answers *which of the two things is wrong*:
-the model was wrong (fix it, re-prove it) or the code diverged from it (the tape names the
-step). A failure that decomposes is a failure someone can act on.
+What that buys is a decomposition. A predicate violation in the wild is impossible without a refinement violation first, so a red result always answers *which of the two things is wrong*: the model was wrong (fix it, re-prove it) or the code diverged from it (the tape names the step). A failure that decomposes is a failure someone can act on.
 
-**And the caveat, which is not buried:** proof relocates risk into specification. It does not
-remove it. A system can perfectly refine a proven model that is *wrong about what its users
-need*, and no amount of green here will notice. What proof cannot reach — comprehension,
-confusion, tone, the real world — is not this substrate's job and never will be.
+**And the caveat, which is not buried:** proof relocates risk into specification. It does not remove it. A system can perfectly refine a proven model that is *wrong about what its users need*, and no amount of green here will notice. What proof cannot reach — comprehension, confusion, tone, the real world — is not this substrate's job and never will be.
 
 ## The state of it
 
-Early. Today this repo holds its own design ledger, its boundary declaration, and
-**`semantic-model@0.1.0`** — the meta-vocabulary a model is written in (`model`, `state-var`,
-`event-kind`, `license`, `action`, `observation`, `invariant`), published to the registry
-through the proof gate and pinned here by digest (`epure/package.py` is the authored source;
-the pin, not the file, is the meaning). The rest of the substrate is being built in the open,
-in this order:
+Early. Today this repo holds its own design ledger, its boundary declaration, and **`semantic-model@0.1.0`** — the meta-vocabulary a model is written in (`model`, `state-var`, `event-kind`, `license`, `action`, `observation`, `invariant`), published to the registry through the proof gate and pinned here by digest (`epure/package.py` is the authored source; the pin, not the file, is the meaning). The rest of the substrate is being built in the open, in this order:
 
 | | |
 |---|---|
@@ -65,39 +38,19 @@ uv run pytest                    # the tests
 
 ## Day one, both of them
 
-Two practices are set up at inception here, not retrofitted once something hurts — retrofitting
-is how a project ends up debugging by guesswork with no tape to replay and no record of why the
-thing was built the way it was.
+Two practices are set up at inception here, not retrofitted once something hurts — retrofitting is how a project ends up debugging by guesswork with no tape to replay and no record of why the thing was built the way it was.
 
-**The ledger** (`epure/tree.py`) is this repo's design record as *data*, pinning `ledger@0.1.0`
-from the registry rather than re-authoring it. A decision that names no rejected alternative is
-red. A belief carrying no observation that would kill it is red. `epure.check` exits 1 while
-anything is red, and no red node can be discharged by editing the ledger — only by doing the
-work it names. A README can state a caveat perfectly and go on being true while the thing it
-warned about ships. **Prose does not fire.**
+**The ledger** (`epure/tree.py`) is this repo's design record as *data*, pinning `ledger@0.1.0` from the registry rather than re-authoring it. A decision that names no rejected alternative is red. A belief carrying no observation that would kill it is red. `epure.check` exits 1 while anything is red, and no red node can be discharged by editing the ledger — only by doing the work it names. A README can state a caveat perfectly and go on being true while the thing it warned about ships. **Prose does not fire.**
 
-**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism, thin as it
-currently is: publishing to a registry, reading packages back out of one, and reading tapes off
-the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the
-declaration is true by construction rather than by diligence. It is declared now, while it is
-three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
+**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism, thin as it currently is: publishing to a registry, reading packages back out of one, and reading tapes off the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the declaration is true by construction rather than by diligence. It is declared now, while it is three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
 
 ## What this depends on
 
-[`quern`](https://github.com/xag/quern) (rules and vocabulary kept as data, published as
-versioned packages that must demonstrate themselves) and
-[`flight-recorder`](https://github.com/xag/flight-recorder) (the tape, and its frozen
-shape). Both pinned by rev,
-always — a repo whose whole subject is that meanings do not drift does not resolve its own
-dependencies by range.
+[`quern`](https://github.com/xag/quern) (rules and vocabulary kept as data, published as versioned packages that must demonstrate themselves) and [`flight-recorder`](https://github.com/xag/flight-recorder) (the tape, and its frozen shape). Both pinned by rev, always — a repo whose whole subject is that meanings do not drift does not resolve its own dependencies by range.
 
-A plain `import epure` pulls in no domain: no vocabulary registered, no natives installed,
-nothing read. The doors are the submodules, and each costs only what the caller asked for.
+A plain `import epure` pulls in no domain: no vocabulary registered, no natives installed, nothing read. The doors are the submodules, and each costs only what the caller asked for.
 
-And it knows nothing else. Not who uses it, not what they use it for — a substrate that names
-its consumers has inverted the dependency it depends on. `tools/open_ready.py` checks that on
-every commit, and it checks it with an allowlist, since a list of the projects we may not
-mention would be a list of our consumers sitting in our own source.
+And it knows nothing else. Not who uses it, not what they use it for — a substrate that names its consumers has inverted the dependency it depends on. `tools/open_ready.py` checks that on every commit, and it checks it with an allowlist, since a list of the projects we may not mention would be a list of our consumers sitting in our own source.
 
 ---
 

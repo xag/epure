@@ -324,4 +324,8 @@ def prove_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> f
     return float(len(prove(tree, path, cap=int(cap)).violations))
 
 
-register_native("model/prove", prove_count)
+# The spec travels with the implementation, never in the package: a native is host
+# code outside the sandbox, and a proof its own package could soften is no proof.
+from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
+
+register_native("model/prove", prove_count, SEMANTIC_MODEL_SPEC["model/prove"])
