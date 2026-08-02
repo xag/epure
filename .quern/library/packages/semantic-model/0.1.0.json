@@ -1,0 +1,372 @@
+{
+  "name": "semantic-model",
+  "version": "0.1.0",
+  "description": "The meta-vocabulary a semantic model is written in: state variables over finite domains, actions with guards and updates, an alphabet of observable events each anchored to evidence by a license, and invariants a checker can settle exhaustively. A model in these kinds is what the prover proves predicates over, once, and what the conformance checks confront every tape with, forever. The package carries exprs and evaluates nothing — meaning travels first, pinned, and the machinery is built against the digest. Its rules refuse the three ways a model quietly stops describing a system: no alphabet, unlicensed testimony, unobservable actions.",
+  "publisher": "poietic.studio",
+  "requires": [],
+  "vocabulary": [
+    {
+      "kind": "model",
+      "description": "The root of one semantic model: a small, finite mathematical object — state variables, actions with guards and updates, an alphabet of observable events, invariants. Its children are `state-var`s, `action`s, `event-kind`s and `invariant`s. A model is small ON PURPOSE: the tractability of every downstream check — exhaustive proof at design time, refinement/licensing/totality on every tape — is bought here, at authoring time, and nowhere else. A domain that resists a small finite model is not a limitation to hide; it is a modeling decision to journal.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "state-var",
+      "description": "One variable of the model's state; the node's id is the variable's name in every expr. Payload: `type` (\"bool\" | \"int\" | \"enum\"), `domain` (a value list for enum, {\"min\": n, \"max\": n} for int, absent for bool), `init` (the initial value, in the domain). FINITE DOMAINS ONLY in 0.1.0: only a finite model can be exhaustively proven by an explicit-state checker, so the bound on an int is not bookkeeping — it is the price of the proof. A quantity that cannot be finitely abstracted is a modeling decision to journal, not a wide domain to sneak in.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "event-kind",
+      "description": "One entry of the model's alphabet: a semantic act the instrumented system may claim, matching BY NAME the `sem` span names the code emits on its flight-recorder tapes (the node's id is the span name). Payload: `args` ({name: type}) — the data a claiming span carries. Must carry at least one `license` child: an event-kind is the unit of testimony, and testimony without an evidence requirement is not checkable, merely recorded.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "license",
+      "description": "The observation that justifies an emission of its parent event-kind: a predicate over the raw boundary events enclosed by the claiming span. Payload: `expr` (rule grammar; its environment provides ctx('events') — the enclosed raw events, in order — plus the event's args as variables) and `note` (prose: what the evidence means). This package carries the expr and never evaluates it — evaluation is `model/licensed`'s contract, and richer window predicates arrive as natives behind solve(). The move is the same one `ledger@`'s falsification.expr makes: prose that can already fire.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "action",
+      "description": "One transition of the model. Payload: `guard` (expr over state-vars and args — when the action is enabled), `updates` ([{\"var\": name, \"expr\": expr}] — the next state), `args` ({name: type}). Must carry at least one `observation` child naming the event-kind whose occurrence on a trace instantiates it: an action nobody can observe is a transition the prover explores and no tape can exhibit, and the rule below refuses it.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "observation",
+      "description": "The witness relation: this action, when it happens, is what its parent model's named event-kind testifies to. Payload: `event` — the event-kind's id, resolved within the enclosing model. An id and not a path, so a model subtree can move without breaking its own internal references; a dangling id is the conformance natives' catch (they have full traversal — the rule grammar counts presence, which is what it can see).",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "invariant",
+      "description": "A predicate over state-vars that must hold in every reachable state of the model — proven exhaustively by `model/prove` at design time, and re-checked at every step of every refined trace at runtime, for free. Payload: `expr` (rule grammar over the state-vars as variables) and `note` (prose: what holding means, in the domain's own words). Safety only in 0.1.0: liveness and temporal claims have no vocabulary here yet, and that absence is carried as a debt in the authoring repo's ledger, not silently.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    }
+  ],
+  "rules": [
+    {
+      "name": "a-model-declares-its-alphabet",
+      "expr": "len(nodes('event-kind', self)) >= 1",
+      "description": "A model with no observable vocabulary cannot be refined by any tape: nothing the prover establishes about it ever binds to a running system, so its proofs are true and useless. One event-kind is the least a model must offer the world to be checkable against it.",
+      "kind": "model"
+    },
+    {
+      "name": "an-event-kind-carries-a-license",
+      "expr": "len(nodes('license', self)) >= 1",
+      "description": "Unlicensed testimony is relocated guessing about meaning: a span the code may emit with nothing any tape could be asked to show beneath it. The license is what anchors the claim to evidence, and an event-kind that carries none has opted out of the only check that makes testimony worth recording.",
+      "kind": "event-kind"
+    },
+    {
+      "name": "an-action-is-observable",
+      "expr": "len(nodes('observation', self)) >= 1",
+      "description": "An action no event-kind witnesses is untestable fiction: the prover explores its transitions, no tape can ever exhibit one, and the gap between the two is exactly where a proven model quietly stops describing the system. Every action names the testimony that instantiates it, or it does not enter.",
+      "kind": "action"
+    }
+  ],
+  "solvers": [],
+  "examples": [
+    {
+      "id": "turnstile",
+      "kind": "model",
+      "name": "A coin-operated turnstile",
+      "params": {},
+      "links": {},
+      "meta": {},
+      "payload": {},
+      "children": [
+        {
+          "id": "state",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "enum",
+            "domain": [
+              "locked",
+              "unlocked"
+            ],
+            "init": "locked"
+          },
+          "children": []
+        },
+        {
+          "id": "coins",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "int",
+            "domain": {
+              "min": 0,
+              "max": 3
+            },
+            "init": 0
+          },
+          "children": []
+        },
+        {
+          "id": "entries",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "int",
+            "domain": {
+              "min": 0,
+              "max": 3
+            },
+            "init": 0
+          },
+          "children": []
+        },
+        {
+          "id": "coin",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "coin-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(ctx('events')) >= 1",
+                "note": "the claiming span encloses at least one raw exchange with the coin acceptor; sharpened to name the acceptor's endpoint when the window predicates land as natives"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "push",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "push-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(ctx('events')) >= 1",
+                "note": "the claiming span encloses at least one raw reading from the rotation sensor"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "insert-coin",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "state == 'locked' and coins < 3",
+            "updates": [
+              {
+                "var": "state",
+                "expr": "'unlocked'"
+              },
+              {
+                "var": "coins",
+                "expr": "coins + 1"
+              }
+            ],
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "insert-coin-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "coin"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "push-through",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "state == 'unlocked'",
+            "updates": [
+              {
+                "var": "state",
+                "expr": "'locked'"
+              },
+              {
+                "var": "entries",
+                "expr": "entries + 1"
+              }
+            ],
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "push-through-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "push"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "no-free-entry",
+          "kind": "invariant",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "expr": "entries <= coins",
+            "note": "nobody passes through more times than coins were accepted — never unlocked without a prior coin, stated as a pure state predicate so an explicit-state walk can settle it"
+          },
+          "children": []
+        }
+      ]
+    }
+  ],
+  "counter_examples": [
+    {
+      "rule": "a-model-declares-its-alphabet",
+      "nodes": [
+        {
+          "id": "black-box",
+          "kind": "model",
+          "name": "A sealed counter nobody can observe",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "count",
+              "kind": "state-var",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "type": "int",
+                "domain": {
+                  "min": 0,
+                  "max": 1
+                },
+                "init": 0
+              },
+              "children": []
+            },
+            {
+              "id": "bounded",
+              "kind": "invariant",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "count <= 1",
+                "note": "provable, and unrefinable"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a model with state and an invariant but no observable vocabulary — every proof over it is true and binds to nothing"
+    },
+    {
+      "rule": "an-event-kind-carries-a-license",
+      "nodes": [
+        {
+          "id": "beep",
+          "kind": "event-kind",
+          "name": "An act any code may claim for free",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": []
+        }
+      ],
+      "because": "testimony with no evidence requirement — the code could claim it forever and no tape could ever convict the claim"
+    },
+    {
+      "rule": "an-action-is-observable",
+      "nodes": [
+        {
+          "id": "silent-reset",
+          "kind": "action",
+          "name": "A reset no event witnesses",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "1 == 1",
+            "updates": [
+              {
+                "var": "count",
+                "expr": "0"
+              }
+            ],
+            "args": {}
+          },
+          "children": []
+        }
+      ],
+      "because": "a transition the prover would explore and no tape can ever exhibit — untestable fiction with a guard on it"
+    }
+  ]
+}
