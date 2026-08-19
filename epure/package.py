@@ -142,6 +142,41 @@ VOCABULARY = [
         "is what it can see).",
     ),
     KindDef(
+        kind="creates",
+        description="An action's declared effect: something comes into being. Payload: "
+        "`entity` (what, in the model's own words — usually a state-var or event the "
+        "world can show) and `from` ([arg names] — the inputs that determine it, the "
+        "faithfulness laws' subject). A child of `action`, and the seam the conduct "
+        "laws bind to: the law is written ONCE against this kind, and every action "
+        "that declares the effect inherits it — inheritance over template-stamping, "
+        "the same way ledger@'s gate law binds every domain's gates. Carried "
+        "honestly: the tape-level checks (did it, does it match, did nothing else "
+        "move) are conformance natives still owed; what this kind settles today is "
+        "that the declaration EXISTS as data, which is what any generator needs.",
+    ),
+    KindDef(
+        kind="mutates",
+        description="An action's declared effect: something existing changes. Payload: "
+        "`entity` and `from` ([arg names]), exactly as `creates` — a separate kind "
+        "rather than a mode flag because rules bind by kind and the grammar reads no "
+        "payload (the assay lesson, applied in advance).",
+    ),
+    KindDef(
+        kind="deletes",
+        description="An action's declared effect: something ceases. Payload: `entity`. "
+        "The effect law's shape inverts here — after the action, the entity must NOT "
+        "be shown — which is why deletion is its own kind and not a mutation.",
+    ),
+    KindDef(
+        kind="touches",
+        description="An action's declared write boundary: the state it may change. "
+        "Payload: `only` ([state-var names]). The frame laws' subject — «a value must "
+        "be the same if it wasn't changed» needs to know what counts as changed, and "
+        "this is that declaration. Inside a proved model the frame holds by "
+        "construction (updates name every moving var); this kind exists so the SAME "
+        "claim can be held against tapes, where the real system writes.",
+    ),
+    KindDef(
         kind="invariant",
         description="A predicate over state-vars that must hold in every reachable state of "
         "the model — proven exhaustively by `model/prove` at design time, and re-checked at "
@@ -241,6 +276,14 @@ EXAMPLES = [
                  children=[
                      Node(id="insert-coin-witness", kind="observation",
                           payload={"event": "coin"}),
+                     Node(id="insert-coin-mutates", kind="mutates",
+                          payload={"entity": "coins", "from": []},
+                          name="the coin count moves; no argument determines it, "
+                               "prior state does"),
+                     Node(id="insert-coin-touches", kind="touches",
+                          payload={"only": ["state", "coins"]},
+                          name="entries is out of bounds: a coin that moved the "
+                               "tally would be a frame violation"),
                  ]),
             Node(id="push-through", kind="action",
                  payload={"guard": "state == 'unlocked'",
@@ -250,6 +293,12 @@ EXAMPLES = [
                  children=[
                      Node(id="push-through-witness", kind="observation",
                           payload={"event": "push"}),
+                     Node(id="push-through-mutates", kind="mutates",
+                          payload={"entity": "entries", "from": []}),
+                     Node(id="push-through-touches", kind="touches",
+                          payload={"only": ["state", "entries"]},
+                          name="coins is out of bounds: passing through never "
+                               "refunds or swallows a coin"),
                  ]),
             Node(id="no-free-entry", kind="invariant",
                  payload={"expr": "entries <= coins",
@@ -257,6 +306,63 @@ EXAMPLES = [
                                   "accepted — never unlocked without a prior coin, stated "
                                   "as a pure state predicate so an explicit-state walk can "
                                   "settle it"}),
+        ],
+    ),
+    Node(
+        id="cloakroom", kind="model", name="A one-hook cloakroom",
+        children=[
+            Node(id="held", kind="state-var",
+                 payload={"type": "int", "domain": {"min": 0, "max": 1}, "init": 0}),
+            Node(id="deposit", kind="event-kind",
+                 payload={"args": {}},
+                 children=[
+                     Node(id="deposit-license", kind="license",
+                          payload={"expr": "len(evidence('hook.write')) >= 1",
+                                   "note": "the claiming span encloses a raw write "
+                                           "to the hook's store"}),
+                 ]),
+            Node(id="reclaim", kind="event-kind",
+                 payload={"args": {}},
+                 children=[
+                     Node(id="reclaim-license", kind="license",
+                          payload={"expr": "len(evidence('hook.delete')) >= 1",
+                                   "note": "the claiming span encloses the raw "
+                                           "removal from the hook's store"}),
+                 ]),
+            Node(id="check-coat", kind="action",
+                 payload={"guard": "held == 0",
+                          "updates": [{"var": "held", "expr": "1"}],
+                          "args": {}},
+                 children=[
+                     Node(id="check-coat-witness", kind="observation",
+                          payload={"event": "deposit"}),
+                     Node(id="check-coat-creates", kind="creates",
+                          payload={"entity": "held", "from": []},
+                          name="the ticket comes into being: after this action, "
+                               "the world must show it, and show it as deposited"),
+                     Node(id="check-coat-touches", kind="touches",
+                          payload={"only": ["held"]}),
+                 ]),
+            Node(id="reclaim-coat", kind="action",
+                 payload={"guard": "held == 1",
+                          "updates": [{"var": "held", "expr": "0"}],
+                          "args": {}},
+                 children=[
+                     Node(id="reclaim-coat-witness", kind="observation",
+                          payload={"event": "reclaim"}),
+                     Node(id="reclaim-coat-deletes", kind="deletes",
+                          payload={"entity": "held"},
+                          name="the ticket ceases: after this action, the world "
+                               "must NOT show it — the effect law inverted, which "
+                               "is why deletion is its own kind"),
+                     Node(id="reclaim-coat-touches", kind="touches",
+                          payload={"only": ["held"]}),
+                 ]),
+            Node(id="never-two-coats", kind="invariant",
+                 payload={"expr": "held <= 1",
+                          "note": "the hook is single: a create over an occupied "
+                                  "hook is refused by the guard, and this states "
+                                  "the consequence as a pure state predicate"}),
         ],
     ),
 ]
@@ -330,7 +436,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.3.0",
+    version="0.4.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -346,7 +452,17 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "(evidence(pattern, 'enclosing')), and only so: a bare count over an "
                 "ancestor's window would license anything, which is no license at all. The "
                 "turnstile grows the derived act (passage-counted) that exercises this; "
-                "kinds and rules are otherwise 0.1.1's.",
+                "kinds and rules are otherwise 0.1.1's. 0.4.0 adds the conduct seam: an "
+                "action may declare its effects as data — `creates`/`mutates`/`deletes` "
+                "naming the entity and the inputs that determine it, `touches` naming the "
+                "write boundary — so a behavior law is written once against the generic "
+                "effect kind and every action that declares the effect inherits it, "
+                "inheritance over template-stamping. No new rules: whether a model MUST "
+                "declare effects is the conduct catalogue's demand, opt-in, not this "
+                "vocabulary's. Declaration only in 0.4.0 — the tape-level conduct natives "
+                "(did it, does it match its inputs, did nothing else move) are the named "
+                "next arrival. The cloakroom example instantiates creates and deletes; "
+                "the turnstile, mutates and touches.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

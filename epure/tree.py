@@ -16,6 +16,8 @@ import os
 from pathlib import Path
 
 import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
+import epure.conformance  # noqa: F401 -- consume() re-gates the synced closure, and
+import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
 from quern import Quern, Node
 from quern.library import consume
 from quern.provenance import Quantity
@@ -24,13 +26,16 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 
 def build() -> Quern:
+    from .conduct import CONDUCT_LAWS
+
     lib, refs = consume(_ROOT, os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
-    quern = Quern(packages=[next(r for r in refs if r.name == "ledger")])
+    quern = Quern(packages=[r for r in refs if r.name in ("ledger", "conduct")])
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
-                           _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT]
+                           _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
+                           _INHERITANCE, _CONDUCT_PUBLISH, *CONDUCT_LAWS]
     return quern
 
 
@@ -324,7 +329,7 @@ _GATE = Node(
     id="publication",
     kind="gate",
     name="What leaves this repo as a pinned, citable claim",
-    links={"admits": ["publish-semantic-model-0-1-0"]},
+    links={"admits": ["publish-semantic-model-0-1-0", "publish-the-conduct-seam"]},
     payload={
         "note":
             "The gate this ledger deliberately did not plant while it had nothing to admit "
@@ -609,6 +614,106 @@ _DIRECTION_DEBT = Node(
                      "before/after, not before. Whoever builds it grounds the param above "
                      "with what can then be declared.",
              }),
+    ],
+)
+
+
+_INHERITANCE = Node(
+    id="behavior-laws-bind-by-inheritance",
+    kind="decision",
+    name="A behavior law is written once against a generic effect kind; an action inherits "
+         "it by declaring the effect — never by stamping a formula per operation",
+    payload={
+        "rationale":
+            "The founder's fork, asked out loud: formulas with holes, or type inheritance? "
+            "The substrate already resolves it. Rules bind by KIND, so making the effect a "
+            "kind (semantic-model@0.4.0's creates/mutates/deletes/touches, children of "
+            "action) makes every law of the family arrive on every declaring action with "
+            "no per-operation authoring at all — the same way ledger@'s gate rule binds "
+            "every domain's gates. The declaration is one honest line about what the "
+            "operation does; the laws are the catalogue's, written once, citable once, "
+            "versioned once.",
+        "consequence":
+            "N operations x M families costs N declarations + M laws, not N x M stamped "
+            "formulas that drift apart at the first rewording. And an operation that "
+            "declares nothing inherits nothing — the catalogue is opt-in by construction, "
+            "which is why semantic-model 0.4.0 ships no new mandatory rule.",
+    },
+    children=[
+        Node(id="alt-templates", kind="alternative",
+             name="Formulas with holes: instantiate each family per operation at "
+                  "generation time",
+             payload={"why":
+                      "N x M generated artifacts whose wording can drift independently, "
+                      "and the binding lives in the generator's output rather than in the "
+                      "data — a stamped rule survives its own retirement when the "
+                      "operation's declaration changes. Templates survive in one place "
+                      "only: the refuting examples the conformance natives will demand, "
+                      "where each instance must fail alone."}),
+        Node(id="alt-mandatory-in-semantic-model", kind="alternative",
+             name="Make effect declaration a rule of semantic-model itself",
+             payload={"why":
+                      "Every existing model in the estate goes red the day the package is "
+                      "repinned — chores' model first — for a demand it never opted into. "
+                      "The demand belongs to the conduct catalogue, adopted deliberately, "
+                      "exactly as craft@'s laws are adopted by the apps they judge."}),
+    ],
+)
+
+
+_CONDUCT_PUBLISH = Node(
+    id="publish-the-conduct-seam",
+    kind="decision",
+    name="Publish semantic-model@0.4.0 (the effect kinds) and conduct@0.1.0 (the nine "
+         "families) as two packages, laws-as-content in this repo",
+    payload={
+        "rationale":
+            "The vocabulary and the catalogue have different clocks: effect kinds change "
+            "when the model language grows, laws change when a family is sourced or a "
+            "sighting lands. Two packages keep the release lines independent, and the "
+            "catalogue names the exact vocabulary version its triggers bind to "
+            "(requires semantic-model@0.4.0). The nine laws themselves stay repo content "
+            "here — craft-laws' own shape — because five are honestly uncited and red "
+            "under a-law-cites-a-source, and the publish gate demands examples pass: "
+            "laundering them through the gate would mean either faking citations or "
+            "dropping the debt, and the ledger's treatment of a debt is to carry it "
+            "visibly.",
+        "note":
+            "conduct@'s law shape mirrors craft@'s five kinds by name and structure, "
+            "re-authored rather than consumed: craft's `law` KindDef defines itself as a "
+            "claim about interface or copy, and stretching a published kind's stated "
+            "meaning to a second domain is the drift the registry exists to refuse. The "
+            "day a third law domain arrives, the shape earns extraction into a package "
+            "both supersede onto.",
+    },
+    params={
+        "families": Quantity(
+            value=9, unit="law", provenance="verified", grounded=True,
+            source="len(CONDUCT_LAWS), asserted equal in tests/test_conduct.py; census "
+                   "folded from Hughes 2020's five approaches onto what a tape can "
+                   "witness — cited on the four laws a source states, carried red on "
+                   "the five no source has been found for"),
+        "effect_kinds": Quantity(
+            value=4, unit="kind", provenance="verified", grounded=True,
+            source="creates, mutates, deletes, touches — instantiated by the package's "
+                   "own examples at publish (11 kinds instantiated, gate output, "
+                   "digest f2623b8f9010)"),
+    },
+    children=[
+        Node(id="alt-laws-as-package-examples", kind="alternative",
+             name="Ship the nine laws inside conduct@ as examples",
+             payload={"why":
+                      "The gate demands examples pass every rule, and five families are "
+                      "honestly red under a-law-cites-a-source. Shipping only the cited "
+                      "four would split the catalogue; faking the five would launder a "
+                      "debt. Content stays where red can be carried and accounted."}),
+        Node(id="alt-one-package", kind="alternative",
+             name="Fold the effect kinds and the laws into one package",
+             payload={"why":
+                      "Couples the clocks: sourcing one uncited family would republish "
+                      "the model vocabulary, and every consumer of the kinds would repin "
+                      "for a change that touches no kind. One package, one subject — the "
+                      "same call the ledger already records for semantic-model itself."}),
     ],
 )
 

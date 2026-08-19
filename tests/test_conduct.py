@@ -1,0 +1,95 @@
+"""The conduct catalogue holds its shape, and its debts are accounted, not hidden.
+
+Same two failures as test_package.py, plus the one this catalogue adds: an uncited law is
+red BY DESIGN under a-law-cites-a-source, and the guard here is that every such red is
+declared on the node that carries it — reckon() must sort the ledger into exactly {the five
+unsourced families} carried, nothing new, nothing stale. A sixth uncited law arriving
+without its accounting breaks this test, and so does sourcing a family without withdrawing
+the note that excused it.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+from quern import reckon, run_rules
+from quern.library import Library, package_digest, read_lock, validate_package
+
+from epure.conduct import CONDUCT_LAWS, CONDUCT_PACKAGE
+
+_ROOT = Path(__file__).resolve().parents[1]
+
+UNSOURCED = {"refusal-changes-nothing", "undo-restores", "same-state-same-story",
+             "shown-once-shown-until-touched", "the-effect-is-checkable"}
+
+
+def test_the_pin_is_this_content():
+    refs = {r.name: r for r in read_lock(_ROOT / "quern.lock")}
+    assert "conduct" in refs, "conduct is not pinned in quern.lock"
+    assert refs["conduct"].sha256 == package_digest(CONDUCT_PACKAGE), (
+        "the authored package and the pinned digest disagree — epure/conduct.py has "
+        "drifted from what was published. Versions are immutable: bump the version and "
+        "republish; never edit a published meaning in place")
+
+
+def test_the_package_still_demonstrates_itself(tmp_path):
+    # The closure (grounding@, semantic-model@) comes from the registry; semantic-model's
+    # native contracts must be in-process for its own re-validation beneath this one.
+    import epure.conformance  # noqa: F401
+    import epure.prove  # noqa: F401
+    registry = Library(Path(os.environ.get("QUERN_REGISTRY",
+                                           _ROOT.parent / "quern-registry")))
+    log = validate_package(CONDUCT_PACKAGE, tmp_path, registry)
+    assert any("3 rule(s) exercised" in line for line in log), log
+    assert any("refuted by their counter-example" in line for line in log), log
+
+
+def test_every_rule_carries_a_counter_example():
+    named = {r.name for r in CONDUCT_PACKAGE.rules}
+    refuting = {ce.rule for ce in CONDUCT_PACKAGE.counter_examples}
+    assert named == refuting, f"rules without a refutation: {sorted(named - refuting)}"
+
+
+def test_the_census_is_nine_families():
+    """The count the ledger's `families` param states, computed here so the prose can
+    never drift from the content."""
+    assert len(CONDUCT_LAWS) == 9
+    assert len({law.id for law in CONDUCT_LAWS}) == 9
+
+
+def test_every_citation_carries_its_quote():
+    """A citation without the words is a citation nobody can check — the package's own
+    KindDef says so, and the authored content is held to it here, since the repo's laws
+    do not pass through the publish gate."""
+    for law in CONDUCT_LAWS:
+        for child in law.children:
+            if child.kind == "citation":
+                assert child.payload.get("url"), f"{law.id}: citation without a url"
+                assert child.payload.get("quote"), f"{law.id}: citation without the quote"
+
+
+def test_the_unsourced_families_are_accounted_and_only_they_are():
+    """authority.grounded, the citation children, and the expected:-note must agree on
+    every law — three statements of the same fact, kept from drifting apart."""
+    for law in CONDUCT_LAWS:
+        cited = any(c.kind == "citation" for c in law.children)
+        accounted = "expected:a-law-cites-a-source" in law.meta
+        assert law.params["authority"].grounded == cited, (
+            f"{law.id}: authority provenance disagrees with the citations it claims")
+        assert accounted == (not cited), (
+            f"{law.id}: an uncited law carries its accounting; a cited one carries none")
+    assert {law.id for law in CONDUCT_LAWS
+            if not law.params["authority"].grounded} == UNSOURCED
+
+
+def test_the_ledger_carries_exactly_the_declared_red():
+    """The whole-tree statement: reckon over the built ledger finds no news, no stale
+    expectations, and the carried set is exactly the five unsourced families."""
+    from epure.tree import build
+
+    tree = build()
+    news, carried, stale = reckon(tree, run_rules(tree))
+    assert not news, [f"{r.rule} @ {r.node}" for r in news]
+    assert not stale, stale
+    assert {r.node for r in carried} == UNSOURCED
