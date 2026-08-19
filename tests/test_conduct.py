@@ -34,13 +34,15 @@ def test_the_pin_is_this_content():
 
 
 def test_the_package_still_demonstrates_itself(tmp_path):
-    # The closure (grounding@, semantic-model@) comes from the registry; semantic-model's
-    # native contracts must be in-process for its own re-validation beneath this one.
+    # The closure (grounding@, semantic-model@) comes from the registry when a sibling
+    # checkout exists, and from the repo's own committed cache otherwise — CI has no
+    # registry, by decision (see test.yml). semantic-model's native contracts must be
+    # in-process for its own re-validation beneath this one.
     import epure.conformance  # noqa: F401
     import epure.prove  # noqa: F401
-    registry = Library(Path(os.environ.get("QUERN_REGISTRY",
-                                           _ROOT.parent / "quern-registry")))
-    log = validate_package(CONDUCT_PACKAGE, tmp_path, registry)
+    registry = Path(os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
+    source = Library(registry if registry.exists() else _ROOT / ".quern" / "library")
+    log = validate_package(CONDUCT_PACKAGE, tmp_path, source)
     assert any("3 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
 
