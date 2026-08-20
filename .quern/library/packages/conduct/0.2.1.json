@@ -1,0 +1,375 @@
+{
+  "name": "conduct",
+  "version": "0.2.1",
+  "description": "The behavior laws of operations, as checkable data: what a declared effect promises under reading back (it happened, it matches its inputs, nothing else moved), under algebra (repetition, inversion, refusal), and under time (replay, persistence, witnessability). Nine families, a census folded from Hughes's five approaches to writing properties onto what a tape can witness. Laws bind by INHERITANCE to semantic-model's generic effect kinds — an action declares `creates` and every creates-law arrives; nothing is stamped per operation. Each law carries the tape that would convict it, the declaration that switches it on, and the source that authorises it; an uncited law is an ungrounded param the ledger's own gate refuses to let travel as settled. 0.2.0 delivers the natives 0.1.0 named: conduct/effect, conduct/faithful, conduct/frame and conduct/refusal hold a recorded run to the effect, faithfulness, frame and refusal families through the doors an action declares (semantic-model@0.5.0's `via`/`shown_by`), and conduct/checkable holds the model to the checkability family. The other four families are carried as named debts on their laws, not stretched. 0.2.1 changes no kind, rule or contract: the frame law — this package's own example — gained its second sighting, the first the native itself caught (chores, 2026-08-20), and a sighting on the example is content.",
+  "publisher": "poietic.studio",
+  "requires": [
+    {
+      "name": "grounding",
+      "version": "1.2.0"
+    },
+    {
+      "name": "semantic-model",
+      "version": "0.5.0"
+    }
+  ],
+  "vocabulary": [
+    {
+      "kind": "law",
+      "description": "A claim about how an OPERATION behaves — what its effect promises under reading back, repetition, inversion, refusal, replay and time — that holds across domains because it binds to the generic effect kinds (semantic-model@0.4.0's creates/mutates/deletes/touches, with doors since 0.5.0), never to any one operation. It carries an `authority` param, grounded when a reputable source has actually stated it and ungrounded when it is observation carried honestly as a debt.",
+      "params": {},
+      "links": {
+        "supersedes": "the law this one replaces, if any"
+      },
+      "operations": {}
+    },
+    {
+      "kind": "citation",
+      "description": "Where the law actually comes from: a publisher, a title, a URL, and — the part that matters — the QUOTE. A citation without the words is a citation nobody can check, and an unfalsifiable appeal to authority is worse than an honest opinion.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "falsifier",
+      "description": "The tape that constitutes a violation: which effect declaration, which stretch of execution, what read disagrees. A behavior law whose breach no tape could exhibit is a taste, and tastes do not belong in a package.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "trigger",
+      "description": "The effect declaration that switches this law on. This is the inheritance seam: an action declares `creates`, and every law whose trigger names `creates` binds to it — the author writes what the operation does, and the laws arrive.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "sighting",
+      "description": "A real defect this law actually caught, in a real system, on a real tape. Evidence, not decoration: a law that has never caught anything is a law nobody should trust.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    }
+  ],
+  "rules": [
+    {
+      "name": "a-law-can-be-violated-observably",
+      "expr": "len(nodes('falsifier', self)) >= 1",
+      "description": "A law whose breach cannot be shown by a tape can never produce a verdict, and a verdict is the only thing a law is for.",
+      "kind": "law"
+    },
+    {
+      "name": "a-law-is-switched-on-by-something",
+      "expr": "len(nodes('trigger', self)) >= 1",
+      "description": "Laws arrive because an effect declaration called for them. A law that applies to everything applies to nothing: it becomes a checklist item, and a checklist item is read once and never again.",
+      "kind": "law"
+    },
+    {
+      "name": "a-law-cites-a-source",
+      "expr": "len(nodes('citation', self)) >= 1",
+      "description": "A law that cannot name who said it is a hypothesis. It may be carried, and it will be red, and that is the honest state of it — five of the nine families in the authoring repo are carried exactly so.",
+      "kind": "law"
+    }
+  ],
+  "solvers": [
+    {
+      "name": "conduct/effect",
+      "description": "(path, rel): count the declared effects under `path` the world failed to show — a creates/mutates whose `via` write is absent from the act or whose `shown_by` read after it (before the entity's next act) does not return what the write carried; a deletes whose `shown_by` read after it still does. A read that never comes is a note, not a count.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/faithful",
+      "description": "(path, rel): count the effects under `path` whose `via` write does not carry every input the effect's `from` names, as the span testified them.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/frame",
+      "description": "(path, rel): count the writes under `path` through a door the model knows (any `via` it declares) that the act's own `touches.via` and effects' `via` do not admit. Acts whose actions declare no `touches` are outside the law.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/refusal",
+      "description": "(path, rel): count the outermost spans under `path` that ended in error having written through a door the model knows.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/checkable",
+      "description": "(path): on the model at `path`, count the declarations no tape could witness — an effect naming no state-var, no `via`, or no `shown_by`; a `touches` naming an unknown state-var.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    }
+  ],
+  "examples": [
+    {
+      "id": "the-frame-holds",
+      "kind": "law",
+      "name": "A value is the same if it wasn't changed",
+      "params": {
+        "authority": {
+          "value": 1.0,
+          "unit": "law",
+          "provenance": "cited",
+          "grounded": true,
+          "source": "Hughes 2020, postconditions: previously inserted keys with unchanged values",
+          "derived_from": []
+        }
+      },
+      "links": {},
+      "meta": {},
+      "payload": {
+        "note": "Inside a proved model the frame holds by construction — updates name every moving var. The law exists for tapes, where the real system writes.",
+        "native": "conduct/frame"
+      },
+      "children": [
+        {
+          "id": "the-frame-holds--falsifier",
+          "kind": "falsifier",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "claim": "A tape where state outside the action's declared `touches` boundary differs after the action from before it."
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--trigger-0",
+          "kind": "trigger",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "when": "an action declares `touches` — everything outside `only` is the frame"
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--citation-0",
+          "kind": "citation",
+          "name": "John Hughes — How to Specify It! A Guide to Writing Properties of Pure Functions (Chalmers, 2020)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "url": "https://research.chalmers.se/publication/517894/file/517894_Fulltext.pdf",
+            "quote": "after calling insert, then we should be able to find the key just inserted, and any previously inserted keys with unchanged values"
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--sighting-0",
+          "kind": "sighting",
+          "name": "surface-tape walks, 2026-08-19",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "what": "An 'empty' walk read a seeded store: a server a previous run failed to kill was still holding port 8199, so state the walk never touched had been moved by something else — the frame assumption violated by an unowned writer, and the deposited walk was a lie until the PID was hunted down."
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--sighting-1",
+          "kind": "sighting",
+          "name": "chores flights and scenes, first run of conduct/frame, 2026-08-20",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "what": "Two turn-done acts on the-rhythms-run and a chore-added on every scene wrote through app.storage.create to sent/second_settler and sent/second_chore — the #149 onboarding milestones, claimed and counted from inside the completion writer and the add (deliberately, to spare a round trip; #150 is the cost) and never in the drawing. The model's boundary was wrong, not the code: the doors are admitted on those acts now, with the finding on them (chores-model@0.12.0). Caught by the native, not by reading: the effect, faithfulness and refusal laws were green on the same tapes."
+          },
+          "children": []
+        }
+      ]
+    }
+  ],
+  "counter_examples": [
+    {
+      "rule": "a-law-cites-a-source",
+      "nodes": [
+        {
+          "id": "reads-never-lie",
+          "kind": "law",
+          "name": "A read always returns what was last written",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "asserted",
+              "grounded": false,
+              "source": "feels obviously true",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx1-f",
+              "kind": "falsifier",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "claim": "a tape where a read disagrees with the last write"
+              },
+              "children": []
+            },
+            {
+              "id": "cx1-t",
+              "kind": "trigger",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "when": "any effect declaration"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a behavior claim that names no authority — a hypothesis wearing a law's name, which is how every one of these families started"
+    },
+    {
+      "rule": "a-law-can-be-violated-observably",
+      "nodes": [
+        {
+          "id": "behaves-well",
+          "kind": "law",
+          "name": "The system should behave predictably",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "cited",
+              "grounded": true,
+              "source": "a methodology book",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx2-t",
+              "kind": "trigger",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "when": "any effect declaration"
+              },
+              "children": []
+            },
+            {
+              "id": "cx2-c",
+              "kind": "citation",
+              "name": "A methodology book",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "url": "https://example.invalid",
+                "quote": "Systems should behave predictably."
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a law whose breach no tape could ever exhibit can never produce a verdict, so it is a taste and not a law"
+    },
+    {
+      "rule": "a-law-is-switched-on-by-something",
+      "nodes": [
+        {
+          "id": "always-applies",
+          "kind": "law",
+          "name": "Every operation is idempotent",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "cited",
+              "grounded": true,
+              "source": "RFC 9110 §9.2.2",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx3-f",
+              "kind": "falsifier",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "claim": "a tape where twice differs from once"
+              },
+              "children": []
+            },
+            {
+              "id": "cx3-c",
+              "kind": "citation",
+              "name": "IETF RFC 9110, HTTP Semantics — §9.2.2 Idempotent Methods",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+                "quote": "A request method is considered \"idempotent\" if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request."
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a law nothing switches on is a checklist item, and a checklist item is read once and never again"
+    }
+  ]
+}

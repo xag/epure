@@ -209,6 +209,15 @@ CONDUCT_LAWS = [
              "was still holding port 8199, so state the walk never touched had been moved "
              "by something else — the frame assumption violated by an unowned writer, and "
              "the deposited walk was a lie until the PID was hunted down."),
+            ("chores flights and scenes, first run of conduct/frame, 2026-08-20",
+             "Two turn-done acts on the-rhythms-run and a chore-added on every scene wrote "
+             "through app.storage.create to sent/second_settler and sent/second_chore — the "
+             "#149 onboarding milestones, claimed and counted from inside the completion "
+             "writer and the add (deliberately, to spare a round trip; #150 is the cost) and "
+             "never in the drawing. The model's boundary was wrong, not the code: the doors "
+             "are admitted on those acts now, with the finding on them (chores-model@0.12.0). "
+             "Caught by the native, not by reading: the effect, faithfulness and refusal "
+             "laws were green on the same tapes."),
         ],
         note="Inside a proved model the frame holds by construction — updates name every "
              "moving var. The law exists for tapes, where the real system writes.",
@@ -443,7 +452,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.2.0",
+    version="0.2.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -459,7 +468,10 @@ CONDUCT_PACKAGE = Package(
                 "the effect, faithfulness, frame and refusal families through the doors an "
                 "action declares (semantic-model@0.5.0's `via`/`shown_by`), and "
                 "conduct/checkable holds the model to the checkability family. The other "
-                "four families are carried as named debts on their laws, not stretched.",
+                "four families are carried as named debts on their laws, not stretched. "
+                "0.2.1 changes no kind, rule or contract: the frame law — this package's "
+                "own example — gained its second sighting, the first the native itself "
+                "caught (chores, 2026-08-20), and a sighting on the example is content.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
