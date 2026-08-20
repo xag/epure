@@ -218,6 +218,14 @@ def _shelf_read(level: str | None) -> dict[str, Any]:
 _REMOVE: dict[str, Any] = _fx("hook.delete", ["hook"])
 
 
+def _rev_write(n: int) -> dict[str, Any]:
+    return _fx("register.write", [{"rev": n}])
+
+
+def _rev_read(n: int) -> dict[str, Any]:
+    return _fx("register.read", [], {"rev": n})
+
+
 def _act(name: str, data: dict, *events: dict, outcome: str = "ok") -> list[dict]:
     """One span with its enclosed raw events, as the tape would carry them."""
     return [_sem(name, "begin", 1, data), *events, _sem(name, "end", 1, outcome=outcome)]
@@ -232,9 +240,13 @@ def visit(*calls: list[dict]) -> Node:
         for i, events in enumerate(calls)])
 
 
-def world(coat: Any, tag: str | None, shelf: str | None) -> list[dict]:
-    """The three reads that project the whole world: hook, tag, shelf."""
-    return [_read({"coat": coat} if coat else None), _tag_read(tag), _shelf_read(shelf)]
+def world(coat: Any, tag: str | None, shelf: str | None, rev: int | None = None) -> list[dict]:
+    """The reads that project the whole world: hook, tag, shelf — and the register's stamp
+    when the tape is about it."""
+    out = [_read({"coat": coat} if coat else None), _tag_read(tag), _shelf_read(shelf)]
+    if rev is not None:
+        out.append(_rev_read(rev))
+    return out
 
 
 RED = {"coat": "red"}
@@ -324,6 +336,72 @@ DIFFERENT_STORY = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
 
 UNREACHABLE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
                      *TAG_RED, *world(None, "red", None)])
+
+# --- merges, validators, conditional writes ----------------------------------------------
+
+
+def _import(tag: str, shelf: str) -> list[dict]:
+    return _act("importing", {"other_tag": tag, "other_shelf": shelf}, _rev_write(9))
+
+
+def _retag(color: str, expected: int, *events: dict, outcome: str = "ok") -> list[dict]:
+    return _act("retagging", {"color": color, "expected": expected}, _rev_read(expected if outcome == "ok" else 1), *events,
+                outcome=outcome)
+
+
+# a tagged red coat on the floor absorbs a register saying (none, high): the tag stands, the
+# shelf is taken from the other
+MERGED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                *TAG_RED, *world("red", "red", None),
+                *_import("none", "high"), *world("red", "red", "high")])
+MERGE_TOOK_THE_RIGHT = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                              *TAG_RED, *world("red", "red", None),
+                              *_import("blue", "high"), *world("red", "blue", "high")])
+SELF_MERGED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                     *TAG_RED, *world("red", "red", None),
+                     *_import("red", "floor"), *world("red", "red", None)])
+# (b then c) from a, and (b ⊔ c) from a: b = (none, high), c = (blue, low), b ⊔ c = (blue, high)
+ASSOCIATIVE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                     *_import("none", "high"), *world("red", None, "high"),
+                     *_import("blue", "low"), *world("red", "blue", "high"),
+                     *RECLAIM, *EMPTY, *DEPOSIT, *world("red", None, None),
+                     *_import("blue", "high"), *world("red", "blue", "high")])
+NOT_ASSOCIATIVE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *_import("none", "high"), *world("red", None, "high"),
+                         *_import("blue", "low"), *world("red", "blue", "high"),
+                         *RECLAIM, *EMPTY, *DEPOSIT, *world("red", None, None),
+                         *_import("blue", "high"), *world("red", "blue", "low")])
+
+STAMPED = visit([*world(None, None, None, 0),
+                 *_act("deposit", RED, _write("red"), _rev_write(1)), *world("red", None, None, 1),
+                 *_act("tagging", {"color": "red"}, _tag_write("red"), _rev_write(2)),
+                 *world("red", "red", None, 2)])
+UNSTAMPED = visit([*world(None, None, None, 0),
+                   *_act("deposit", RED, _write("red"), _rev_write(1)), *world("red", None, None, 1),
+                   *_act("tagging", {"color": "red"}, _tag_write("red")),
+                   *world("red", "red", None, 1)])
+
+CONDITIONAL_MATCH = visit([*world(None, None, None, 0),
+                           *_act("deposit", RED, _write("red"), _rev_write(1)),
+                           *world("red", None, None, 1),
+                           *_retag("blue", 1, _tag_write("blue"), _rev_write(2)),
+                           *world("red", "blue", None, 2)])
+CONDITIONAL_REFUSED = visit([*world(None, None, None, 0),
+                             *_act("deposit", RED, _write("red"), _rev_write(1)),
+                             *world("red", None, None, 1),
+                             *_retag("blue", 7, outcome="error"),
+                             *world("red", None, None, 1)])
+CONDITIONAL_IGNORED = visit([*world(None, None, None, 0),
+                             *_act("deposit", RED, _write("red"), _rev_write(1)),
+                             *world("red", None, None, 1),
+                             *_retag("blue", 7, _tag_write("blue"), _rev_write(2)),
+                             *world("red", "blue", None, 2)])
+CONDITIONAL_STUCK = visit([*world(None, None, None, 0),
+                           *_act("deposit", RED, _write("red"), _rev_write(1)),
+                           *world("red", None, None, 1),
+                           *_act("retagging", {"color": "blue", "expected": 1}, _rev_read(1),
+                                 outcome="error"),
+                           *world("red", None, None, 1)])
 
 
 def c(contract: str, nodes: list[Node], args: list, because: str, **expect):
@@ -508,7 +586,56 @@ CONSTRUCTIBLE = [
       because="no world read at all: nothing to place, nothing judged"),
 ]
 
+MERGE = [
+    c("merge", visited(MERGED), ["visit", "model"], expect=0,
+      because="a red-tagged coat on the floor absorbs a register saying (no tag, high): the "
+              "tag stands, the shelf is taken — left-biased, Hughes's union"),
+    c("merge", visited(MERGE_TOOK_THE_RIGHT), ["visit", "model"], expect=1,
+      because="the same absorb with the other register saying blue, and the tag reads blue "
+              "after: the right won where the left was present — UnionPost's left bias, "
+              "refuted"),
+    c("merge", visited(SELF_MERGED), ["visit", "model"], expect=0,
+      because="a register absorbs a copy of itself and nothing moves — UnionUnionIdem"),
+    c("merge", visited(ASSOCIATIVE), ["visit", "model"], expect=0,
+      because="(none, high) then (blue, low) from a red coat, and their merge (blue, high) "
+              "from the same red coat, leave the same world — UnionUnionAssoc on a tape"),
+    c("merge", visited(NOT_ASSOCIATIVE), ["visit", "model"], expect=2,
+      because="the one-step merge leaves the shelf low where the two steps left it high: "
+              "not associative — and, because every variable projects, that same read is "
+              "also a left-bias failure of the one-step act. Two counts for one fact, stated; "
+              "the associativity count earns its own place where a projection is missing"),
+]
+
+STAMPED_SPEC = [
+    c("stamped", visited(STAMPED), ["visit", "model"], expect=0,
+      because="the register's rev moved with the deposit and with the tag — a strong "
+              "validator: it changes whenever the representation does"),
+    c("stamped", visited(UNSTAMPED), ["visit", "model"], expect=1,
+      because="the tag moved and the rev still reads 1: a change that did not move the "
+              "stamp, which is the one thing a strong validator may not do"),
+    c("stamped", visited(AGREES), ["visit", "model"], expect=0,
+      because="the register is never read on this tape: the stamp is unwitnessed, noted, "
+              "not counted"),
+]
+
+CONDITIONAL_SPEC = [
+    c("conditional", visited(CONDITIONAL_MATCH), ["visit", "model"], expect=0,
+      because="handed rev 1, the world at rev 1: the retag proceeds and the tag reads blue "
+              "— If-Match, satisfied"),
+    c("conditional", visited(CONDITIONAL_REFUSED), ["visit", "model"], expect=0,
+      because="handed rev 7, the world at rev 1: the retag refuses and writes nothing — 412 "
+              "Precondition Failed, honoured"),
+    c("conditional", visited(CONDITIONAL_IGNORED), ["visit", "model"], expect=1,
+      because="handed rev 7, the world at rev 1, and the retag wrote anyway: a precondition "
+              "that did not hold and a write that happened — the lost update"),
+    c("conditional", visited(CONDITIONAL_STUCK), ["visit", "model"], expect=1,
+      because="handed the current rev and refused: a match that did not proceed"),
+]
+
 CONDUCT_SPEC = {
+    "conduct/merge": MERGE,
+    "conduct/stamped": STAMPED_SPEC,
+    "conduct/conditional": CONDITIONAL_SPEC,
     "conduct/effect": EFFECT,
     "conduct/faithful": FAITHFUL,
     "conduct/frame": FRAME,

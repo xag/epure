@@ -105,7 +105,7 @@ from quern import Node, Quern, TreeStore, register_native
 from epure.conformance import _STRUCTURE, Conformance, _automaton, _confront, _named, _normalize
 from epure.prove import _ENV, _LITERALS, _compile, _domain, reachable
 
-EFFECTS = ("creates", "mutates", "deletes")
+EFFECTS = ("creates", "mutates", "deletes", "merges")
 
 Door = Callable[[dict[str, Any]], bool]
 
@@ -298,11 +298,12 @@ class _Projection:
     def value(self, event: dict[str, Any]) -> Any:
         """The variable's value as this read shows it — or None when the read shows nothing
         for it (the path is absent, the date is missing): not a disagreement, an unwitnessed
-        act, and the caller treats it as no read."""
+        act, and the caller treats it as no read. A validator has no domain: its value is
+        opaque."""
         res = event.get("res")
         out = _normalize(self.expr({"res": res, **_LITERALS}, _projection_env(res)))
-        if out is None:
-            return None
+        if out is None or self.domain is None:
+            return out
         if out not in self.domain:
             raise ValueError(f"the world shows '{self.var}' as {out!r}, outside its domain")
         return out
@@ -328,6 +329,8 @@ class _Effect:
         self.kind = node.kind
         self.entity = str(p.get("entity", ""))
         self.inputs = list(p.get("from") or [])
+        self.other: dict[str, str] = dict(p.get("other") or {})      # merges: var -> arg
+        self.absent: dict[str, Any] = dict(p.get("absent") or {})    # merges: var -> empty
         self.via_spec = p.get("via")
         self.shown_spec = p.get("shown_by")
         self.via = doors(self.via_spec)
@@ -478,6 +481,8 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         if act.span.payload.get("outcome") == "error":
             continue  # a refused act promises nothing; conduct/refusal holds it instead
         for eff in _effects_of(model, act):
+            if eff.kind == "merges":
+                continue  # held by value, by conduct/merge
             if not eff.via or not eff.shown_by:
                 continue  # conduct/checkable's finding, not a tape's
             writes = [e for _, e in act.events if _through(e, eff.via)]
@@ -551,7 +556,7 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             continue
         data = act.span.payload.get("data") or {}
         for eff in _effects_of(model, act):
-            if eff.kind == "deletes" or not eff.inputs or not eff.via:
+            if eff.kind in ("deletes", "merges") or not eff.inputs or not eff.via:
                 continue
             src = update_src.get(eff.action, {}).get(eff.entity, "")
             words = set(src.replace("'", " ").replace("(", " ").replace(")", " ").split())
@@ -663,7 +668,13 @@ def checkable(tree: Quern | TreeStore, path: str) -> Conformance:
     for a in model.actions:
         for e in a.effects:
             why = []
-            if e.entity not in model.state_vars:
+            if e.kind == "merges":
+                unknown = [v for v in e.other if v not in model.state_vars]
+                if not e.other:
+                    why.append("a merge names no variable it absorbs (`other`)")
+                if unknown:
+                    why.append(f"`other` names {unknown}, which no state-var declares")
+            elif e.entity not in model.state_vars:
                 why.append(f"entity '{e.entity}' is no state-var of the model")
             if not e.via:
                 why.append("no `via` door — nothing on a tape materializes it")
@@ -711,6 +722,8 @@ class _World:
         return out | self.inner_updates
 
     inner_updates: set[str] = set()
+    stamp_before: Any = None
+    stamp_after: Any = None
 
 
 class _Worlds:
@@ -730,6 +743,19 @@ class _Worlds:
                                          for u in c.payload.get("updates") or []}
                 self.guard_src[c.id] = str(c.payload.get("guard", ""))
         self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
+        # the stamp: a validator is read like a projection whose writers are every door the
+        # model knows - any write may bump it, so a read is a world-before only if nothing
+        # was written since, and a world-after only if nothing is written before it
+        self.validators: list[_Projection] = []
+        for c in self.model_node.children:
+            if c.kind == "validator":
+                v = _Projection.__new__(_Projection)
+                v.var = c.id
+                v.doors = doors(c.payload.get("door"))
+                v.src = str(c.payload.get("expr", ""))
+                v.expr = _compile(v.src, f"validator '{c.id}'")
+                v.domain = None
+                self.validators.append(v)
         # the doors that write each projected variable: the EFFECT doors (`via`) of every
         # action that updates it - the writes that carry its value, not the stamps and rows
         # the action's boundary also admits. A read is a valid world before an act only if
@@ -764,6 +790,32 @@ class _Worlds:
             if _through(e, proj.doors):
                 return e
         return None
+
+    def _stamps(self, act: _Act) -> tuple[Any, Any]:
+        """The validator's value read before the act with no write since, and after it
+        with no write before; None where unread. One validator per model is the case
+        served; several are read in declaration order and the first that shows decides."""
+        before = after = None
+        for v in self.validators:
+            for pos, e in reversed(self.stream):
+                if pos >= act.at:
+                    continue
+                if _through(e, v.doors):
+                    before = v.value(e)
+                    break
+                if _through(e, self.model.known):
+                    break
+            for pos, e in self.stream:
+                if pos <= act.to:
+                    continue
+                if _through(e, v.doors):
+                    after = v.value(e)
+                    break
+                if _through(e, self.model.known):
+                    break
+            if before is not None or after is not None:
+                break
+        return before, after
 
     def _read_after(self, proj: _Projection, to: tuple):
         """The first read of the variable after `to` — unless a write through one of the
@@ -808,6 +860,7 @@ class _Worlds:
             w = _World(i, act, action, pre, post, binding)
             w.inner_updates = {var for inner in act.inner for a in self.model.bound(inner.span)
                                for var, _ in self.by_id[a.id]["updates"]}
+            w.stamp_before, w.stamp_after = self._stamps(act)
             self.worlds.append(w)
 
     def adjacent(self) -> list[tuple[_World, _World]]:
@@ -1162,6 +1215,155 @@ def constructible(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     return _stretch_check("conduct/constructible", tree, path, rel, judge)
 
 
+def merge(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """a-merge-keeps-both-and-prefers-the-left: after an act declaring `merges`, each merged
+    variable projects to its own value before if that was not the absent value, else to the
+    other world's (the argument) — which makes a self-merge a no-op; and where two merges b
+    then c from a world a, and elsewhere one merge of (b merged with c) from a, both appear,
+    the worlds after agree (associativity)."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+
+        def merges_of(w: _World) -> list[_Effect]:
+            return [e for x in W.model.bound(w.act.span) for e in x.effects if e.kind == "merges"]
+
+        def leftbias(mine: dict[str, Any], other: dict[str, Any], eff: _Effect) -> dict[str, Any]:
+            return {v: (mine[v] if mine.get(v) != eff.absent.get(v) and v in mine else other.get(v))
+                    for v in eff.other}
+
+        merged = []
+        for w in W.worlds:
+            if w.action is None:
+                continue
+            for eff in merges_of(w):
+                other = {v: _normalize(w.data.get(arg)) for v, arg in eff.other.items()}
+                if any(v not in w.pre for v in eff.other):
+                    notes.append(f"{w.act.path}: '{w.kind}' merges with no read of "
+                                 f"{[v for v in eff.other if v not in w.pre]} before — unwitnessed")
+                    continue
+                expected = leftbias(w.pre, other, eff)
+                shown = {v: w.post[v] for v in eff.other if v in w.post}
+                if not shown:
+                    notes.append(f"{w.act.path}: '{w.kind}' merged and nothing read after")
+                    continue
+                judged += 1
+                wrong = [v for v in shown if shown[v] != expected[v]]
+                if wrong:
+                    diagnostics.append(
+                        f"{w.act.path}: '{w.kind}' absorbed {other} into {w.pre}; left-biased, "
+                        f"the world should show {expected}, it shows {shown} — wrong on {wrong}")
+                merged.append((w, eff, other, expected))
+        # associativity: (b then c) from a, against one merge of (b ⊔ c) from a
+        for i, (w1, e1, b, _) in enumerate(merged):
+            for w2, e2, c_, _ in merged[i + 1:]:
+                if w2.act.at <= w1.act.to or e1 is not e2:
+                    continue
+                if not _equal_on(w1.post, w2.pre, e1.other):
+                    continue  # not adjacent on these variables
+                bc = leftbias(b, c_, e1)
+                for w3, e3, d, _ in merged:
+                    if w3 in (w1, w2) or e3 is not e1 or d != bc:
+                        continue
+                    if not _equal_on(w1.pre, w3.pre, e1.other):
+                        continue
+                    shared = [v for v in e1.other if v in w2.post and v in w3.post]
+                    if not shared:
+                        continue
+                    judged += 1
+                    moved = [v for v in shared if w2.post[v] != w3.post[v]]
+                    if moved:
+                        diagnostics.append(
+                            f"{w3.act.path}: merging {b} then {c_} from {w1.pre} leaves "
+                            f"{w2.post}; merging their merge {bc} from the same world leaves "
+                            f"{w3.post} — not associative on {moved}")
+        return judged
+    return _stretch_check("conduct/merge", tree, path, rel, judge)
+
+
+def stamped(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """a-change-moves-the-validator: whenever an act moved a projected variable, the
+    validator read after the act differs from the one read before it. RFC 9110's strong
+    validator, the direction the RFC states; a stamp that moves without a change is not
+    forbidden by the source and is not counted here."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        if not W.validators:
+            notes.append(f"{path}: the model declares no validator — nothing stamped")
+            return 0
+        judged = 0
+        for w in W.worlds:
+            if w.action is None or w.act.is_call:
+                continue
+            moved = [v for v in W.projections if v in w.pre and v in w.post
+                     and w.pre[v] != w.post[v]]
+            if not moved:
+                continue
+            if w.stamp_before is None or w.stamp_after is None:
+                notes.append(f"{w.act.path}: '{w.kind}' moved {moved} and the stamp was not "
+                             "read on both sides — unwitnessed")
+                continue
+            judged += 1
+            if w.stamp_before == w.stamp_after:
+                diagnostics.append(
+                    f"{w.act.path}: '{w.kind}' moved {moved} and the validator still reads "
+                    f"{w.stamp_after!r} — a change that did not move the stamp")
+        return judged
+    return _stretch_check("conduct/stamped", tree, path, rel, judge)
+
+
+def conditional(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """a-conditional-write-compares-before-it-writes: an act whose action `requires` a
+    validator argument proceeds (outcome ok) when the stamp it was handed equals the stamp
+    the world showed before it, and refuses — error outcome, no write through any door
+    the model knows — when it does not. If-Match and 412, on a tape."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        requires = {c.id: (c.payload.get("requires") or {}).get("validator")
+                    for c in W.model_node.children if c.kind == "action"}
+        for i, act in enumerate(W.acts):
+            bound = W.model.bound(act.span)
+            arg = next((requires.get(a.id) for a in bound if requires.get(a.id)), None)
+            if not arg:
+                continue
+            data = act.span.payload.get("data") or {}
+            if arg not in data:
+                continue
+            handed = _normalize(data[arg])
+            w = next((x for x in W.worlds if x.act is act), None)
+            # the stamp before, read here directly: an errored act has no _World
+            before = None
+            for v in W.validators:
+                for pos, e in reversed(W.stream):
+                    if pos >= act.at:
+                        continue
+                    if _through(e, v.doors):
+                        before = v.value(e)
+                        break
+                    if _through(e, W.model.known):
+                        break
+                if before is not None:
+                    break
+            if before is None:
+                notes.append(f"{act.path}: '{act.span.kind}' was handed {handed!r} and the "
+                             "stamp was not read before it — unwitnessed")
+                continue
+            judged += 1
+            outcome = act.span.payload.get("outcome")
+            wrote = [_named(e) for _, e in act.events if _through(e, W.model.known)]
+            if handed == before:
+                if outcome != "ok":
+                    diagnostics.append(
+                        f"{act.path}: '{act.span.kind}' was handed the current stamp "
+                        f"{handed!r} and refused — a match that did not proceed")
+            else:
+                if outcome == "ok" or wrote:
+                    diagnostics.append(
+                        f"{act.path}: '{act.span.kind}' was handed {handed!r}, the world's "
+                        f"stamp was {before!r}, and it {'proceeded' if outcome == 'ok' else 'wrote ' + str(sorted(set(wrote)))} "
+                        "— a precondition that did not hold and a write that happened anyway")
+        return judged
+    return _stretch_check("conduct/conditional", tree, path, rel, judge)
+
+
 # --- the natives: counts behind solve() ---------------------------------------------------
 
 
@@ -1203,5 +1405,6 @@ register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/chec
 register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])
 for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
                    ("undo", undo), ("durable", durable), ("same-story", same_story),
-                   ("constructible", constructible)):
+                   ("constructible", constructible), ("merge", merge), ("stamped", stamped),
+                   ("conditional", conditional)):
     register_native(f"conduct/{_name}", _count_of(_fn), CONDUCT_SPEC[f"conduct/{_name}"])

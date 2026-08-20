@@ -23,9 +23,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable"}
 
 # The laws no native holds yet — each owed to a debt the ledger carries.
-OWED = {"a-merge-keeps-both-and-prefers-the-left",
-        "a-generated-world-is-valid", "a-change-moves-the-validator",
-        "a-conditional-write-compares-before-it-writes"}
+OWED: set[str] = set()   # every law has a native; the census says in what form
 
 
 def test_the_pin_is_this_content():
@@ -51,7 +49,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     assert any("4 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
     held = [line for line in log if line.startswith("contract 'conduct/")]
-    assert len(held) == 13, log
+    assert len(held) == 16, log
 
 
 def test_every_law_is_checked_or_owed_and_the_owed_are_these():

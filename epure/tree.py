@@ -39,7 +39,8 @@ def build() -> Quern:
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
-                           _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, census(),
+                           _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, _DOOR_CENSUS_DEBT,
+                           census(),
                            *CONDUCT_LAWS]
     return quern
 
@@ -971,12 +972,17 @@ _PROJECTION_DEBT = Node(
 _MERGE_DEBT = Node(
     id="no-kind-names-a-merge",
     kind="debt",
-    name="semantic-model has no action over two worlds, so the thirteen union properties "
-         "of the paper — a bulk import, a sync, a merge — bind to nothing",
+    name="semantic-model had no action over two worlds, so the fourteen union properties "
+         "of the paper — a bulk import, a sync, a merge — bound to nothing. Discharged "
+         "2026-08-20: the `merges` effect and conduct/merge",
     params={
-        "merge_kinds": Quantity(value=0, unit="kind", provenance="asserted", grounded=False,
-                                source="every action in semantic-model@0.5.0 is a transition "
-                                       "of one world by arguments; none takes a second world"),
+        # Grounded by the discharge: the other world arrives as arguments, one per variable,
+        # left-biased through `either`; conduct/merge holds left bias, self-merge and
+        # associativity on the cloakroom's import, five demonstrations.
+        "merge_kinds": Quantity(value=1, unit="kind", provenance="verified", grounded=True,
+                                source="semantic-model@0.8.0 `merges`; conduct@0.6.0 "
+                                       "conduct/merge. No app of the estate merges yet: judged "
+                                       "0 on every real tape, which the report says"),
     },
     payload={
         "note":
@@ -997,14 +1003,16 @@ _MERGE_DEBT = Node(
 _VALIDATOR_DEBT = Node(
     id="no-kind-names-a-validator",
     kind="debt",
-    name="No kind names an entity's version stamp or a precondition on it, so RFC 9110's "
-         "validator and conditional-request properties bind to nothing — although chores "
-         "already stamps `rev` on every change",
+    name="No kind named an entity's version stamp or a precondition on it, so RFC 9110's "
+         "validator and conditional-request properties bound to nothing — although chores "
+         "already stamps `rev` on every change. Discharged 2026-08-20: the `validator` kind, "
+         "`requires`, conduct/stamped and conduct/conditional",
     params={
-        "validator_kinds": Quantity(value=0, unit="kind", provenance="asserted",
-                                    grounded=False,
-                                    source="no payload in semantic-model@0.5.0 names a "
-                                           "validator door or a precondition"),
+        "validator_kinds": Quantity(value=1, unit="kind", provenance="verified",
+                                    grounded=True,
+                                    source="semantic-model@0.8.0 `validator` (+ `requires` on "
+                                           "action); conduct@0.6.0 conduct/stamped and "
+                                           "conduct/conditional, seven demonstrations"),
     },
     payload={
         "note":
@@ -1026,13 +1034,15 @@ _VALIDATOR_DEBT = Node(
 _GENERATED_DEBT = Node(
     id="no-generated-world-is-checked",
     kind="debt",
-    name="A mutated tape is judged without first being held to the model's invariants, "
-         "so a property checked on it may be checked on an invalid world",
+    name="A mutated tape was judged without first being held to the model, so a property "
+         "checked on it could be checked on an invalid world. Discharged 2026-08-20: a probe "
+         "tape is held to conduct/constructible before any other law is reported",
     params={
         "mutated_tapes_validated": Quantity(
-            value=0, unit="tape", provenance="asserted", grounded=False,
-            source="flight-recorder's mutate produces probes; épure judges whatever it is "
-                   "handed and nothing runs model/prove's invariants over a probe first"),
+            value=1, unit="rule", provenance="verified", grounded=True,
+            source="epure.suite: a tape any of whose calls carries `probe: true` is red on "
+                   "an unreachable world and its other laws are not reported "
+                   "(tests/test_suite.py)"),
     },
     payload={
         "note":
@@ -1045,6 +1055,38 @@ _GENERATED_DEBT = Node(
                       "The suite refuses to report conduct verdicts on a probe tape whose "
                       "trace does not refine — refinement re-checks every invariant at "
                       "every step, which is ArbitraryValid for a recorded world."}),
+    ],
+)
+
+
+_DOOR_CENSUS_DEBT = Node(
+    id="no-door-census",
+    kind="debt",
+    name="A write through a door no declaration names, inside a read-act, to a variable "
+         "nothing projects, passes every law: the frame sees declared doors, agrees sees "
+         "projected variables, and RFC 9110's `safe` says the WHOLE state",
+    params={
+        "write_functions_undeclared": Quantity(
+            value=0, unit="function", provenance="asserted", grounded=False,
+            source="nobody has counted: the boundary declaration (flight-recorder) lists every "
+                   "write function the app records, the model's doors name a subset, and no "
+                   "census compares the two"),
+    },
+    payload={
+        "note":
+            "The survey (epure.survey) drafts doors from the tapes that exist; the boundary "
+            "knows the functions that could write whether or not a tape took the path. The "
+            "census that closes this compares the two lists and is red on a write function "
+            "no door of any action names — which is what makes `touches.via: []` mean the "
+            "whole state.",
+    },
+    children=[
+        Node(id="every-write-function-is-some-doors", kind="discharge",
+             payload={"condition":
+                      "A native over (model, boundary declaration): every function the "
+                      "boundary records as a write is matched by a door of some action. "
+                      "Grounded with the count that then holds; chores first, where the "
+                      "boundary is app/flight.py."}),
     ],
 )
 

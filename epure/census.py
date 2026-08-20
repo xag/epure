@@ -44,6 +44,7 @@ ABSTRACTION = "the-world-is-not-yet-projected"
 MERGE = "no-kind-names-a-merge"
 CONDITIONAL = "no-kind-names-a-validator"
 GENERATED = "no-generated-world-is-checked"
+DOORS = "no-door-census"
 
 
 def _item(id: str, source: str, category: str, formula: str, law: str, status: str,
@@ -96,12 +97,18 @@ ITEMS: list[dict] = [
             "act on a tape", "§4.1"),
     covered("DeleteValid", HUGHES, _V, "valid t ==> valid (delete k t)", "the-invariant-holds",
             "as InsertValid", "§4.1"),
-    owed("UnionValid", HUGHES, _V, "valid (union t t')", "a-merge-keeps-both-and-prefers-the-left",
-         MERGE, "§4.1"),
-    owed("ArbitraryValid", HUGHES, _V, "valid t (for generated t)", "a-generated-world-is-valid",
-         GENERATED, "§4.1"),
-    owed("ShrinkValid", HUGHES, _V, "valid t ==> all valid (shrink t)", "a-generated-world-is-valid",
-         GENERATED, "§4.1"),
+    covered("UnionValid", HUGHES, _V, "valid (union t t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.1"),
+    covered("ArbitraryValid", HUGHES, _V, "valid t (for generated t)",
+             "a-generated-world-is-valid",
+             'conduct/constructible on a probe tape: every world read off a mutated tape is one the model reaches, held before any other law is reported',
+             "§4.1"),
+    covered("ShrinkValid", HUGHES, _V, "valid t ==> all valid (shrink t)",
+             "a-generated-world-is-valid",
+             'conduct/constructible on a probe tape: every world read off a mutated tape is one the model reaches, held before any other law is reported',
+             "§4.1"),
     aside("ValidEquivalent", HUGHES, _V, "valid t === fastValid t",
           "two implementations of the validity predicate agree — about the test's own "
           "oracle, not the store", "§4.1"),
@@ -117,11 +124,14 @@ ITEMS: list[dict] = [
              "the-frame-holds",
              'conduct/agrees: a variable the action does not update projects the same value after as before; conduct/frame holds the door form where no projection exists',
              "§4.2"),
-    covered("InsertPost-value", HUGHES, _P,
+    weakened("InsertPost-value", HUGHES, _P,
              "find k (insert k v t) === Just v, for the v that was the argument",
              "the-effect-matches-its-inputs",
-             "conduct/agrees: where the entity's update reads the argument, the projected value after equals the argument; conduct/faithful holds the containment form otherwise",
-             "§4.2"),
+             "where the entity's update READS the input (assignee := member), conduct/agrees "
+             "holds the read equal to the argument — the source's form; where it ignores it "
+             "(held := 1, whatever the coat), conduct/faithful only checks that the WRITE "
+             "carried the input, not that a read returns it — a weaker form, since nothing "
+             "on the model projects the coat", "§4.2"),
     covered("InsertPostSameKey", HUGHES, _P,
              "find k (insert k v t) === Just v",
              "the-effect-is-shown",
@@ -151,8 +161,10 @@ ITEMS: list[dict] = [
              "twice-is-once",
              'conduct/twice: the world after an admitted repeat equals the world after once',
              "§4.2"),
-    owed("UnionPost", HUGHES, _P, "find k (union t t') === (find k t <|> find k t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "§4.2"),
+    covered("UnionPost", HUGHES, _P, "find k (union t t') === (find k t <|> find k t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.2"),
 
     # §4.3 metamorphic
     covered("InsertInsertWeak", HUGHES, _M,
@@ -177,8 +189,10 @@ ITEMS: list[dict] = [
              "last-write-wins",
              "conduct/last-write: the value after the second overwrite is the second's update on the world before the first",
              "§4.3"),
-    owed("InsertUnion", HUGHES, _M, "insert k v (union t t') ≏ union (insert k v t) t'",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "§4.3"),
+    covered("InsertUnion", HUGHES, _M, "insert k v (union t t') ≏ union (insert k v t) t'",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.3"),
     covered("DeleteNil", HUGHES, _M, "delete k nil ≏ nil", "refusal-changes-nothing",
             "conduct/refusal: an act that does not apply (its guard refuses it, here an "
             "empty world) writes through no door", "§4.3, Appendix A"),
@@ -197,19 +211,31 @@ ITEMS: list[dict] = [
              "independent-writes-commute",
              'conduct/commute: A;B and B;A from an equal world leave equal worlds',
              "Appendix A"),
-    owed("DeleteUnion", HUGHES, _M, "delete k (union t t') ≏ union (delete k t) (delete k t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "Appendix A"),
-    owed("UnionNil1", HUGHES, _M, "union nil t ≏ t", "a-merge-keeps-both-and-prefers-the-left",
-         MERGE, "Appendix A"),
-    owed("UnionNil2", HUGHES, _M, "union t nil ≏ t", "a-merge-keeps-both-and-prefers-the-left",
-         MERGE, "Appendix A"),
-    owed("UnionDeleteInsert", HUGHES, _M,
+    covered("DeleteUnion", HUGHES, _M, "delete k (union t t') ≏ union (delete k t) (delete k t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
+    covered("UnionNil1", HUGHES, _M, "union nil t ≏ t",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
+    covered("UnionNil2", HUGHES, _M, "union t nil ≏ t",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
+    covered("UnionDeleteInsert", HUGHES, _M,
          "union (delete k t) (insert k v t') ≏ insert k v (union t t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "Appendix A"),
-    owed("UnionUnionIdem", HUGHES, _M, "union t t ≏ t", "a-merge-keeps-both-and-prefers-the-left",
-         MERGE, "Appendix A"),
-    owed("UnionUnionAssoc", HUGHES, _M, "union (union t1 t2) t3 ≏ union t1 (union t2 t3)",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "Appendix A"),
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
+    covered("UnionUnionIdem", HUGHES, _M, "union t t ≏ t",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
+    covered("UnionUnionAssoc", HUGHES, _M, "union (union t1 t2) t3 ≏ union t1 (union t2 t3)",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
     covered("FindNil", HUGHES, _M, "find k nil === Nothing", "a-read-changes-nothing",
             "a read of an empty world answers nothing and, by conduct/frame on an act "
             "declaring touches.via = [], writes nothing", "Appendix A"),
@@ -228,8 +254,10 @@ ITEMS: list[dict] = [
              "the-effect-is-shown",
              "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists",
              "Appendix A"),
-    owed("FindUnion", HUGHES, _M, "find k (union t t') === (find k t <|> find k t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "Appendix A"),
+    covered("FindUnion", HUGHES, _M, "find k (union t t') === (find k t <|> find k t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Appendix A"),
 
     # §4.3 preservation of equivalence
     covered("InsertPreservesEquivWeak", HUGHES, _E,
@@ -245,8 +273,10 @@ ITEMS: list[dict] = [
              "equivalent-worlds-stay-equivalent",
              'conduct/same-story: equivalence is projected equality, compared after the same act',
              "Fig. 5"),
-    owed("UnionPreservesEquiv", HUGHES, _E, "union t1 t2 ≏ union t1' t2'",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "Fig. 5"),
+    covered("UnionPreservesEquiv", HUGHES, _E, "union t1 t2 ≏ union t1' t2'",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "Fig. 5"),
     covered("FindPreservesEquiv", HUGHES, _E, "find k t === find k t'",
              "same-state-same-story",
              'conduct/same-story: same act, same data, equal projected worlds before — equal after',
@@ -257,8 +287,10 @@ ITEMS: list[dict] = [
           "tests the shrinker, not the store", "Fig. 5"),
 
     # §4.4 inductive
-    owed("UnionInsert", HUGHES, _I, "union (insert k v t) t' ≏ insert k v (union t t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "§4.4"),
+    covered("UnionInsert", HUGHES, _I, "union (insert k v t) t' ≏ insert k v (union t t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.4"),
     covered("InsertComplete", HUGHES, _I, "t === foldl (flip (uncurry insert)) nil (insertions t)",
              "every-world-is-constructible",
              'conduct/constructible: every projected world read off the tape is a state the prover reaches',
@@ -267,8 +299,10 @@ ITEMS: list[dict] = [
              "every-world-is-constructible",
              'conduct/constructible: every projected world read off the tape is a state the prover reaches',
              "§4.4"),
-    owed("InsertCompleteForUnion", HUGHES, _I, "InsertComplete (union t t')",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "§4.4"),
+    covered("InsertCompleteForUnion", HUGHES, _I, "InsertComplete (union t t')",
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.4"),
 
     # §4.5 model-based — the abstraction function, which the paper ranks first
     covered("NilModel", HUGHES, _B,
@@ -289,9 +323,11 @@ ITEMS: list[dict] = [
              "conduct/agrees: the projected world after the act equals the model's update "
              "applied to the projected world before — the diagram, on a tape",
              "§4.5, Fig. 6"),
-    owed("UnionModel", HUGHES, _B,
+    covered("UnionModel", HUGHES, _B,
          "toList (union t t') === L.sort (L.unionBy ((==) `on` fst) (toList t) (toList t'))",
-         "a-merge-keeps-both-and-prefers-the-left", MERGE, "§4.5, Fig. 6"),
+             "a-merge-keeps-both-and-prefers-the-left",
+             "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)",
+             "§4.5, Fig. 6"),
     covered("FindModel", HUGHES, _B,
              "find k t === L.lookup k (toList t)",
              "the-world-agrees-with-the-model",
@@ -306,15 +342,17 @@ ITEMS: list[dict] = [
           "a property of the key generator, not the store", "§6"),
 
     # --- RFC 9110, HTTP Semantics: every normative property of methods and resources -----
-    weakened("safe", RFC, "method property",
-             "A request method is considered \"safe\" if it is intended only for retrieving "
-             "information and MUST NOT change the state of the origin server",
-             "a-read-changes-nothing",
-             "the RFC says the WHOLE state; conduct/frame convicts a write through a door "
-             "the model knows, conduct/agrees a projected variable that moved — a write "
-             "through a door no declaration names, inside a read-act, to a variable nothing "
-             "projects, passes both. Closing it is a door census: every write function the "
-             "boundary records declared as a door of something", "§9.2.1"),
+    covered("safe", RFC, "method property",
+            "A request method is considered \"safe\" if it is intended only for retrieving "
+            "information and MUST NOT change the state of the origin server",
+            "a-read-changes-nothing",
+            "conduct/frame convicts a write through any door the model knows inside an act "
+            "declaring touches.via = []; conduct/agrees convicts a projected variable that "
+            "moved across it", "§9.2.1"),
+    owed("safe-undeclared-doors", RFC, "method property",
+         "...MUST NOT change the state of the origin server — the WHOLE state, including what "
+         "no declaration names",
+         "a-read-changes-nothing", DOORS, "§9.2.1, the half a door census closes"),
     covered("idempotent", RFC, "method property",
          "the intended effect on the server of multiple identical requests with that method is "
          "the same as the effect for a single such request",
@@ -326,48 +364,70 @@ ITEMS: list[dict] = [
           "appropriate Cache-Control or Expires header fields",
           "a policy about HTTP responses, not a property of an operation on a store; an "
           "http@ vocabulary's to state", "§9.2.3"),
-    owed("strong-validator", RFC, "validator",
+    covered("strong-validator", RFC, "validator",
          "A strong validator is representation metadata that changes value whenever the "
-         "associated representation changes", "a-change-moves-the-validator", CONDITIONAL,
-         "§8.8.1"),
-    owed("weak-validator", RFC, "validator",
+         "associated representation changes",
+             "a-change-moves-the-validator",
+             'conduct/stamped: an act that moved a projected variable moved the validator',
+             "§8.8.1"),
+    covered("weak-validator", RFC, "validator",
          "A weak validator is representation metadata that might not change for every "
-         "alteration to the associated representation", "a-change-moves-the-validator",
-         CONDITIONAL, "§8.8.1"),
-    owed("last-modified", RFC, "validator",
+         "alteration to the associated representation",
+             "a-change-moves-the-validator",
+             'conduct/stamped: an act that moved a projected variable moved the validator',
+             "§8.8.1"),
+    covered("last-modified", RFC, "validator",
          "the date and time at which the origin server believes the representation was last "
-         "modified", "a-change-moves-the-validator", CONDITIONAL, "§8.8.2"),
-    owed("etag", RFC, "validator",
+         "modified",
+             "a-change-moves-the-validator",
+             'conduct/stamped: an act that moved a projected variable moved the validator',
+             "§8.8.2"),
+    covered("etag", RFC, "validator",
          "An entity tag is an opaque validator for differentiating between multiple "
-         "representations of the same resource", "a-change-moves-the-validator", CONDITIONAL,
-         "§8.8.3"),
-    owed("if-match", RFC, "conditional request",
+         "representations of the same resource",
+             "a-change-moves-the-validator",
+             'conduct/stamped: an act that moved a projected variable moved the validator',
+             "§8.8.3"),
+    covered("if-match", RFC, "conditional request",
          "makes the request method conditional on the recipient origin server having a "
          "current representation of the target resource that matches the provided entity-tag(s)",
-         "a-conditional-write-compares-before-it-writes", CONDITIONAL, "§13.1.1"),
-    owed("if-none-match", RFC, "conditional request",
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§13.1.1"),
+    covered("if-none-match", RFC, "conditional request",
          "makes the request method conditional on a recipient cache or origin server NOT "
          "having a current representation of the target resource that matches any of the "
-         "provided entity-tag(s)", "a-conditional-write-compares-before-it-writes",
-         CONDITIONAL, "§13.1.2"),
-    owed("if-modified-since", RFC, "conditional request",
+         "provided entity-tag(s)",
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§13.1.2"),
+    covered("if-modified-since", RFC, "conditional request",
          "makes a GET or HEAD request method conditional on the origin server only sending a "
          "representation if the selected representation has been modified since the provided "
-         "HTTP-date", "a-conditional-write-compares-before-it-writes", CONDITIONAL, "§13.1.3"),
-    owed("if-unmodified-since", RFC, "conditional request",
+         "HTTP-date",
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§13.1.3"),
+    covered("if-unmodified-since", RFC, "conditional request",
          "makes the request method conditional on the origin server only applying the request "
          "to the target resource if the selected representation has not been modified since "
-         "the provided HTTP-date", "a-conditional-write-compares-before-it-writes", CONDITIONAL,
-         "§13.1.4"),
-    owed("precondition-failed", RFC, "conditional request",
+         "the provided HTTP-date",
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§13.1.4"),
+    covered("precondition-failed", RFC, "conditional request",
          "The 412 (Precondition Failed) status code indicates that one or more conditions given "
          "in the request header fields evaluated to false when tested on the server",
-         "a-conditional-write-compares-before-it-writes", CONDITIONAL, "§15.5.13"),
-    owed("not-modified", RFC, "conditional request",
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§15.5.13"),
+    covered("not-modified", RFC, "conditional request",
          "The 304 (Not Modified) status code indicates that a conditional GET or HEAD request "
          "has been received and would have resulted in a 200 (OK) response if it were not for "
          "the fact that the condition evaluated to false",
-         "a-conditional-write-compares-before-it-writes", CONDITIONAL, "§15.4.5"),
+             "a-conditional-write-compares-before-it-writes",
+             'conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing',
+             "§15.4.5"),
 ]
 
 STATUSES = ("covered", "weakened", "owed", "aside")

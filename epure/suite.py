@@ -68,8 +68,9 @@ from typing import Any, Callable, Sequence
 
 from quern import Node, Quern
 
-from epure.behavior import (agrees, commute, constructible, durable, effect, faithful, frame,
-                            last_write, refusal, same_story, twice, undo)
+from epure.behavior import (agrees, commute, conditional, constructible, durable, effect,
+                            faithful, frame, last_write, merge, refusal, same_story, stamped,
+                            twice, undo)
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
@@ -78,11 +79,13 @@ _CHECKS: tuple[tuple[str, Callable], ...] = (
     ("effect", effect), ("faithful", faithful), ("frame", frame), ("refusal", refusal),
     ("agrees", agrees), ("twice", twice), ("last-write", last_write), ("commute", commute),
     ("undo", undo), ("durable", durable), ("same-story", same_story),
-    ("constructible", constructible))
+    ("constructible", constructible), ("merge", merge), ("stamped", stamped),
+    ("conditional", conditional))
 _CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
-            "commute", "undo", "durable", "same-story", "constructible")
+            "commute", "undo", "durable", "same-story", "constructible", "merge", "stamped",
+            "conditional")
 _STRETCH = ("agrees", "twice", "last-write", "commute", "undo", "durable", "same-story",
-            "constructible")
+            "constructible", "merge", "stamped", "conditional")
 
 
 @dataclass(frozen=True)
@@ -136,6 +139,7 @@ class Verdict:
         self.bound = 0
         self.calls = 0      # tool calls on the tape
         self.declared = 0   # ...whose tool the model names, so the call itself is judged
+        self.probe = False  # a mutated tape: a generated world, held to reachability first
         self.checks: dict[str, tuple[int, str]] = {}
         self.notes: dict[str, int] = {}
         self.judged: dict[str, int] = {}
@@ -169,6 +173,12 @@ class Verdict:
                 bad.append("no totality budget (add one, with a reason)")
             elif self.checks["total"][0] > budget:
                 bad.append(f"totality ratchet ({self.checks['total'][0]} > {budget})")
+            # A generated world answers for its reachability before anything else: a
+            # property checked on an invalid world is a false positive wearing a verdict.
+            if self.probe and self.checks["constructible"][0]:
+                bad.append("a probe whose worlds the model cannot reach (its other laws "
+                           "are not read)")
+                return bad
             # The laws: what the act declared it does, the world shows; nothing else moved.
             for law in _CONDUCT:
                 if self.checks[law][0]:
@@ -206,6 +216,7 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
         v.bound += b
         v.calls += 1
         v.declared += 1 if call.name in kinds else 0
+        v.probe = v.probe or bool(call.payload.get("probe"))
 
     for name, check in _CHECKS:
         try:

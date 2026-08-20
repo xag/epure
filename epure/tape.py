@@ -118,7 +118,10 @@ def _scenario(record: dict[str, Any]) -> Node:
                  # the call as an act: its inputs, its outcome, its whole window — so the
                  # conduct natives can bind the tool itself to a declaration
                  "data": record.get("kwargs") or {}, "outcome": tree["outcome"],
-                 "at": -1, "to": tree["to"]},
+                 "at": -1, "to": tree["to"],
+                 # a mutated tape (flight-recorder's probe): a GENERATED world, which the
+                 # suite holds to the model's reachability before any other law is read
+                 "probe": bool(record.get("probe"))},
         children=[_span(child, i) for i, child in enumerate(tree["children"])],
     )
 

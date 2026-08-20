@@ -76,7 +76,8 @@ def _verdict(tmp_path, *, bound: int, total: int = 0, budget: dict | None = None
     v.checks = {"licensed": (0, ""), "total": (total, ""), "refines": (0, ""),
                 **{law: (laws.get(law, 0), "") for law in
                    ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
-                    "commute", "undo", "durable", "same-story", "constructible")}}
+                    "commute", "undo", "durable", "same-story", "constructible", "merge",
+                    "stamped", "conditional")}}
     return v
 
 
@@ -170,3 +171,14 @@ def test_the_default_run_walks_every_class_and_leaves_one(tmp_path):
     _tape(tmp_path / "rides", "lawful", _RIDE)
     assert main(s, []) == 0
     assert (tmp_path / "receipt.json").is_file()
+
+
+def test_a_probe_answers_for_its_reachability_before_any_other_law(tmp_path):
+    """A mutated tape is a generated world: unreachable, it is red for that alone and its
+    other verdicts are not read — a property checked on an invalid world is noise."""
+    v = _verdict(tmp_path, bound=3, budget={"t": 0}, constructible=1, frame=1)
+    v.probe = True
+    assert v.red() == ["a probe whose worlds the model cannot reach (its other laws are "
+                       "not read)"]
+    v.probe = False
+    assert v.red() == ["conduct/frame", "conduct/constructible"]

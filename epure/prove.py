@@ -65,7 +65,10 @@ CHECKER = f"epure/prove@{__version__}"
 # The walk offers no bridge to content and no context — a guard that needs the world is
 # not a guard over the model — so the env is arithmetic helpers and nothing more.
 _ENV: dict[str, Any] = {"abs": abs, "min": min, "max": max,
-                        "sum": lambda xs: sum(xs), "len": lambda xs: len(xs)}
+                        "sum": lambda xs: sum(xs), "len": lambda xs: len(xs),
+                        # `either(x, absent, y)`: x unless x is the absent value, else y - the
+                        # one conditional a left-biased merge needs, kept total and pure
+                        "either": lambda x, absent, y: y if x == absent else x}
 # The grammar has no boolean literals (rules never needed them; a bool state-var's updates
 # do), so `true` and `false` are bound as variables in every evaluation.
 _LITERALS = {"true": True, "false": False}

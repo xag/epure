@@ -1,4 +1,4 @@
-"""semantic-model@0.6.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.8.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -141,7 +141,9 @@ VOCABULARY = [
         kind="action",
         description="One transition of the model. Payload: `guard` (expr over state-vars and "
         "args — when the action is enabled), `updates` ([{\"var\": name, \"expr\": expr}] — "
-        "the next state), `args` ({name: type}). Must carry at least one `observation` child "
+        "the next state), `args` ({name: type}), and optionally `requires` "
+        "({\"validator\": arg name} — the act is conditional on the world's stamp matching "
+        "the argument; see the `validator` kind). Must carry at least one `observation` child "
         "naming the event-kind whose occurrence on a trace instantiates it: an action nobody "
         "can observe is a transition the prover explores and no tape can exhibit, and the "
         "rule below refuses it.",
@@ -192,6 +194,35 @@ VOCABULARY = [
         "act that still returns what a prior `creates`/`mutates` of the same entity "
         "wrote, or that still names what the `via` write named, convicts — which is "
         "why deletion is its own kind and not a mutation.",
+    ),
+    KindDef(
+        kind="merges",
+        description="An action's declared effect: this world absorbs another. The other "
+        "world arrives as ARGUMENTS - one per variable it carries - because a finite model "
+        "has no world-valued argument, and a merge of two worlds over the same variables is "
+        "exactly a tuple of values. Payload: `other` ({state-var: arg name} - which argument "
+        "carries the other world's value of each variable), `absent` ({state-var: value} - "
+        "the value that means 'nothing here', so left-bias has a meaning), `via` and "
+        "`shown_by` as any effect. The updates that realise it are written with "
+        "`either(x, absent, y)`: keep x unless it is absent, else take y. The merge laws "
+        "(a-merge-keeps-both-and-prefers-the-left) bind to this kind: after the act each "
+        "merged variable projects to its own value if present, else the other's; merging a "
+        "world with itself changes nothing; merging (b then c) equals merging their merge - "
+        "conduct/merge holds all three on a tape.",
+    ),
+    KindDef(
+        kind="validator",
+        description="A child of `model`: the stamp that stands for the world's version - RFC "
+        "9110's validator (an ETag, a Last-Modified, chores' `rev`). Payload: `door` and "
+        "`expr`, exactly a projection's: the read that shows the stamp and the expression "
+        "that turns the read into its value. Not a state-var - its value is opaque and "
+        "unbounded, and the laws compare it for equality and change only. A STRONG validator "
+        "moves whenever any projected variable moves and never otherwise; conduct/stamped "
+        "holds both directions on a tape, act by act. An action may carry `requires`: "
+        "{\"validator\": <arg name>} - the act is conditional on the stamp it was handed "
+        "matching the stamp the world shows before it (If-Match), and conduct/conditional "
+        "holds that a matching act proceeds and a mismatching one refuses without writing "
+        "(412).",
     ),
     KindDef(
         kind="touches",
@@ -357,6 +388,12 @@ EXAMPLES = [
                           "shown": {"door": "shelf.read", "expr": "at('level', 'floor')"}},
                  name="where the coat sits: independent of the tag, so tagging and shelving "
                       "commute"),
+            # the register's version stamp: every write of the register bumps it, nothing
+            # else does, and a conditional retag is handed the stamp it expects
+            Node(id="register-rev", kind="validator",
+                 payload={"door": "register.read", "expr": "at('rev')"},
+                 name="the cloakroom register's revision: RFC 9110's strong validator, "
+                      "read back as a number and compared for change, never for value"),
             Node(id="deposit", kind="event-kind",
                  payload={"args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
@@ -378,6 +415,25 @@ EXAMPLES = [
                      Node(id="shelving-license", kind="license",
                           payload={"expr": "len(evidence('shelf.write')) >= 1",
                                    "note": "the shelf register was written"}),
+                 ]),
+            Node(id="retagging", kind="event-kind",
+                 payload={"args": {"color": {"type": "enum", "domain": ["red", "blue"]},
+                                   "expected": {"type": "int", "domain": {"min": 0, "max": 9}}}},
+                 children=[
+                     Node(id="retagging-license", kind="license",
+                          payload={"expr": "len(evidence('register.read', 'enclosing')) >= 1",
+                                   "note": "a conditional act reads the register's stamp "
+                                           "before it decides"}),
+                 ]),
+            Node(id="importing", kind="event-kind",
+                 payload={"args": {"other_tag": {"type": "enum",
+                                                 "domain": ["none", "red", "blue"]},
+                                   "other_shelf": {"type": "enum",
+                                                   "domain": ["floor", "high", "low"]}}},
+                 children=[
+                     Node(id="importing-license", kind="license",
+                          payload={"expr": "len(evidence('register.write')) >= 1",
+                                   "note": "the other register was written into this one"}),
                  ]),
             Node(id="reclaim", kind="event-kind",
                  payload={"args": {}},
@@ -402,7 +458,7 @@ EXAMPLES = [
                                "the hook.write carried the coat, and a hook.read "
                                "afterwards returns what it carried"),
                      Node(id="check-coat-touches", kind="touches",
-                          payload={"only": ["held"], "via": ["hook.write"]}),
+                          payload={"only": ["held"], "via": ["hook.write", "register.write"]}),
                  ]),
             Node(id="tag-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -418,7 +474,7 @@ EXAMPLES = [
                                "the old tag, which is what lets the last write win and "
                                "a repeat change nothing"),
                      Node(id="tag-coat-touches", kind="touches",
-                          payload={"only": ["tag"], "via": ["tag.write"]}),
+                          payload={"only": ["tag"], "via": ["tag.write", "register.write"]}),
                  ]),
             Node(id="shelve-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -431,7 +487,48 @@ EXAMPLES = [
                           payload={"entity": "shelf", "from": ["level"],
                                    "via": "shelf.write", "shown_by": "shelf.read"}),
                      Node(id="shelve-coat-touches", kind="touches",
-                          payload={"only": ["shelf"], "via": ["shelf.write"]}),
+                          payload={"only": ["shelf"], "via": ["shelf.write", "register.write"]}),
+                 ]),
+            Node(id="retag-if", kind="action",
+                 payload={"guard": "held == 1",
+                          "updates": [{"var": "tag", "expr": "color"}],
+                          "args": {"color": {"type": "enum", "domain": ["red", "blue"]},
+                                   "expected": {"type": "int", "domain": {"min": 0, "max": 9}}},
+                          "requires": {"validator": "expected"}},
+                 children=[
+                     Node(id="retag-if-witness", kind="observation",
+                          payload={"event": "retagging"}),
+                     Node(id="retag-if-mutates", kind="mutates",
+                          payload={"entity": "tag", "from": ["color"],
+                                   "via": "tag.write", "shown_by": "tag.read"},
+                          name="If-Match: the retag proceeds only if the register's rev is "
+                               "the one the caller was handed, and refuses - writing nothing "
+                               "- otherwise"),
+                     Node(id="retag-if-touches", kind="touches",
+                          payload={"only": ["tag"], "via": ["tag.write", "register.write"]}),
+                 ]),
+            Node(id="import-register", kind="action",
+                 payload={"guard": "held == 1",
+                          "updates": [{"var": "tag", "expr": "either(tag, 'none', other_tag)"},
+                                      {"var": "shelf",
+                                       "expr": "either(shelf, 'floor', other_shelf)"}],
+                          "args": {"other_tag": {"type": "enum",
+                                                 "domain": ["none", "red", "blue"]},
+                                   "other_shelf": {"type": "enum",
+                                                   "domain": ["floor", "high", "low"]}}},
+                 children=[
+                     Node(id="import-register-witness", kind="observation",
+                          payload={"event": "importing"}),
+                     Node(id="import-register-merges", kind="merges",
+                          payload={"other": {"tag": "other_tag", "shelf": "other_shelf"},
+                                   "absent": {"tag": "none", "shelf": "floor"},
+                                   "via": "register.write",
+                                   "shown_by": ["tag.read", "shelf.read"]},
+                          name="another register absorbed, left-biased: what this one "
+                               "already says stands, what it lacks is taken from the other"),
+                     Node(id="import-register-touches", kind="touches",
+                          payload={"only": ["tag", "shelf"],
+                                   "via": ["register.write", "tag.write", "shelf.write"]}),
                  ]),
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -451,7 +548,8 @@ EXAMPLES = [
                                "the tag and the shelf with it, which is what lets the "
                                "undo restore the world before the deposit"),
                      Node(id="reclaim-coat-touches", kind="touches",
-                          payload={"only": ["held", "tag", "shelf"], "via": ["hook.delete"]}),
+                          payload={"only": ["held", "tag", "shelf"],
+                                   "via": ["hook.delete", "register.write"]}),
                  ]),
             Node(id="no-tag-without-a-coat", kind="invariant",
                  payload={"expr": "held == 1 or tag == 'none'",
@@ -535,7 +633,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.7.0",
+    version="0.8.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -582,8 +680,13 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "way to a tag and a shelf — entities a repeat overwrites, an undo clears "
                 "and that sit independently of each other — so the two-stretch laws "
                 "(twice, last-write, commute, undo, durable, same-story, constructible) "
-                "have something on the example to demonstrate against. Vocabulary "
-                "unchanged.",
+                "have something on the example to demonstrate against. 0.8.0 closes the "
+                "census: the `merges` effect (another world absorbed, arriving as "
+                "arguments, left-biased through `either`), the `validator` kind (the stamp "
+                "that stands for the world's version - RFC 9110's ETag, chores' rev) and "
+                "`requires` on an action (If-Match: conditional on the stamp). The cloakroom "
+                "gains a register revision, a conditional retag and an import that merges "
+                "another register.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

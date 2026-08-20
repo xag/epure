@@ -503,14 +503,12 @@ CONDUCT_LAWS = [
         _cited("Hughes 2020, §4.2: union is left-biased"),
         falsifier="A tape where a bulk import, sync or merge drops an entity either side "
                   "held, or resolves a disagreement to the right.",
-        triggers=["an action declares a merge of two worlds — a kind semantic-model does "
-                  "not yet have"],
+        triggers=["an action declares `merges`"],
         citations=[_hughes("prop UnionPost t t' k = find k (union t t') === "
                            "(find k t <|> find k t')", "§4.2"),
                    _hughes("prop UnionUnionAssoc t1 t2 t3 = union (union t1 t2) t3 ≏ "
                            "union t1 (union t2 t3)", "Appendix A")],
-        owed="no-kind-names-a-merge: thirteen of the paper's properties are about union, and "
-             "semantic-model has no binary action over two worlds",
+        native="conduct/merge",
     ),
     _law(
         "a-generated-world-is-valid",
@@ -526,18 +524,19 @@ CONDUCT_LAWS = [
                            "invalid trees to be generated as test cases, causes many "
                            "properties that do not use insert to fail. This is why prop "
                            "ArbitraryValid is so important", "§5.1")],
-        owed="no-generated-world-is-checked: épure judges recorded tapes; the mutated tapes "
-             "flight-recorder produces are not yet held to the model before being judged",
+        note="A mutated tape carries `probe: true` on its calls; the suite holds such a tape "
+             "to conduct/constructible — every world read off it is one the model reaches — "
+             "before any other law is reported on it, and a probe whose worlds are "
+             "unreachable is red for that and nothing else.",
+        native="conduct/constructible",
     ),
     _law(
         "a-change-moves-the-validator",
-        "Every change to an entity moves the stamp that stands for its version; no stamp "
-        "moves without a change",
+        "Every change to the world moves the stamp that stands for its version",
         _cited("RFC 9110 §8.8.1, Weak versus Strong"),
-        falsifier="A tape where an act writes an entity and the entity's version stamp "
-                  "reads the same after as before.",
-        triggers=["an action declares a validator door — a kind semantic-model does not "
-                  "yet have"],
+        falsifier="A tape where an act moves a projected variable and the validator reads "
+                  "the same after as before.",
+        triggers=["a model declares a `validator`"],
         citations=[(RFC_VALIDATORS, RFC9110_URL,
                     "A \"strong validator\" is representation metadata that changes value "
                     "whenever the representation data changes."),
@@ -545,8 +544,11 @@ CONDUCT_LAWS = [
                     "A \"weak validator\" is representation metadata that might not change "
                     "for every change to the representation data.")],
         note="chores stamps `rev` on every household change — a strong validator in the "
-             "RFC's sense, and nothing yet holds it to the definition.",
-        owed="no-kind-names-a-validator",
+             "RFC's sense. The RFC states one direction (a strong validator changes whenever "
+             "the representation does) and this law states only that; a stamp that moves "
+             "without a change is not forbidden by the source, and an earlier wording that "
+             "said it was has been withdrawn.",
+        native="conduct/stamped",
     ),
     _law(
         "a-conditional-write-compares-before-it-writes",
@@ -555,8 +557,7 @@ CONDUCT_LAWS = [
         _cited("RFC 9110 §13.1, Preconditions"),
         falsifier="A tape where an act carrying a precondition (an expected version) writes "
                   "although the entity's version had moved, or refuses although it had not.",
-        triggers=["an action declares a precondition on a validator — a kind semantic-model "
-                  "does not yet have"],
+        triggers=["an action declares `requires` on the model's validator"],
         citations=[(RFC_CONDITIONAL, RFC9110_URL,
                     "The \"If-Match\" header field makes the request method conditional on "
                     "the recipient origin server either having at least one current "
@@ -569,7 +570,7 @@ CONDUCT_LAWS = [
                     "The 412 (Precondition Failed) status code indicates that one or more "
                     "conditions given in the request header fields evaluated to false when "
                     "tested on the server.")],
-        owed="no-kind-names-a-validator",
+        native="conduct/conditional",
     ),
 
     _law(
@@ -672,6 +673,24 @@ CONDUCT_SOLVERS = [
         "sequence of the model's actions reaches from init.",
         params_doc={"rel": "the link from the scenario/session to the model"}),
     SolverDef(
+        name="conduct/merge", native=True,
+        description="(path, rel): count the merges under `path` after which a merged variable "
+        "does not project to its own value where present, else the other's (left bias; a "
+        "self-merge therefore a no-op), plus the stretch pairs where (b then c) and (b merged "
+        "with c) from one world leave different worlds (associativity).",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/stamped", native=True,
+        description="(path, rel): count the acts under `path` that moved a projected variable "
+        "while the model's validator read the same after as before.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/conditional", native=True,
+        description="(path, rel): count the acts under `path` whose action `requires` the "
+        "validator and which proceeded although the stamp they were handed differed from the "
+        "world's, or wrote anyway, or refused although it matched.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
         name="conduct/agrees", native=True,
         description="(path, rel): count the (act, projected state-var) pairs under `path` "
         "where the world disagrees with the model — the variable's value projected from the "
@@ -765,7 +784,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.5.0",
+    version="0.6.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -804,14 +823,22 @@ CONDUCT_PACKAGE = Package(
                 "the projected world around two acts rather than one — idempotence, "
                 "overwrite, commutation, undo, durability, determinism and reachability, "
                 "each refuted on the cloakroom by a tape that fails it and each stated in "
-                "the sources' own formulas. Eighteen census items move to covered.",
+                "the sources' own formulas. Eighteen census items move to covered. 0.6.0 "
+                "closes the census: conduct/merge (left-biased, idempotent, associative "
+                "absorption of another world, over semantic-model@0.8.0's `merges`), "
+                "conduct/stamped and conduct/conditional (RFC 9110's strong validator and "
+                "If-Match/412, over the `validator` kind and `requires`), and probe tapes "
+                "held to conduct/constructible before any other law. Every item the two "
+                "sources state is now covered by a native in the source's own form, except "
+                "the half of `safe` that names the WHOLE state: a write through a door no "
+                "declaration names is owed to a door census, and the census says so.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.7.0"),
+        PackageRef(name="semantic-model", version="0.8.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

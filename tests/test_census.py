@@ -37,8 +37,8 @@ def test_the_counts_on_the_node_are_computed_over_the_items():
         assert node.params[s].grounded and node.params[s].provenance == "computed"
     # the honest size, stated once here so a change is a diff somebody reads
     assert (counts["covered"], counts["weakened"], counts["owed"], counts["aside"]) == \
-        (35, 1, 26, 8)
-    assert Counter(it["source"] for it in ITEMS) == {HUGHES: 57, RFC: 13}
+        (61, 1, 1, 8)
+    assert Counter(it["source"] for it in ITEMS) == {HUGHES: 57, RFC: 14}
 
 
 def test_every_owed_item_points_at_a_debt_the_ledger_carries():
