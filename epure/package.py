@@ -1,4 +1,4 @@
-"""semantic-model@0.5.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.6.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -81,7 +81,19 @@ VOCABULARY = [
         "only a finite model can be exhaustively proven by an explicit-state checker, so the "
         "bound on an int is not bookkeeping — it is the price of the proof. A quantity that "
         "cannot be finitely abstracted is a modeling decision to journal, not a wide domain "
-        "to sneak in.",
+        "to sneak in. Since 0.6.0 a state-var may carry its PROJECTION — `shown`: "
+        "{\"door\": <door>, \"expr\": <rule grammar>} — how the world shows this variable's "
+        "value: the read (a door, as an effect's `shown_by`) whose result, bound as `res`, "
+        "the expr turns into a value of the domain. The expr's environment offers `at(path, "
+        "default?)` (a dotted path into res; `*` takes the first value of a map), "
+        "`exists()` (1 if res is not null/false/empty, else 0), `count(xs, key, value)` "
+        "(members of a map or list whose `key` equals `value`), `weekday(iso)` (0 = Monday), "
+        "and the arithmetic helpers. This is Hoare's abstraction function, toList in "
+        "Hughes: with it, `conduct/agrees` holds the world to the model's own updates after "
+        "every act — project the reads before, apply the action, compare with the reads "
+        "after — and the effect and frame laws gain their VALUE forms. A variable that is a "
+        "view the app recomputes (a pending flag derived by a rhythm) has no cheap "
+        "projection and says so by carrying none; the census counts it.",
     ),
     KindDef(
         kind="event-kind",
@@ -330,7 +342,14 @@ EXAMPLES = [
         id="cloakroom", kind="model", name="A one-hook cloakroom",
         children=[
             Node(id="held", kind="state-var",
-                 payload={"type": "int", "domain": {"min": 0, "max": 1}, "init": 0}),
+                 payload={"type": "int", "domain": {"min": 0, "max": 1}, "init": 0,
+                          "shown": {"door": "hook.read", "expr": "exists()"}},
+                 name="the hook holds a coat iff a read of it returns one"),
+            Node(id="tickets", kind="state-var",
+                 payload={"type": "int", "domain": {"min": 0, "max": 3}, "init": 0,
+                          "shown": {"door": "counter.read", "expr": "at('n')"}},
+                 name="tickets issued so far: the counter document's n. A reclaim does not "
+                      "move it — which is what the value frame holds"),
             Node(id="deposit", kind="event-kind",
                  payload={"args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
@@ -348,8 +367,9 @@ EXAMPLES = [
                                            "removal from the hook's store"}),
                  ]),
             Node(id="check-coat", kind="action",
-                 payload={"guard": "held == 0",
-                          "updates": [{"var": "held", "expr": "1"}],
+                 payload={"guard": "held == 0 and tickets < 3",
+                          "updates": [{"var": "held", "expr": "1"},
+                                      {"var": "tickets", "expr": "tickets + 1"}],
                           "args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
                      Node(id="check-coat-witness", kind="observation",
@@ -361,8 +381,12 @@ EXAMPLES = [
                                "the world must show it, and show it as deposited — "
                                "the hook.write carried the coat, and a hook.read "
                                "afterwards returns what it carried"),
+                     Node(id="check-coat-mutates", kind="mutates",
+                          payload={"entity": "tickets", "from": [],
+                                   "via": "counter.write", "shown_by": "counter.read"}),
                      Node(id="check-coat-touches", kind="touches",
-                          payload={"only": ["held"], "via": ["hook.write"]}),
+                          payload={"only": ["held", "tickets"],
+                                   "via": ["hook.write", "counter.write"]}),
                  ]),
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -380,6 +404,10 @@ EXAMPLES = [
                      Node(id="reclaim-coat-touches", kind="touches",
                           payload={"only": ["held"], "via": ["hook.delete"]}),
                  ]),
+            Node(id="tickets-count-deposits", kind="invariant",
+                 payload={"expr": "tickets >= held",
+                          "note": "a coat on the hook was ticketed — the count never "
+                                  "lags the hook"}),
             Node(id="never-two-coats", kind="invariant",
                  payload={"expr": "held <= 1",
                           "note": "the hook is single: a create over an occupied "
@@ -458,7 +486,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.5.0",
+    version="0.6.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -493,7 +521,12 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "a `coat` argument so faithfulness has an input to check; the turnstile "
                 "keeps mutates and touches WITHOUT doors — a hardware model with no "
                 "store to read back from, which is exactly what conduct/checkable "
-                "reports it as.",
+                "reports it as. 0.6.0 adds the PROJECTION: a state-var may say how the "
+                "world shows its value (`shown`: a read door and an expr over its result) "
+                "— Hoare's abstraction function, Hughes's toList, the family the paper "
+                "ranks first and the conduct census had owed. The cloakroom projects both "
+                "its variables and gains a ticket counter, so the value frame has a "
+                "bystander to hold still.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

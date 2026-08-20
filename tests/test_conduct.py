@@ -24,7 +24,7 @@ UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable"}
 
 # The laws no native holds yet — each owed to a debt the ledger carries.
 OWED = {"twice-is-once", "undo-restores", "same-state-same-story",
-        "shown-once-shown-until-touched", "the-world-agrees-with-the-model",
+        "shown-once-shown-until-touched",
         "independent-writes-commute", "last-write-wins", "equivalent-worlds-stay-equivalent",
         "every-world-is-constructible", "a-merge-keeps-both-and-prefers-the-left",
         "a-generated-world-is-valid", "a-change-moves-the-validator",
@@ -54,7 +54,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     assert any("4 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
     held = [line for line in log if line.startswith("contract 'conduct/")]
-    assert len(held) == 5, log
+    assert len(held) == 6, log
 
 
 def test_every_law_is_checked_or_owed_and_the_owed_are_these():

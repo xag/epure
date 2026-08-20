@@ -200,6 +200,15 @@ _REMOVE: dict[str, Any] = {"k": "fx", "fn": "hook.delete", "args": ["hook"], "kw
                            "res": None}
 
 
+def _tick(n: int) -> dict[str, Any]:
+    """The ticket counter moves: the deposit's second write."""
+    return {"k": "fx", "fn": "counter.write", "args": [{"n": n}], "kwargs": {}, "res": None}
+
+
+def _count(n: int) -> dict[str, Any]:
+    return {"k": "fx", "fn": "counter.read", "args": [], "kwargs": {}, "res": {"n": n}}
+
+
 def _act(name: str, data: dict, *events: dict, outcome: str = "ok") -> list[dict]:
     """One span with its enclosed raw events, as the tape would carry them."""
     return [_sem(name, "begin", 1, data), *events, _sem(name, "end", 1, outcome=outcome)]
@@ -216,19 +225,38 @@ def visit(*calls: list[dict]) -> Node:
 
 RED = {"coat": "red"}
 
-SHOWN = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})])
-LOST = visit([*_act("deposit", RED, _write("red")), _read(None)])
+SHOWN = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})])
+LOST = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read(None)])
 NOOP = visit([*_act("deposit", RED), _read({"coat": "red"})])
-UNREAD = visit([*_act("deposit", RED, _write("red"))])
-SWAPPED = visit([*_act("deposit", RED, _write("blue")), _read({"coat": "blue"})])
-RECLAIMED = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+UNREAD = visit([*_act("deposit", RED, _write("red"), _tick(1))])
+SWAPPED = visit([*_act("deposit", RED, _write("blue"), _tick(1)), _read({"coat": "blue"})])
+RECLAIMED = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
                   [*_act("reclaim", {}, _REMOVE), _read(None)])
-RESIDUE = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+RESIDUE = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
                 [*_act("reclaim", {}, _REMOVE), _read({"coat": "red"})])
-OVERREACH = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+OVERREACH = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
                   [*_act("reclaim", {}, _REMOVE, _write("blue")), _read(None)])
-HALF_DONE = visit([*_act("deposit", RED, _write("red"), outcome="error"), _read(None)])
+HALF_DONE = visit([*_act("deposit", RED, _write("red"), _tick(1), outcome="error"),
+                   _read(None)])
 REFUSED_CLEAN = visit([*_act("deposit", RED, outcome="error"), _read(None)])
+
+# --- the model-based tapes: the world read before and after, projected ------------------
+#
+# Every one opens with the world read (hook empty, counter at 0), so the abstraction function
+# has a pre-world to apply the model's update to — Hughes's diagram needs both corners.
+
+_OPEN = [_read(None), _count(0)]
+AGREES = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
+                _read({"coat": "red"}), _count(1)])
+WORLD_LOST = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
+                    _read(None), _count(1)])
+WORLD_MISCOUNTED = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
+                          _read({"coat": "red"}), _count(2)])
+BYSTANDER_MOVED = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
+                         _read({"coat": "red"}), _count(1)],
+                        [*_act("reclaim", {}, _REMOVE), _read(None), _count(2)])
+WORLD_UNOPENED = visit([*_act("deposit", RED, _write("red"), _tick(1)),
+                        _read({"coat": "red"}), _count(1)])
 
 
 def c(contract: str, nodes: list[Node], args: list, because: str, **expect):
@@ -247,10 +275,11 @@ EFFECT = [
     c("effect", visited(LOST), ["visit", "model"], expect=1,
       because="the deposit wrote and the read after it returns nothing: the act refined "
               "perfectly and the world lost the write — the failure no model check can see"),
-    c("effect", visited(NOOP), ["visit", "model"], expect=1,
-      because="a deposit span with no hook.write under it: a verb with nothing beneath it. "
-              "Licensing convicts it too; this convicts it as an effect that never "
-              "materialized, which is a different sentence"),
+    c("effect", visited(NOOP), ["visit", "model"], expect=2,
+      because="a deposit span with no hook.write and no counter.write under it: two "
+              "declared effects, neither materialized — verbs with nothing beneath them. "
+              "Licensing convicts it too; this convicts it as effects that never happened, "
+              "which is a different sentence"),
     c("effect", visited(UNREAD), ["visit", "model"], expect=0,
       because="written and never read back: not shown, and not convicted — a law is refuted "
               "by a read that disagrees, and silence is reported as a note, never as a pass "
@@ -309,10 +338,34 @@ CHECKABLE = [
       because="pointed at a tape it refuses: declarations live on the model"),
 ]
 
+AGREES_SPEC = [
+    c("agrees", visited(AGREES), ["visit", "model"], expect=0,
+      because="hook empty and counter 0 before; the deposit's own updates say held 1, "
+              "tickets 1; the reads after project exactly that — Hoare's diagram commutes "
+              "on a tape"),
+    c("agrees", visited(WORLD_LOST), ["visit", "model"], expect=1,
+      because="the hook reads empty after the deposit: the model says held = 1 and the "
+              "world shows 0 — the effect law in its VALUE form, not a presence"),
+    c("agrees", visited(WORLD_MISCOUNTED), ["visit", "model"], expect=1,
+      because="the counter reads 2 after one deposit from 0: the model's update is "
+              "tickets + 1 and the world disagrees — a wrong value, which no door could see"),
+    c("agrees", visited(BYSTANDER_MOVED), ["visit", "model"], expect=1,
+      because="the reclaim does not update tickets, and the counter moved from 1 to 2 "
+              "across it: the frame law in its VALUE form — «a value is the same if it "
+              "wasn't changed», read back and compared"),
+    c("agrees", visited(WORLD_UNOPENED), ["visit", "model"], expect=0,
+      because="no read before the act: the pre-world is unknown, so nothing is computed "
+              "and nothing is convicted — noted, never counted"),
+    c("agrees", judged(LAWFUL), ["session", "model"], expect=0,
+      because="the turnstile projects nothing: a model without projections has nothing "
+              "to agree on, and says so in a note rather than passing in silence"),
+]
+
 CONDUCT_SPEC = {
     "conduct/effect": EFFECT,
     "conduct/faithful": FAITHFUL,
     "conduct/frame": FRAME,
     "conduct/refusal": REFUSAL,
     "conduct/checkable": CHECKABLE,
+    "conduct/agrees": AGREES_SPEC,
 }

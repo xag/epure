@@ -10,7 +10,8 @@ tape as raw events; so these checks read the raw events, and they read them thro
 an action declares (semantic-model@0.5.0): `via`, the write that materializes an effect, and
 `shown_by`, the read through which the world shows it back.
 
-Five of the nine families are checkable on today's tape shape, one native each:
+Six natives. The first five read presences through doors; the sixth reads VALUES through
+projections and is the one Hughes ranks first:
 
 - **conduct/effect** — *the-effect-is-shown*. An act declaring `creates`/`mutates` encloses a
   `via` write, and a `shown_by` read after the act returns what that write carried; one
@@ -25,12 +26,19 @@ Five of the nine families are checkable on today's tape shape, one native each:
   no write through any door the model knows.
 - **conduct/checkable** — *the-effect-is-checkable*. On the model, not a tape: every effect
   names a state-var and both doors, every `touches.only` names state-vars.
+- **conduct/agrees** — *the-world-agrees-with-the-model* (model-based). For every act bound
+  to one action, and every state-var that declares a projection (`shown`: a read door and
+  an expr over the read's result): project the world from the last reads BEFORE the act,
+  apply the action's own updates, and compare with the world projected from the first reads
+  AFTER it. Hoare's commuting diagram, Hughes's `toList (insert k v t) === L.insert (k, v)
+  (toList t)`, read off a tape. A variable the action does not update must project the same
+  value after as before — that is the frame law in its VALUE form; a variable it updates
+  from an argument must project to that argument — faithfulness in its value form; the
+  entity's projected value after must be what the update computed — the effect law in its
+  value form.
 
-The other four — twice-is-once, undo-restores, same-state-same-story,
-shown-once-shown-until-touched — need two stretches of one tape compared against each other
-(a repeat, a do/undo pair, two identical pre-states, a read long after), and the honest state
-of that is a named debt in the ledger, not a check stretched until it answers. A law the tape
-cannot witness yet is still a law; it is not yet a verdict.
+What no native holds is on the census (`epure.census`), item by item, each owed to a debt
+in the ledger with its discharge — never a sentence.
 
 WHAT "AFTER" MEANS. The importer records every event's position in its call's stream and every
 span's begin/end marks, so "after the act" is `(call index, position) > (call index, end)`,
@@ -60,8 +68,8 @@ from typing import Any, Callable
 
 from quern import Node, Quern, TreeStore, register_native
 
-from epure.conformance import _STRUCTURE, Conformance, _confront, _named, _normalize
-from epure.prove import _domain
+from epure.conformance import _STRUCTURE, Conformance, _automaton, _confront, _named, _normalize
+from epure.prove import _ENV, _LITERALS, _compile, _domain
 
 EFFECTS = ("creates", "mutates", "deletes")
 
@@ -180,6 +188,75 @@ def _names(hay: Any, ident: str) -> bool:
     if isinstance(hay, list):
         return any(_names(v, ident) for v in hay)
     return False
+
+
+# --- projections: the abstraction function, per state-var ---------------------------------
+
+
+def _at(res: Any, path: str, default: Any = None) -> Any:
+    """A dotted path into a read's result; `*` takes the first value of a map or list."""
+    cur = res
+    for part in [p for p in str(path).split(".") if p]:
+        if isinstance(cur, dict):
+            if part == "*":
+                cur = next(iter(cur.values()), None)
+            else:
+                cur = cur.get(part)
+        elif isinstance(cur, list):
+            try:
+                cur = cur[0] if part == "*" else cur[int(part)]
+            except (ValueError, IndexError):
+                cur = None
+        else:
+            cur = None
+        if cur is None:
+            return default
+    return cur
+
+
+def _count(xs: Any, key: str, value: Any) -> float:
+    members = list(xs.values()) if isinstance(xs, dict) else list(xs or [])
+    return float(sum(1 for m in members if isinstance(m, dict) and m.get(key) == value))
+
+
+def _weekday(iso: Any) -> float:
+    from datetime import date
+    return float(date.fromisoformat(str(iso)[:10]).weekday())
+
+
+def _projection_env(res: Any) -> dict[str, Any]:
+    return {**_ENV,
+            "at": lambda path, default=None: _at(res, path, default),
+            "exists": lambda: 1.0 if res not in (None, False, {}, [], "", 0) else 0.0,
+            "count": _count,
+            "weekday": _weekday}
+
+
+class _Projection:
+    def __init__(self, var: str, spec: dict[str, Any], domain: list[Any]):
+        self.var = var
+        self.doors = doors(spec.get("door"))
+        self.src = str(spec.get("expr", ""))
+        if not self.doors or not self.src:
+            raise ValueError(f"state-var '{var}': a projection names a door and an expr")
+        self.expr = _compile(self.src, f"projection of '{var}'")
+        self.domain = domain
+
+    def value(self, event: dict[str, Any]) -> Any:
+        res = event.get("res")
+        out = _normalize(self.expr({"res": res, **_LITERALS}, _projection_env(res)))
+        if out not in self.domain:
+            raise ValueError(f"the world shows '{self.var}' as {out!r}, outside its domain")
+        return out
+
+
+def _projections(model: Node) -> dict[str, _Projection]:
+    out: dict[str, _Projection] = {}
+    for c in model.children:
+        if c.kind == "state-var" and c.payload.get("shown"):
+            out[c.id] = _Projection(c.id, c.payload["shown"],
+                                    _domain(c.payload, f"state-var '{c.id}'"))
+    return out
 
 
 # --- the model's declarations, compiled once --------------------------------------------
@@ -495,6 +572,109 @@ def checkable(tree: Quern | TreeStore, path: str) -> Conformance:
                        diagnostics=diagnostics)
 
 
+# --- conduct/agrees: the world, projected, agrees with the model's own updates -------------
+
+
+def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """How many (act, projected state-var) pairs under `path` disagree with the model.
+
+    For each top-level act bound to exactly one enabled-by-arguments action, and each
+    state-var with a projection: the pre-value is the latest read through its door BEFORE
+    the act; the post-value is the first read through its door AFTER the act and before the
+    next act writes anything through a door the model knows. With every pre-value the
+    action's updates read, the expected post-value is the update applied to the pre-values
+    (the model's own semantics, the prover's) — or the pre-value itself for a variable the
+    action does not update, which is the frame. A missing read is a note, never a count;
+    an act that binds no action, or two, is skipped and noted.
+    """
+    node, model_node = _confront(tree, path, rel)
+    model = _Model(model_node)
+    projections = _projections(model_node)
+    variables, actions, _ = _automaton(model_node)
+    by_id = {a["id"]: a for a in actions}
+    acts, stream = _acts_and_stream(node, path)
+    diagnostics: list[str] = []
+    notes: list[str] = []
+    if not projections:
+        notes.append(f"{path}: the model projects no state-var — nothing to agree on")
+        return Conformance(check="conduct/agrees", violations=0, notes=notes)
+
+    def read_before(proj: _Projection, at: tuple) -> tuple[Any, Any] | None:
+        for pos, e in reversed(stream):
+            if pos < at and _through(e, proj.doors):
+                return pos, e
+        return None
+
+    def read_after(proj: _Projection, to: tuple, limit: tuple) -> dict | None:
+        for pos, e in stream:
+            if to < pos < limit and _through(e, proj.doors):
+                return e
+        return None
+
+    for i, act in enumerate(acts):
+        if act.span.payload.get("outcome") == "error":
+            continue
+        bound = model.bound(act.span)
+        where = f"{act.path}: '{act.span.kind}'"
+        if len(bound) != 1:
+            notes.append(f"{where} binds {len(bound)} action(s) — not judged")
+            continue
+        action = by_id[bound[0].id]
+        # the world after this act ends where the next act first writes
+        limit = (len(acts) + 10 ** 9, float("inf"))
+        if i + 1 < len(acts):
+            nxt = acts[i + 1]
+            limit = nxt.at
+            for pos, e in nxt.events:
+                if _through(e, model.known):
+                    limit = pos
+                    break
+            limit = max(limit, nxt.at) if limit != nxt.at else limit
+        pre: dict[str, Any] = {}
+        post: dict[str, Any] = {}
+        for var, proj in projections.items():
+            try:
+                before = read_before(proj, act.at)
+                if before is not None:
+                    pre[var] = proj.value(before[1])
+                after = read_after(proj, act.to, limit)
+                if after is not None:
+                    post[var] = proj.value(after)
+            except ValueError as e:
+                diagnostics.append(f"{where} ({action['id']}): {e}")
+        data = act.span.payload.get("data") or {}
+        binding = {a: _normalize(data[a]) for a in action["args"] if a in data}
+        updated = {var: expr for var, expr in action["updates"]}
+        for var, proj in projections.items():
+            if var not in post:
+                notes.append(f"{where} ({action['id']}): no {proj.src!r} read of '{var}' "
+                             "after the act — unwitnessed")
+                continue
+            if var in updated:
+                env = {**pre, **binding, **_LITERALS}
+                try:
+                    expected = _normalize(updated[var](env))
+                except ValueError as e:
+                    notes.append(f"{where} ({action['id']}): '{var}' cannot be computed from "
+                                 f"the projected world — {e}")
+                    continue
+                if post[var] != expected:
+                    diagnostics.append(
+                        f"{where} ({action['id']}) updates '{var}' to {expected!r} from the "
+                        f"projected world {pre}; the world shows {post[var]!r} after")
+            elif var in pre:
+                if post[var] != pre[var]:
+                    diagnostics.append(
+                        f"{where} ({action['id']}) does not update '{var}', and the world "
+                        f"shows it moved from {pre[var]!r} to {post[var]!r} — the frame, by "
+                        "value")
+            else:
+                notes.append(f"{where} ({action['id']}): '{var}' has no read before the act "
+                             "— its frame cannot be judged")
+    return Conformance(check="conduct/agrees", violations=len(diagnostics),
+                       diagnostics=diagnostics, notes=notes)
+
+
 # --- the natives: counts behind solve() ---------------------------------------------------
 
 
@@ -518,6 +698,10 @@ def checkable_count(tree, path) -> float:
     return float(checkable(tree, path).violations)
 
 
+def agrees_count(tree, path, rel) -> float:
+    return float(agrees(tree, path, rel).violations)
+
+
 from .spec import CONDUCT_SPEC  # noqa: E402
 
 register_native("conduct/effect", effect_count, CONDUCT_SPEC["conduct/effect"])
@@ -525,3 +709,4 @@ register_native("conduct/faithful", faithful_count, CONDUCT_SPEC["conduct/faithf
 register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"])
 register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"])
 register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"])
+register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])

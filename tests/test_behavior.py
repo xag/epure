@@ -16,7 +16,7 @@ import epure.prove  # noqa: F401
 from quern import Node, Quern, Rule, run_rules
 
 from epure import spec
-from epure.behavior import checkable, door, effect, faithful, frame, refusal
+from epure.behavior import agrees, checkable, door, effect, faithful, frame, refusal
 from epure.tape import _scenario
 
 CHECKS = {"effect": effect, "faithful": faithful, "frame": frame, "refusal": refusal}
@@ -49,7 +49,7 @@ def test_silence_is_a_note_not_a_verdict():
     tree.root.children = [spec.cloakroom(), spec.UNREAD.model_copy(deep=True)]
     got = effect(tree, "visit", "model")
     assert got.violations == 0
-    assert len(got.notes) == 1 and "unwitnessed" in got.notes[0]
+    assert len(got.notes) == 2 and all("unwitnessed" in n for n in got.notes)
 
 
 def test_the_diagnostic_names_the_act_and_the_law():
@@ -126,9 +126,10 @@ def test_a_read_in_a_later_call_shows_an_effect_of_an_earlier_one():
     """One recording is one accumulating world: the hook is read back in the next call."""
     tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
         _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
-                   "events": spec._act("deposit", spec.RED, spec._write("red"))}),
+                   "events": spec._act("deposit", spec.RED, spec._write("red"),
+                                       spec._tick(1))}),
         _scenario({"seq": 2, "fn": "cloakroom", "kwargs": {},
-                   "events": [spec._read({"coat": "red"})]}),
+                   "events": [spec._read({"coat": "red"}), spec._count(1)]}),
     ])
     tree = Quern()
     tree.root.children = [spec.cloakroom(), tape]
@@ -141,9 +142,48 @@ def test_a_read_before_the_act_shows_nothing():
     tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
         _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
                    "events": [spec._read({"coat": "red"}),
-                              *spec._act("deposit", spec.RED, spec._write("red"))]}),
+                              *spec._act("deposit", spec.RED, spec._write("red"),
+                                         spec._tick(1))]}),
     ])
     tree = Quern()
     tree.root.children = [spec.cloakroom(), tape]
     got = effect(tree, "visit", "model")
-    assert got.violations == 0 and len(got.notes) == 1
+    assert got.violations == 0 and len(got.notes) == 2
+
+
+# --- the model-based native ------------------------------------------------------------
+
+
+def test_agrees_names_the_variable_the_update_and_both_worlds():
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.WORLD_MISCOUNTED.model_copy(deep=True)]
+    (why,) = agrees(tree, "visit", "model").diagnostics
+    assert "updates 'tickets' to 1 from the projected world {'held': 0, 'tickets': 0}" in why
+    assert "the world shows 2 after" in why
+
+
+def test_agrees_holds_the_frame_by_value():
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.BYSTANDER_MOVED.model_copy(deep=True)]
+    (why,) = agrees(tree, "visit", "model").diagnostics
+    assert "does not update 'tickets'" in why and "moved from 1 to 2" in why
+
+
+def test_agrees_refuses_a_projection_outside_the_domain():
+    tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
+        _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
+                   "events": [*spec._OPEN,
+                              *spec._act("deposit", spec.RED, spec._write("red"), spec._tick(1)),
+                              spec._read({"coat": "red"}), spec._count(9)]}),
+    ])
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), tape]
+    got = agrees(tree, "visit", "model")
+    assert got.violations == 1 and "outside its domain" in got.diagnostics[0]
+
+
+def test_agrees_is_a_note_when_nothing_projects():
+    tree = Quern()
+    tree.root.children = [spec.turnstile(), spec.LAWFUL.model_copy(deep=True)]
+    got = agrees(tree, "session", "model")
+    assert got.violations == 0 and "projects no state-var" in got.notes[0]

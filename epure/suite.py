@@ -1,8 +1,9 @@
 """The conformance driver: confront an app's tapes with its model, and say red or green.
 
 `epure.conformance` answers three questions about ONE slice — licensed, total, refines — and
-`epure.behavior` four more: effect, faithful, frame, refusal, the conduct laws held against what
-the act actually wrote and read back. This is the harness around all seven: walk an app's tape
+`epure.behavior` five more: effect, faithful, frame, refusal and agrees — the conduct laws held
+against what the act actually wrote and read back, by presence and, where a state-var projects,
+by value. This is the harness around all eight: walk an app's tape
 directories, judge each tape, print one screen, and leave a digest-bearing receipt a ledger gate
 can ground on. It is the part every adopter needs and none of them should write twice.
 
@@ -67,14 +68,15 @@ from typing import Any, Callable, Sequence
 
 from quern import Node, Quern
 
-from epure.behavior import effect, faithful, frame, refusal
+from epure.behavior import agrees, effect, faithful, frame, refusal
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
 _CHECKS: tuple[tuple[str, Callable], ...] = (
     ("licensed", licensed), ("total", total), ("refines", refines),
-    ("effect", effect), ("faithful", faithful), ("frame", frame), ("refusal", refusal))
-_CONDUCT = ("effect", "faithful", "frame", "refusal")
+    ("effect", effect), ("faithful", faithful), ("frame", frame), ("refusal", refusal),
+    ("agrees", agrees))
+_CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees")
 
 
 @dataclass(frozen=True)

@@ -413,12 +413,12 @@ CONDUCT_LAWS = [
                            "operation, and then proves that diagrams such as this one "
                            "commute", "§4.5")],
         note="The family the paper ranks first and 0.1.0 left out. The model's updates ARE "
-             "the abstract implementation; what is missing is toList — a projection from "
-             "the reads on the tape to each variable's value — and one native that holds "
-             "the two sides equal after every act. It subsumes the value forms of the "
-             "effect and frame laws.",
-        owed="the-world-is-not-yet-projected: semantic-model has no projection on a "
-             "state-var and no native compares the projected world to the automaton",
+             "the abstract implementation; toList is the projection a state-var declares "
+             "(semantic-model@0.6.0, `shown`), and conduct/agrees holds the two sides equal "
+             "after every act: project the reads before, apply the update, compare with the "
+             "reads after. It subsumes the value forms of the effect, faithfulness and "
+             "frame laws, for every variable that projects.",
+        native="conduct/agrees",
     ),
     _law(
         "independent-writes-commute",
@@ -483,7 +483,9 @@ CONDUCT_LAWS = [
                            "that two expressions are equivalent; to use these conclusions in "
                            "further reasoning, we need to know that equivalence is preserved "
                            "by each operation", "§4.3")],
-        owed="the-world-is-not-yet-projected: equivalence IS projected equality",
+        owed="four-families-compare-two-stretches: equivalence is projected equality, "
+             "which conduct/agrees now computes per act; what is missing is two stretches "
+             "with equal projected worlds before the same act, compared after",
     ),
     _law(
         "every-world-is-constructible",
@@ -499,8 +501,9 @@ CONDUCT_LAWS = [
         note="The model side already exists for one direction — model/escapes asks whether "
              "home is reachable from every state; this asks whether every observed state is "
              "reachable from home.",
-        owed="the-world-is-not-yet-projected: reachability of a projected world needs the "
-             "projection first",
+        owed="four-families-compare-two-stretches: the projection exists; reachability of "
+             "a projected world from init is a walk the prover already does, pointed at the "
+             "tape's world instead of the model's — the native is not written",
     ),
     _law(
         "a-merge-keeps-both-and-prefers-the-left",
@@ -636,6 +639,16 @@ CONDUCT_SOLVERS = [
         description="(path): on the model at `path`, count the declarations no tape could "
         "witness — an effect naming no state-var, no `via`, or no `shown_by`; a `touches` "
         "naming an unknown state-var."),
+    SolverDef(
+        name="conduct/agrees", native=True,
+        description="(path, rel): count the (act, projected state-var) pairs under `path` "
+        "where the world disagrees with the model — the variable's value projected from the "
+        "first reads after the act differs from the action's own update applied to the "
+        "values projected from the last reads before it, or, for a variable the action does "
+        "not update, differs from the value before. Hoare's diagram on a tape. A missing "
+        "read, an act binding no single action, a model projecting nothing: notes, never "
+        "counts.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
 ]
 
 
@@ -720,7 +733,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.3.0",
+    version="0.4.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -745,15 +758,20 @@ CONDUCT_PACKAGE = Package(
                 "ships the census of both sources as an example, every item mapped to a "
                 "law; adds the eleven laws the items named and no law held, each cited "
                 "verbatim from the source; and cites three laws 0.1.0 carried uncited "
-                "(refusal, undo, same-story) from the paper's own formulas. No contract "
-                "changes; the statuses say what the five natives do and do not yet hold.",
+                "(refusal, undo, same-story) from the paper's own formulas. 0.4.0 delivers the "
+                "family the census ranked first: conduct/agrees, the model-based native, "
+                "reading each state-var's value through the projection semantic-model@0.6.0 "
+                "lets it declare and holding the world to the model's own updates after "
+                "every act — which is the effect, faithfulness and frame laws in their "
+                "VALUE forms. Fifteen census items move from weakened or owed to covered; "
+                "the census says which.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.5.0"),
+        PackageRef(name="semantic-model", version="0.6.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,
