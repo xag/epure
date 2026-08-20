@@ -18,6 +18,7 @@ from pathlib import Path
 import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
 import epure.behavior  # noqa: F401 -- conduct@'s contracts need their natives in-process
 import epure.conformance  # noqa: F401 -- consume() re-gates the synced closure, and
+import epure.reach  # noqa: F401 -- model/promised, the liveness half
 import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
 from quern import Quern, Node
 from quern.library import consume
@@ -254,16 +255,22 @@ _OBSERVATION_CHILD = Node(
 _TEMPORAL_DEBT = Node(
     id="temporal-predicates-are-inexpressible",
     kind="debt",
-    name="semantic-model@0.1.0 has one predicate kind — the state invariant; liveness and "
-         "ordering claims have no vocabulary",
+    name="semantic-model@0.1.0 had one predicate kind — the state invariant; liveness and "
+         "ordering claims had no vocabulary. Discharged 2026-08-21: `promise` (when, then, "
+         "unless, within), model/promised and conduct/eventually",
     params={
         # Ungrounded by construction: the number states what 0.1.0 can express, and nobody
         # competent has established that one kind is enough — the explicit-state hypothesis
         # below carries the falsification that would settle it.
+        # Grounded by the discharge (2026-08-21): `promise` joins `invariant` - when/then/
+        # unless/within is eventually, leads-to and until in one kind, proved possible by
+        # model/promised and held on tapes by conduct/eventually.
         "predicate_kinds": Quantity(
-            value=1, unit="kind", provenance="asserted", grounded=False,
-            source="invariant is the only predicate kind in semantic-model@0.1.0; "
-                   "eventually/until/leads-to cannot be written down"),
+            value=2, unit="kind", provenance="verified", grounded=True,
+            source="semantic-model@0.10.0: invariant (safety) and promise (liveness: when -> "
+                   "eventually then, unless released, within a horizon); the cloakroom "
+                   "promises a checked coat is reclaimed and a reclaim that demands a tag is "
+                   "refuted as a trap (epure.spec PROMISED)"),
     },
     payload={
         "note":

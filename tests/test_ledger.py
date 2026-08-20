@@ -26,7 +26,8 @@ def test_the_red_is_exactly_the_declared_red():
     assert {(r.node, r.rule) for r in carried} == {
         (law, "a-law-cites-a-source")
         # conduct@0.3.0 cited three of the five from the paper's own formulas
-        for law in ("shown-once-shown-until-touched", "the-effect-is-checkable")}
+        for law in ("shown-once-shown-until-touched", "the-effect-is-checkable",
+                    "an-enabled-act-is-eventually-taken")}
 
 
 def test_the_founding_record_is_actually_there():

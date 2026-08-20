@@ -47,6 +47,7 @@ CONDITIONAL = "no-kind-names-a-validator"
 GENERATED = "no-generated-world-is-checked"
 DOORS = "no-door-census"
 TEMPORAL = "temporal-predicates-are-inexpressible"
+FAIRNESS = "fairness-is-inexpressible"
 
 
 def _item(id: str, source: str, category: str, formula: str, law: str, status: str,
@@ -444,11 +445,19 @@ ITEMS += [
             "model/prove over every reachable state, re-checked by model/refines at every step "
             "of a tape; conduct/constructible holds every world read off a tape to reachability",
             "the paper's own annotation, lamport.azurewebsites.net/pubs"),
-    owed("liveness", LAMPORT, "property kind",
-         "liveness ... the proper generalization of termination to concurrent programs - "
-         "something good eventually happens",
-         "what-is-promised-eventually-happens", TEMPORAL,
-         "the paper's own annotation, lamport.azurewebsites.net/pubs"),
+    covered("liveness", LAMPORT, "property kind",
+            "liveness ... the proper generalization of termination to concurrent programs - "
+            "something good eventually happens",
+            "what-is-promised-eventually-happens",
+            "model/promised: from every state where the promise is made, a state that keeps "
+            "it is reachable; conduct/eventually: on a tape, kept within the horizon the "
+            "promise names, or reported open",
+            "the paper's own annotation, lamport.azurewebsites.net/pubs"),
+    owed("weak-fairness", LAMPORT, "property kind",
+         "weak fairness: an action that stays enabled is eventually taken (Lamport, Fairness and "
+         "Hyperfairness, 2000 - stated here from the literature's standard form; the paper's own "
+         "sentence has not been verified and the law it maps to is carried uncited)",
+         "an-enabled-act-is-eventually-taken", FAIRNESS, "Fairness and Hyperfairness, 2000"),
 ]
 
 STATUSES = ("covered", "weakened", "owed", "aside")

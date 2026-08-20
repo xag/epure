@@ -583,20 +583,41 @@ CONDUCT_LAWS = [
         falsifier="A tape on which a state the model marks as pending is entered and never "
                   "left by the act that discharges it, though the tape runs past the horizon "
                   "the promise names.",
-        triggers=["a model declares a liveness predicate — a kind semantic-model does not "
-                  "have yet"],
+        triggers=["a model declares a `promise`"],
         citations=[("Leslie Lamport — Proving the Correctness of Multiprocess Programs (IEEE "
                     "TSE, 1977), the author's annotation",
                     "https://lamport.azurewebsites.net/pubs/pubs.html",
                     "This paper introduced the concepts of safety and liveness as the proper "
                     "generalizations of partial correctness and termination to concurrent "
                     "programs.")],
-        note="The third source in the census and the ledger's oldest debt: every predicate "
-             "épure proves is a safety property, and the stretch machinery (worlds around "
-             "acts, horizons) is most of the evaluator a liveness predicate needs. The word "
-             "is missing, not the means.",
-        owed="temporal-predicates-are-inexpressible: semantic-model has one predicate kind, "
-             "the state invariant; `eventually`/`until` over a trace has no vocabulary",
+        note="The third source in the census and the ledger's oldest debt, paid in two "
+             "halves: model/promised walks the model and refutes the trap (a state the "
+             "promise is made in that no action leaves); conduct/eventually holds a tape to "
+             "the horizon the promise names. Without a horizon a finite tape can only report "
+             "a promise open, which is the honest shape of liveness on a recording.",
+        native="conduct/eventually, model/promised",
+    ),
+
+    _law(
+        "an-enabled-act-is-eventually-taken",
+        "An act the model keeps enabled is eventually taken — weak fairness, without which "
+        "no promise can be proved kept, only possible",
+        _uncited(),
+        falsifier="A tape on which an action's guard holds from some act onward, past the "
+                  "horizon a fairness annotation names, and the action never fires.",
+        triggers=["a model declares a fairness annotation on an action — a kind "
+                  "semantic-model does not have yet"],
+        note="model/promised proves a promise POSSIBLE from every state that makes it; "
+             "proving it KEPT needs fairness — the assumption that the scheduler does not "
+             "starve an enabled act forever. The ledger's fairness-is-inexpressible debt, "
+             "and the census's one owed item. Lamport states weak and strong fairness in "
+             "Fairness and Hyperfairness (2000); the sentence could not be verified today and "
+             "the law is carried uncited until it is.",
+        meta={"expected:a-law-cites-a-source":
+              "Lamport 2000 states weak and strong fairness; the verbatim sentence could not "
+              "be fetched and checked today. Source it from the paper's text, then cite."},
+        owed="fairness-is-inexpressible: no kind annotates an action as fair; model/promised "
+             "answers possibility only",
     ),
 
     _law(
@@ -697,6 +718,13 @@ CONDUCT_SOLVERS = [
         name="conduct/constructible", native=True,
         description="(path, rel): count the distinct projected worlds read off `path` that no "
         "sequence of the model's actions reaches from init.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/eventually", native=True,
+        description="(path, rel): count the acts under `path` that leave the projected world "
+        "in a state that makes a `promise` and are followed, within the promise's `within` "
+        "acts, by no world that keeps or releases it. A promise still open when the tape "
+        "ends, or without a horizon, is noted.",
         params_doc={"rel": "the link from the scenario/session to the model"}),
     SolverDef(
         name="conduct/doors", native=True,
@@ -815,7 +843,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.7.0",
+    version="0.8.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -863,14 +891,17 @@ CONDUCT_PACKAGE = Package(
                 "sources state is now covered by a native in the source's own form, except "
                 "the half of `safe` that names the WHOLE state. 0.7.0 pays that too: "
                 "conduct/doors, over semantic-model@0.9.0's `boundary`, holds every write "
-                "function the recorder knows to being some action's door.",
+                "function the recorder knows to being some action's door. 0.8.0: liveness - "
+                "conduct/eventually over semantic-model@0.10.0's `promise`, with "
+                "model/promised on the model side; Lamport's other half, the census's "
+                "third source, covered.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.9.0"),
+        PackageRef(name="semantic-model", version="0.10.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

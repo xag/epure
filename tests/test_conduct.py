@@ -20,10 +20,11 @@ from epure.conduct import CONDUCT_LAWS, CONDUCT_PACKAGE
 
 _ROOT = Path(__file__).resolve().parents[1]
 
-UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable"}
+UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable",
+             "an-enabled-act-is-eventually-taken"}
 
 # The laws no native holds yet — each owed to a debt the ledger carries.
-OWED = {"what-is-promised-eventually-happens"}   # liveness: the third source's one owed item
+OWED = {"an-enabled-act-is-eventually-taken"}   # fairness: the census's one owed item
 
 
 def test_the_pin_is_this_content():
@@ -41,6 +42,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     # registry, by decision (see test.yml). semantic-model's native contracts must be
     # in-process for its own re-validation beneath this one.
     import epure.behavior  # noqa: F401
+    import epure.reach  # noqa: F401
     import epure.conformance  # noqa: F401
     import epure.prove  # noqa: F401
     registry = Path(os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
@@ -49,7 +51,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     assert any("4 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
     held = [line for line in log if line.startswith("contract 'conduct/")]
-    assert len(held) == 17, log
+    assert len(held) == 18, log
 
 
 def test_every_law_is_checked_or_owed_and_the_owed_are_these():
@@ -60,12 +62,13 @@ def test_every_law_is_checked_or_owed_and_the_owed_are_these():
         native, owed = law.payload.get("native"), law.payload.get("owed")
         assert bool(native) != bool(owed), law.id
         for n in (native.split(", ") if native else []):
-            assert n in declared | {"model/prove"}, f"{law.id} names {n}, which is not declared"
+            assert n in declared | {"model/prove", "model/promised"}, \
+                f"{law.id} names {n}, which is not declared"
     assert {law.id for law in CONDUCT_LAWS if law.payload.get("owed")} == OWED
     # ...and every declared contract is some law's: a native no law names is a check with
     # no claim behind it
     assert {n for law in CONDUCT_LAWS for n in (law.payload.get("native") or "").split(", ")
-            if n} == declared | {"model/prove"}
+            if n} == declared | {"model/prove", "model/promised"}
 
 
 def test_every_rule_carries_a_counter_example():
@@ -74,11 +77,11 @@ def test_every_rule_carries_a_counter_example():
     assert named == refuting, f"rules without a refutation: {sorted(named - refuting)}"
 
 
-def test_the_catalogue_is_twenty_one_laws_and_the_census_says_how_many_it_holds():
+def test_the_catalogue_is_twenty_two_laws_and_the_census_says_how_many_it_holds():
     """Not a census count — the census is tests/test_census.py. This is the catalogue's own
     length, kept here so a law added or dropped is a diff somebody reads."""
-    assert len(CONDUCT_LAWS) == 21
-    assert len({law.id for law in CONDUCT_LAWS}) == 21
+    assert len(CONDUCT_LAWS) == 22
+    assert len({law.id for law in CONDUCT_LAWS}) == 22
 
 
 def test_every_citation_carries_its_quote():

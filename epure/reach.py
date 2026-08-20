@@ -20,10 +20,12 @@ its own verdict rather than as "everything is stranded" (the claim was miswritte
 and 44 identical violations would bury that fact); and the cap raises exactly as in
 `prove`, because a partial walk is not a proof of return.
 
-No native is registered here yet: the consumers so far call `escapes()` as a
-function. The day a ledger rule wants `solve('model/escapes', ...)`, the contract
-enters the spec beside model/prove and a package declares it — a native nothing
-declares is a capability nobody can audit.
+`model/promised` is the native this module registers (semantic-model@0.10.0): for every
+`promise` a model declares — `when` a state holds, `then` another is reached — the walk
+above with `source=when` and `home=then`; a promise with a reachable `when`-state from
+which no `then`-state is reachable is refuted, with the shortest path into the trap. It
+is the model-side half of liveness (what the model makes POSSIBLE); the tape-side half,
+what actually happened within a horizon, is conduct/eventually.
 """
 
 from __future__ import annotations
@@ -66,13 +68,16 @@ class Escape:
 
 
 def escapes(tree: Quern | TreeStore, path: str, home: str,
-            cap: int = DEFAULT_CAP) -> Escape:
+            cap: int = DEFAULT_CAP, source: str = "") -> Escape:
     """Check that every reachable state of the model at `path` can reach a state
-    satisfying `home` (an expr over the state vars, e.g. "surface == 'board'")."""
+    satisfying `home` (an expr over the state vars, e.g. "surface == 'board'"). With
+    `source`, only the reachable states satisfying it are held to it — a promise: from
+    every state where `when`, a state where `then` is reachable."""
     node, variables, actions, _ = _load(tree, path)
     order = [name for name, _, _ in variables]
     domains = {name: dom for name, dom, _ in variables}
     home_expr = _compile(home, f"home '{home}'")
+    source_expr = _compile(source, f"source '{source}'") if source else None
 
     init = {name: i for name, _, i in variables}
     init_key = tuple(init[n] for n in order)
@@ -150,9 +155,42 @@ def escapes(tree: Quern | TreeStore, path: str, home: str,
 
     # Stranded, shortest witness first — parents holds BFS-minimal paths already.
     stranded = [Stranded(path=_replay(k), state=dict(zip(order, k)), exits=exits[k])
-                for k in parents if k not in can_return]
+                for k in parents if k not in can_return
+                and (source_expr is None
+                     or source_expr({**dict(zip(order, k)), **_LITERALS}))]
     stranded.sort(key=lambda s: len(s.path))
 
     return Escape(model=node.id, model_sha256=sha, home=home,
                   states_explored=explored, home_states=len(homes),
                   verdict="refuted" if stranded else "proved", stranded=stranded)
+
+
+def promised(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> list[Escape]:
+    """Every `promise` of the model at `path`, checked: from each reachable state where
+    `when` holds, some state where `then` (or `unless`, the release) holds is reachable."""
+    from quern import get_node
+    node = get_node(tree, path)
+    if node is None:
+        raise ValueError(f"no node at '{path}'")
+    if node.kind != "model":
+        raise ValueError(f"'{path}' is a '{node.kind}', not a model")
+    out = []
+    for c in node.children:
+        if c.kind != "promise":
+            continue
+        then = str(c.payload.get("then", ""))
+        unless = str(c.payload.get("unless", "")).strip()
+        home = f"({then}) or ({unless})" if unless else then
+        out.append(escapes(tree, path, home, cap=cap, source=str(c.payload.get("when", ""))))
+    return out
+
+
+def promised_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> float:
+    return float(sum(1 for e in promised(tree, path, cap) if e.verdict != "proved"))
+
+
+from quern import register_native  # noqa: E402
+
+from .spec import PROMISED  # noqa: E402
+
+register_native("model/promised", promised_count, PROMISED)

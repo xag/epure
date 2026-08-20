@@ -664,6 +664,53 @@ CONDITIONAL_SPEC = [
       because="handed the current rev and refused: a match that did not proceed"),
 ]
 
+def cloakroom_that_traps() -> Node:
+    """The reclaim's guard demands an UNTAGGED coat, and nothing ever untags: a coat once
+    tagged can never leave — the trap."""
+    model = cloakroom()
+    reclaim = next(c for c in model.children if c.id == "reclaim-coat")
+    reclaim.payload = {**reclaim.payload, "guard": "held == 1 and tag == 'none'"}
+    return model
+
+
+PROMISED = [
+    Demonstration(contract="model/promised", nodes=[cloakroom()], args=["cloakroom"], expect=0,
+                  because="from every state with a coat on the hook, a reclaim is possible: "
+                          "the promise can be kept from everywhere it is made"),
+    Demonstration(contract="model/promised", nodes=[cloakroom_that_traps()], args=["cloakroom"],
+                  expect=1,
+                  because="a reclaim that demands an untagged coat, when nothing untags: "
+                          "the tagged coat is a state the promise is made in and no action "
+                          "leaves — the trap, with the shortest path into it, which no "
+                          "invariant could see"),
+    Demonstration(contract="model/promised", nodes=[turnstile()], args=["turnstile"], expect=0,
+                  because="a model making no promise breaks none"),
+]
+
+KEPT = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+              *TAG_RED, *world("red", "red", None),
+              *RECLAIM, *EMPTY])
+BROKEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                *TAG_RED, *world("red", "red", None),
+                *SHELVE_HIGH, *world("red", "red", "high"),
+                *TAG_BLUE, *world("red", "blue", "high")])
+STILL_OPEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                    *TAG_RED, *world("red", "red", None)])
+
+EVENTUALLY = [
+    c("eventually", visited(KEPT), ["visit", "model"], expect=0,
+      because="the coat checked in is reclaimed two acts later: the promise kept within "
+              "its horizon"),
+    c("eventually", visited(BROKEN), ["visit", "model"], expect=1,
+      because="three acts after the deposit the coat is still on the hook — tagged, "
+              "shelved, retagged, never reclaimed: the promise broken within its horizon, "
+              "Lamport's liveness refuted on a recording because the horizon was stated"),
+    c("eventually", visited(STILL_OPEN), ["visit", "model"], expect=0,
+      because="one act after the deposit the tape ends: the promise is open, not broken — "
+              "noted, never counted"),
+]
+
+
 def cloakroom_with_a_stray_writer() -> Node:
     """The recorder knows a write function no action admits."""
     model = cloakroom()
@@ -685,6 +732,7 @@ DOORS = [
 ]
 
 CONDUCT_SPEC = {
+    "conduct/eventually": EVENTUALLY,
     "conduct/doors": DOORS,
     "conduct/merge": MERGE,
     "conduct/stamped": STAMPED_SPEC,

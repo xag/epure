@@ -1,4 +1,4 @@
-"""semantic-model@0.9.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.10.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -251,6 +251,20 @@ VOCABULARY = [
         "one its own `touches.via` (and its effects' `via`) does not admit. A write "
         "door the model never declares is invisible to the frame — totality's catch, "
         "not this one's. `via: []` is a real statement: this act writes nothing.",
+    ),
+    KindDef(
+        kind="promise",
+        description="A child of `model`: a LIVENESS predicate — Lamport's other half, what "
+        "must eventually happen rather than what must never. Payload: `when` (expr over "
+        "state-vars: the state that makes the promise), `then` (expr: the state that keeps "
+        "it), optionally `unless` (expr: the release — the promise is void once this holds, "
+        "which is `until`), `within` (int: the horizon in acts on a tape) and `note`. Two "
+        "halves hold it: `model/promised` walks the model and refutes a promise with a "
+        "reachable `when`-state from which no `then`/`unless` state is reachable (the trap); "
+        "`conduct/eventually` holds a tape to it — after an act leaves the projected world "
+        "in `when`, some later world within `within` acts satisfies `then` or `unless`. "
+        "Without `within` a finite tape can only note a promise still open, never refute it, "
+        "which is the honest shape of liveness on a recording.",
     ),
     KindDef(
         kind="invariant",
@@ -570,6 +584,12 @@ EXAMPLES = [
                           payload={"only": ["held", "tag", "shelf"],
                                    "via": ["hook.delete", "register.write"]}),
                  ]),
+            Node(id="a-coat-is-reclaimed", kind="promise",
+                 payload={"when": "held == 1", "then": "held == 0", "within": 3,
+                          "note": "a coat checked in is reclaimed — the cloakroom is not a "
+                                  "wardrobe. Within three acts on a tape; the model must at "
+                                  "least make it possible from every state with a coat on "
+                                  "the hook"}),
             Node(id="no-tag-without-a-coat", kind="invariant",
                  payload={"expr": "held == 1 or tag == 'none'",
                           "note": "a ticket is written on a coat: the hook empty, the tag "
@@ -635,6 +655,12 @@ SOLVERS = [
         "state of the (finite) model at `path`; returns the count of refuted invariants. "
         "Design-time, once; the artifact a green run emits grounds evidence."),
     SolverDef(
+        name="model/promised", native=True,
+        description="count the `promise`s of the model at `path` with a reachable `when`-state "
+        "from which no `then` (or `unless`) state is reachable — the model-side half of "
+        "liveness, by the same walk as model/escapes; a trap is reported with the shortest "
+        "path into it."),
+    SolverDef(
         name="model/licensed", native=True,
         description="(path, rel): count the spans under `path` whose claim the evidence "
         "their licenses name does not justify — own window by default, named evidence "
@@ -652,7 +678,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.9.0",
+    version="0.10.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -709,7 +735,11 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "recorder declares, so the door census can hold every one to being some "
                 "action's door - the word that makes an empty boundary mean the whole state - "
                 "and a direction on `evidence()`: a license can now say the evidence came "
-                "before the claim.",
+                "before the claim. 0.10.0 adds `promise`, the liveness predicate — Lamport's "
+                "other half, the ledger's oldest debt: `when` a state holds, `then` another "
+                "is reached, `unless` released, `within` a horizon; model/promised refutes "
+                "the trap on the model, conduct/eventually the broken promise on a tape. The "
+                "cloakroom promises a checked coat is reclaimed within three acts.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

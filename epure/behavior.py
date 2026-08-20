@@ -1370,6 +1370,66 @@ def conditional(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     return _stretch_check("conduct/conditional", tree, path, rel, judge)
 
 
+# --- conduct/eventually: what the model promises, happens within the horizon ----------------
+
+
+def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """what-is-promised-eventually-happens: for each `promise` of the model and each act
+    whose projected world after satisfies `when`, some later act's world after — within
+    `within` acts — satisfies `then` or `unless`. A promise with no `within` cannot be
+    refuted by a finite tape and is only noted while open; a promise whose horizon runs
+    past the tape's end is noted, not counted."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        promises = []
+        for c in W.model_node.children:
+            if c.kind == "promise":
+                when = _compile(str(c.payload.get("when", "")), f"promise '{c.id}' when")
+                then = _compile(str(c.payload.get("then", "")), f"promise '{c.id}' then")
+                unless_src = str(c.payload.get("unless", "")).strip()
+                unless = _compile(unless_src, f"promise '{c.id}' unless") if unless_src else None
+                promises.append((c.id, when, then, unless, c.payload.get("within")))
+        if not promises:
+            notes.append(f"{path}: the model makes no promise — nothing to keep")
+            return 0
+        spans = [w for w in W.worlds if w.action is not None and not w.act.is_call]
+
+        def holds(expr, world):
+            try:
+                return bool(expr({**world, **_LITERALS}))
+            except ValueError:
+                return None  # a variable the world did not show
+
+        for pid, when, then, unless, within in promises:
+            for i, w in enumerate(spans):
+                made = holds(when, w.post)
+                if not made:
+                    continue
+                later = spans[i + 1:]
+                window = later[:within] if within else later
+                kept = None
+                for j, x in enumerate(window):
+                    if holds(then, x.post) or (unless is not None and holds(unless, x.post)):
+                        kept = j
+                        break
+                if kept is not None:
+                    judged += 1
+                    continue
+                if within is None or len(later) < within:
+                    notes.append(f"{w.act.path}: '{pid}' made by '{w.kind}' and still open "
+                                 f"when the tape ends ({len(later)} act(s) later"
+                                 f"{f', horizon {within}' if within else ', no horizon'}) — "
+                                 "unwitnessed, not broken")
+                    continue
+                judged += 1
+                diagnostics.append(
+                    f"{w.act.path}: '{w.kind}' left the world in the state that makes "
+                    f"'{pid}' ({w.post}), and {within} act(s) later it is still not kept — "
+                    "a promise broken within its horizon")
+        return judged
+    return _stretch_check("conduct/eventually", tree, path, rel, judge)
+
+
 # --- conduct/doors: every write function the boundary records is some action's door --------
 
 
@@ -1494,5 +1554,5 @@ register_native("conduct/doors", doors_count, CONDUCT_SPEC["conduct/doors"])
 for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
                    ("undo", undo), ("durable", durable), ("same-story", same_story),
                    ("constructible", constructible), ("merge", merge), ("stamped", stamped),
-                   ("conditional", conditional)):
+                   ("conditional", conditional), ("eventually", eventually)):
     register_native(f"conduct/{_name}", _count_of(_fn), CONDUCT_SPEC[f"conduct/{_name}"])
