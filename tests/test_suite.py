@@ -182,3 +182,16 @@ def test_a_probe_answers_for_its_reachability_before_any_other_law(tmp_path):
                        "not read)"]
     v.probe = False
     assert v.red() == ["conduct/frame", "conduct/constructible"]
+
+
+def test_the_report_opens_with_what_the_model_declares():
+    """Coverage is the vocabulary side: the laws see only what is declared."""
+    from epure.behavior import declared
+    from epure.package import EXAMPLES
+
+    turnstile, cloakroom = EXAMPLES
+    assert declared(turnstile) == {"projected": (0, 3), "effects": (2, 2), "bounded": (2, 2),
+                                   "validators": (0, 1)}
+    assert declared(cloakroom, tools=["deposit", "reclaim", "audit"]) == {
+        "projected": (3, 3), "effects": (6, 6), "bounded": (6, 6), "validators": (1, 1),
+        "tools": (2, 3)}

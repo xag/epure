@@ -1370,6 +1370,37 @@ def conditional(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     return _stretch_check("conduct/conditional", tree, path, rel, judge)
 
 
+# --- vocabulary coverage: what of the world is declared at all ------------------------------
+
+
+def declared(model: Node, tools: Iterable[str] = ()) -> dict[str, tuple[int, int]]:
+    """How much of a model's world is declared in the vocabulary, per kind — the number that
+    bounds what any law can see. Laws bind by kind and grow on their own; this is the side
+    that has to grow by hand, app by app, and the one the report should show:
+
+    - `projected`: state-vars with a projection / all state-vars
+    - `effects`: actions declaring an effect (creates/mutates/deletes/merges) / all actions
+    - `bounded`: actions declaring a boundary (touches) / all actions
+    - `validators`: validators declared (0 or 1 is the common case)
+    - `tools`: tools the model names as event-kinds / tools the app registers (when given)
+    """
+    vars_ = [c for c in model.children if c.kind == "state-var"]
+    actions = [c for c in model.children if c.kind == "action"]
+    kinds = {c.id for c in model.children if c.kind == "event-kind"}
+    out = {
+        "projected": (sum(1 for v in vars_ if v.payload.get("shown")), len(vars_)),
+        "effects": (sum(1 for a in actions if any(k.kind in EFFECTS for k in a.children)),
+                    len(actions)),
+        "bounded": (sum(1 for a in actions if any(k.kind == "touches" for k in a.children)),
+                    len(actions)),
+        "validators": (sum(1 for c in model.children if c.kind == "validator"), 1),
+    }
+    tools = list(tools)
+    if tools:
+        out["tools"] = (sum(1 for t in tools if t in kinds), len(tools))
+    return out
+
+
 # --- the natives: counts behind solve() ---------------------------------------------------
 
 

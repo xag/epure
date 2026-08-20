@@ -68,9 +68,9 @@ from typing import Any, Callable, Sequence
 
 from quern import Node, Quern
 
-from epure.behavior import (agrees, commute, conditional, constructible, durable, effect,
-                            faithful, frame, last_write, merge, refusal, same_story, stamped,
-                            twice, undo)
+from epure.behavior import (agrees, commute, conditional, constructible, declared, durable,
+                            effect, faithful, frame, last_write, merge, refusal, same_story,
+                            stamped, twice, undo)
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
@@ -109,6 +109,9 @@ class Suite:
     budget: dict[str, int] = field(default_factory=dict)
     receipt: Path | None = None          # None = this app leaves no receipt
     prog: str = "conformance"
+    #: Every tool the app registers, so the report can say how many the model names. The
+    #: laws bind by kind and grow on their own; this is the side that grows by hand.
+    tools: tuple[str, ...] = ()
 
     @property
     def bound_kinds(self) -> set[str]:
@@ -236,9 +239,19 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
     return v
 
 
+def coverage(suite: Suite) -> str:
+    """One line: what of the app's world the model declares, per kind of the vocabulary."""
+    d = declared(suite.model, suite.tools)
+    parts = [f"{k} {a}/{b}" for k, (a, b) in d.items()]
+    return "declared: " + ", ".join(parts)
+
+
 def report(suite: Suite, verdicts: list[Verdict]) -> None:
     """Tape, three verdicts, first diagnostic. One screen, and ASCII — this prints to a Windows
     console under cp1252, which turns anything prettier into mojibake exactly when it matters."""
+    # The vocabulary side first: the laws can only see what is declared, and this is the
+    # number that bounds every verdict below.
+    print(f"{suite.model_name}: {coverage(suite)}")
     for kind, cls in suite.classes.items():
         rows = [v for v in verdicts if v.kind == kind]
         if not rows:
@@ -304,6 +317,8 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
         "green": not any(v.red() for v in verdicts),
         "model": f"{pin['name']}@{pin['version']}",
         "checker": "epure/conformance",
+        "declared": {k: {"declared": a, "of": b} for k, (a, b) in
+                     declared(suite.model, suite.tools).items()},
         "tapes": [
             {
                 "name": v.name,

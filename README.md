@@ -34,6 +34,7 @@ Early. Today this repo holds its own design ledger, its boundary declaration, an
 | `epure.testimony` | one table per app, beside its `span()` call sites, naming what each act does to the store; the model generates its effect nodes from it and the app's tests hold every emission literal to it — so the drawing and the code cannot say two things about one act |
 | `epure.census` | every property the cited sources state (Hughes 2020, RFC 9110), each mapped to a law and given one status — covered, weakened, owed, aside — with the counts computed over the items; shipped as conduct@'s example, mounted in the ledger, and the number the brief shows |
 | `epure.survey` | drafts, per tool, the doors its tapes show it writing — generalized patterns, split into the tool's own writes and its spans' — so declaring ninety tools is a reading job, and the frame law convicts the first tape that takes a path the draft never saw |
+| coverage | the vocabulary side, per app, first line of every conformance report and in the receipt: state-vars projected, actions with effects and boundaries, validators, tools the model names over tools the app registers. The laws bind by kind and grow on their own; this is the side that grows by hand, and the number that bounds what any law can see |
 
 ```bash
 uv run python -m epure.check     # this repo's own design ledger. Exit 1 while any rule is red.
