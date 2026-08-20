@@ -249,8 +249,6 @@ def _latest(xs: Any, field: str, *filters: Any) -> Any:
 def _weekday(iso: Any, absent: Any = None) -> Any:
     """`weekday(iso[, absent])`: 0 = Monday; `absent` when there is no date to read."""
     if iso is None:
-        if absent is None:
-            raise ValueError("weekday of nothing — pass an `absent` value")
         return absent
     from datetime import date
     return float(date.fromisoformat(str(iso)[:10]).weekday())
@@ -276,8 +274,13 @@ class _Projection:
         self.domain = domain
 
     def value(self, event: dict[str, Any]) -> Any:
+        """The variable's value as this read shows it — or None when the read shows nothing
+        for it (the path is absent, the date is missing): not a disagreement, an unwitnessed
+        act, and the caller treats it as no read."""
         res = event.get("res")
         out = _normalize(self.expr({"res": res, **_LITERALS}, _projection_env(res)))
+        if out is None:
+            return None
         if out not in self.domain:
             raise ValueError(f"the world shows '{self.var}' as {out!r}, outside its domain")
         return out
@@ -705,11 +708,11 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         for var, proj in projections.items():
             try:
                 before = read_before(proj, act.at)
-                if before is not None:
-                    pre[var] = proj.value(before[1])
+                if before is not None and (v := proj.value(before[1])) is not None:
+                    pre[var] = v
                 after = read_after(proj, act.to, limit)
-                if after is not None:
-                    post[var] = proj.value(after)
+                if after is not None and (v := proj.value(after)) is not None:
+                    post[var] = v
             except ValueError as e:
                 diagnostics.append(f"{where} ({action['id']}): {e}")
         data = act.span.payload.get("data") or {}

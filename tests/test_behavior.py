@@ -245,4 +245,4 @@ def test_projection_helpers_read_a_log():
     assert _count(log, "chore_id", "bins", "kind", "done") == 1
     assert _latest(log, "day", "kind", "done") == "2026-08-06"
     assert _latest(log, "day", "chore_id", "wash") is None
-    assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1
+    assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1 and _weekday(None) is None
