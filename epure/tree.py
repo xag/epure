@@ -920,14 +920,21 @@ _CENSUS_DECISION = Node(
 _PROJECTION_DEBT = Node(
     id="the-world-is-not-yet-projected",
     kind="debt",
-    name="No state-var says how the world shows its value, so no native can compare the "
+    name="No state-var said how the world shows its value, so no native could compare the "
          "store to the model: the model-based family — Hughes's strongest — and the value "
-         "forms of effect and frame are unheld",
+         "forms of effect and frame were unheld. Discharged 2026-08-20: projections on "
+         "state-var, conduct/agrees, and a real model projecting its stored variables",
     params={
+        # Grounded by the discharge: semantic-model@0.6.0 carries the projection, conduct@0.4.0
+        # the native, and chores-model@0.13.0 projects its five stored variables - held to 17
+        # real tapes, 539 (act, variable) pairs judged, none disagreeing.
         "projected_state_vars": Quantity(
-            value=0, unit="state-var", provenance="asserted", grounded=False,
-            source="semantic-model@0.5.0 has no projection payload on state-var; the "
-                   "effect natives compare presences through doors, never values"),
+            value=5, unit="state-var", provenance="verified", grounded=True,
+            source="chores-model@0.13.0 (digest 68ad0f00): today, hoover_last, bins_done, "
+                   "hoover_assignee, bins_assignee carry `shown`; tools.conformance judged "
+                   "539 pairs under conduct/agrees across 17 tapes, 0 disagreeing (2026-08-20). "
+                   "The six view variables (pending flags, wash_day, wash_by_hand) project "
+                   "nothing and are held by presence"),
     },
     payload={
         "note":

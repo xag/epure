@@ -274,6 +274,14 @@ CONDUCT_LAWS = [
              "are admitted on those acts now, with the finding on them (chores-model@0.12.0). "
              "Caught by the native, not by reading: the effect, faithfulness and refusal "
              "laws were green on the same tapes."),
+            ("chores, first run with every tool call an act, 2026-08-20",
+             "Two more the moment the surveyed tool boundaries made more doors known: "
+             "turn-done writes index/metrics, and the hand-written door for it had said "
+             "`metrics` — a declaration wrong in a way nothing could see until a neighbour "
+             "declared the same door right; and chore-added, on the free-plan scene, "
+             "rewrites the whole household document (the grace clock, plan.note_size) "
+             "inside the act — one scene took that path, the survey had not seen it inside "
+             "a span. Both corrected in the app's table; the model followed."),
         ],
         note="Inside a proved model the frame holds by construction — updates name every "
              "moving var. The law exists for tapes, where the real system writes.",
@@ -733,7 +741,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.4.1",
+    version="0.4.2",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -765,7 +773,9 @@ CONDUCT_PACKAGE = Package(
                 "every act — which is the effect, faithfulness and frame laws in their "
                 "VALUE forms. Fifteen census items move from weakened or owed to covered; "
                 "the census says which. 0.4.1 follows semantic-model@0.6.1 (two more "
-                "projection helpers); nothing else moves.",
+                "projection helpers). 0.4.2: the frame law - this package's example - "
+                "carries its third sighting, from the first run with every tool call an "
+                "act; content only.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
