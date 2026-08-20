@@ -25,8 +25,8 @@ def test_the_red_is_exactly_the_declared_red():
     assert not stale, "expectations that outlived their red:\n" + "\n".join(stale)
     assert {(r.node, r.rule) for r in carried} == {
         (law, "a-law-cites-a-source")
-        for law in ("refusal-changes-nothing", "undo-restores", "same-state-same-story",
-                    "shown-once-shown-until-touched", "the-effect-is-checkable")}
+        # conduct@0.3.0 cited three of the five from the paper's own formulas
+        for law in ("shown-once-shown-until-touched", "the-effect-is-checkable")}
 
 
 def test_the_founding_record_is_actually_there():
@@ -71,14 +71,16 @@ def test_the_rules_are_the_pinned_packages_own():
         "a-law-can-be-violated-observably",
         "a-law-is-switched-on-by-something",
         "a-law-cites-a-source",
+        # conduct@0.3.0: the census's own gate.
+        "an-item-has-one-status",
         # ...and its requirement staged beneath it: conduct@ names semantic-model@0.4.0
         # (the effect kinds its triggers bind to), and a closure travels whole — these
         # judge any model node this ledger ever mounts, which is the right default.
         "a-model-declares-its-alphabet",
         "an-event-kind-carries-a-license",
         "an-action-is-observable",
-    }, ("the effective rules are not the twelve ledger@0.6.0 + three conduct@0.1.0 + "
-        "three semantic-model@0.4.0 ship — has one been redefined here?")
+    }, ("the effective rules are not the twelve ledger@0.6.0 + four conduct@0.3.0 + "
+        "three semantic-model@0.5.0 ship — has one been redefined here?")
 
     fired = {r.rule for r in run_rules(tree)}
     assert "a-decision-names-what-it-rejected" in fired

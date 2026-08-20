@@ -1,15 +1,16 @@
 """The conduct catalogue: the behavior laws, as content the effect kinds bind to.
 
 The founder's example was «a value must be the same if it wasn't changed», and the point was
-never that one rule — it was the family, and the census of families. The census here is not a
-judgment call: Hughes's *How to Specify It!* enumerates the ways a property over an operation
-can be written — "five different approaches to writing properties (invariants, postconditions,
-metamorphic properties and the preservation of equivalence, inductive properties, and
-model-based properties)" — and the nine families below are that enumeration folded onto what a
-tape can witness: what a postcondition can say about an effect (it happened; it matches its
-inputs; nothing else moved), what a metamorphic relation can say about repeats, inverses and
-refusals, and what the model-based frame already owns (invariants live in semantic-model's own
-`invariant` kind and are proved, not sampled — they are deliberately NOT a family here).
+never that one rule — it was the family, and the census of families. 0.1.0 said "nine families,
+a census folded from Hughes's five approaches" and grounded the nine on the catalogue's own
+length; read in full, the paper states some fifty properties in six categories and ranks the
+model-based ones — the abstraction function — first, and 0.1.0 had folded exactly those into
+nothing. 0.3.0 is the correction: `epure.census` lists EVERY property the two sources state
+(Hughes 2020, Figures 3–8 and the text; RFC 9110 §8.8, §9.2, §13, §15), maps each to a generic
+law here, and gives each one status — covered by a native in the source's own form, weakened
+(a native holds a lesser form and the item says what is missing), owed (a debt in the ledger
+carries it), or set aside (not a claim about an operation, with the reason). The counts are
+computed over the items and shown on the brief; they are the honest size of this catalogue.
 
 Binding is by inheritance, not template-stamping — the founder's fork, resolved: each law
 names the generic effect kind it applies to (`creates`, `mutates`, `deletes`, `touches`,
@@ -35,6 +36,8 @@ from quern import KindDef, Node, Rule, SolverDef
 from quern.library import CounterExample, Package
 from quern.provenance import Quantity
 from quern.tree import PackageRef
+
+from .census import STATUSES, census, coverage_of
 
 
 def _cited(source: str) -> Quantity:
@@ -67,6 +70,7 @@ def _law(law_id, name, authority, *, falsifier, triggers, citations=(), sighting
                          name=where, payload={"what": what}))
     payload = {"note": note} if note else {}
     payload.update({"native": native} if native else {"owed": owed})
+    payload["covers"] = coverage_of(law_id)  # computed from the census, never typed
     return Node(id=law_id, kind="law", name=name, payload=payload,
                 params={"authority": authority}, children=kids,
                 meta=meta or {})
@@ -119,6 +123,43 @@ CONDUCT_VOCABULARY = [
         "tape. Evidence, not decoration: a law that has never caught anything is a law "
         "nobody should trust.",
     ),
+    KindDef(
+        kind="census",
+        description="Every property a cited source states, as `item` children, with the "
+        "counts computed over them as params (items, covered, weakened, owed, aside). The "
+        "harness against a catalogue filtered by what was feasible: the number on the "
+        "brief is the source's, and what was left out is a number too.",
+    ),
+    KindDef(
+        kind="item",
+        description="One property as its source states it: the node's name is the formula, "
+        "the payload names the `source`, its `category` and `section`, and the `law` it "
+        "maps to. Carries exactly one status child — covered, weakened, owed or aside — "
+        "and the rule below refuses an item with none or two.",
+    ),
+    KindDef(
+        kind="covered",
+        description="A native holds the item's law in the form the source states it. "
+        "Payload `because` names the native and how.",
+    ),
+    KindDef(
+        kind="weakened",
+        description="A native holds a lesser form of the item — presence where the source "
+        "compares values, a door where the source reads a variable back. Payload `because` "
+        "says exactly what is missing, so the weakening is a debt with a shape, not a "
+        "rounding-up.",
+    ),
+    KindDef(
+        kind="owed",
+        description="No native holds the item. Payload `because` names the debt node in "
+        "the authoring ledger that carries it and states its discharge.",
+    ),
+    KindDef(
+        kind="aside",
+        description="The item is not a claim about an operation's behaviour — a test "
+        "generator, a measurement, a warm-up example, a transport policy. Payload "
+        "`because` says why; an aside without a reason is a filter.",
+    ),
 ]
 
 CONDUCT_RULES = [
@@ -141,9 +182,17 @@ CONDUCT_RULES = [
         name="a-law-cites-a-source",
         kind="law",
         description="A law that cannot name who said it is a hypothesis. It may be carried, "
-        "and it will be red, and that is the honest state of it — five of the nine families "
-        "in the authoring repo are carried exactly so.",
+        "and it will be red, and that is the honest state of it.",
         expr="len(nodes('citation', self)) >= 1",
+    ),
+    Rule(
+        name="an-item-has-one-status",
+        kind="item",
+        description="Every property the source states is covered, weakened, owed or set "
+        "aside — exactly one, said on the item. None is a property quietly dropped; two is "
+        "a property counted twice; either is how a census stops being the source's.",
+        expr="len(nodes('covered', self)) + len(nodes('weakened', self)) + "
+             "len(nodes('owed', self)) + len(nodes('aside', self)) == 1",
     ),
 ]
 
@@ -155,6 +204,13 @@ HUGHES_POSTCONDITION = ("after calling insert, then we should be able to find th
                         "inserted, and any previously inserted keys with unchanged values")
 RFC9110 = "IETF RFC 9110, HTTP Semantics — §9.2.2 Idempotent Methods"
 RFC9110_URL = "https://www.rfc-editor.org/rfc/rfc9110.txt"
+RFC_SAFE = "IETF RFC 9110, HTTP Semantics — §9.2.1 Safe Methods"
+RFC_VALIDATORS = "IETF RFC 9110, HTTP Semantics — §8.8.1 Weak versus Strong"
+RFC_CONDITIONAL = "IETF RFC 9110, HTTP Semantics — §13.1.1 If-Match"
+
+
+def _hughes(quote: str, where: str = "") -> tuple[str, str, str]:
+    return (HUGHES + (f", {where}" if where else ""), HUGHES_URL, quote)
 
 
 CONDUCT_LAWS = [
@@ -236,7 +292,10 @@ CONDUCT_LAWS = [
         citations=[(RFC9110, RFC9110_URL,
                     "A request method is considered \"idempotent\" if the intended effect on "
                     "the server of multiple identical requests with that method is the same "
-                    "as the effect for a single such request.")],
+                    "as the effect for a single such request."),
+                   _hughes("prop InsertDeleteComplete k t = case find k t of Nothing -> "
+                           "t === delete k t; Just v -> t === insert k v t", "§4.2"),
+                   _hughes("prop UnionUnionIdem t = union t t ≏ t", "Appendix A")],
         note="Not every action is idempotent and the model already says which: a guard that "
              "refuses its own post-state (the turnstile's insert-coin when unlocked) exits "
              "the family; a guard that re-admits enters it.",
@@ -247,32 +306,31 @@ CONDUCT_LAWS = [
     _law(
         "refusal-changes-nothing",
         "An action the guard refuses leaves every value untouched",
-        _uncited(),
+        _cited("Hughes 2020, Appendix A: prop DeleteNil"),
         falsifier="A tape where an action fires outside its guard — or is refused — and any "
                   "state-var reads differently after than before.",
         triggers=["any action with a guard — refusal is the other half of every transition"],
-        note="The error path is the least-tested path and the most likely to half-write. No "
-             "authority found stating it this generally; atomicity literature states it for "
-             "transactions only.",
-        meta={"expected:a-law-cites-a-source":
-              "carried uncited on purpose: atomicity literature states it for transactions "
-              "only, and no source has been found for the general form. Source it or keep "
-              "carrying it red."},
+        citations=[_hughes("prop DeleteNil k = delete k nil ≏ nil", "Appendix A")],
+        note="The error path is the least-tested path and the most likely to half-write. "
+             "Hughes states the no-op half: an act that does not apply (delete on the empty "
+             "tree) leaves the world as it was. The half-written error path is the same law "
+             "read on a tape where the act raised.",
         native="conduct/refusal",
     ),
     _law(
         "undo-restores",
         "What a delete unmakes is what the create made",
-        _uncited(),
+        _cited("Hughes 2020, Appendix A: prop DeleteInsert"),
         falsifier="A tape where an action declaring `deletes` of an entity a prior `creates` "
                   "made completes, and the world differs from before the create — residue "
                   "left, or bystanders taken with it.",
         triggers=["a model declares both `creates` and `deletes` over the same entity"],
-        note="Hughes files do-undo under metamorphic properties without stating this form; "
-             "carried uncited until a stated source is found.",
-        meta={"expected:a-law-cites-a-source":
-              "Hughes gestures at do-undo under metamorphic properties but never states "
-              "this form; carried red until somebody finds it stated."},
+        citations=[_hughes("prop DeleteInsert k (k', v') t = delete k (insert k' v' t) ≏ "
+                           "if k == k' then delete k t else insert k' v' (delete k t)",
+                           "Appendix A")],
+        note="Read with k == k': deleting what was just inserted is deleting from the "
+             "world before the insert — the undo restores, residue and bystanders included. "
+             "0.1.0 carried this uncited; the paper states it in its appendix.",
         owed="needs the world read back before the create and after the delete, compared "
              "whole — conduct/effect holds the delete's own half (the entity is gone); "
              "the residue and the bystanders want a snapshot comparison no door declares",
@@ -280,16 +338,16 @@ CONDUCT_LAWS = [
     _law(
         "same-state-same-story",
         "The same action from the same state with the same inputs shows the same effect",
-        _uncited(),
+        _cited("Hughes 2020, Fig. 5: prop FindPreservesEquiv"),
         falsifier="Two tapes (or two stretches of one) where identical state and identical "
                   "arguments precede the same action, and the shown effects differ — with no "
                   "declared source of nondeterminism in between.",
         triggers=["an action declares an effect with `from` naming every input"],
-        note="The flight-recorder's whole premise, unstated as a law: replay answers 'same?'. "
-             "A difference names an undeclared input — a clock, a random draw, a global.",
-        meta={"expected:a-law-cites-a-source":
-              "the replay premise the estate already lives by; no authority found stating "
-              "it as a law over operations. Source it or keep carrying it red."},
+        citations=[_hughes("prop FindPreservesEquiv k (t :≏: t') = find k t === find k t'",
+                           "Fig. 5")],
+        note="The flight-recorder's whole premise, stated by the paper as a property: two "
+             "equivalent worlds answer the same read. A difference names an undeclared "
+             "input — a clock, a random draw, a global.",
         owed="needs two stretches with identical abstract state and data, and a notion of "
              "which differences in what was written are declared nondeterminism (a `now`, "
              "a `rand`, an id drawn) — the flight-recorder's replay answers this per tape; "
@@ -320,6 +378,206 @@ CONDUCT_LAWS = [
              "intervenes — the horizon is computable now that positions travel, and the "
              "check is the next native to write, not a stretch of this one",
     ),
+    # --- the families 0.1.0 folded into nothing, read back from the sources ----------
+    _law(
+        "the-invariant-holds",
+        "Every operation leaves the world valid",
+        _cited("Hughes 2020, §4.1 Validity Testing"),
+        falsifier="A reachable state of the model, or a step of a refined tape, in which an "
+                  "invariant is false.",
+        triggers=["a model declares an `invariant`"],
+        citations=[_hughes("prop InsertValid k v t = valid (insert k v t)", "§4.1"),
+                   _hughes("Validity properties miss many bugs (five of eight)", "§5.1")],
+        note="semantic-model's own `invariant` kind, proved by model/prove over every "
+             "reachable state and re-checked by model/refines after every act. Listed here "
+             "because the census lists it; the paper's own verdict on its strength is "
+             "quoted beside it.",
+        native="model/prove",
+    ),
+    _law(
+        "the-world-agrees-with-the-model",
+        "The store, read back and projected onto the model's variables, equals the state "
+        "the model's own updates compute",
+        _cited("Hughes 2020, §4.5 Model-based Properties"),
+        falsifier="A tape where, after an act, a state-var's value as PROJECTED from the "
+                  "reads (the abstraction function) differs from the value the automaton "
+                  "holds for it.",
+        triggers=["a state-var declares how the world shows its value (a projection)"],
+        citations=[_hughes("prop InsertModel k v t = toList (insert k v t) === "
+                           "L.insert (k, v) (deleteKey k (toList t))", "§4.5, Fig. 6"),
+                   _hughes("Model-based properties are effective at finding bugs; each "
+                           "property tests just one operation, and finds every bug in that "
+                           "operation. In fact, the model-based properties together form a "
+                           "complete specification of the code", "§5.1"),
+                   _hughes("Hoare defines a concrete and abstract implementation for each "
+                           "operation, and then proves that diagrams such as this one "
+                           "commute", "§4.5")],
+        note="The family the paper ranks first and 0.1.0 left out. The model's updates ARE "
+             "the abstract implementation; what is missing is toList — a projection from "
+             "the reads on the tape to each variable's value — and one native that holds "
+             "the two sides equal after every act. It subsumes the value forms of the "
+             "effect and frame laws.",
+        owed="the-world-is-not-yet-projected: semantic-model has no projection on a "
+             "state-var and no native compares the projected world to the automaton",
+    ),
+    _law(
+        "independent-writes-commute",
+        "Two writes to different entities leave the same world in either order",
+        _cited("Hughes 2020, §4.3 Metamorphic Properties"),
+        falsifier="A tape pair, or two stretches, where the same two acts on different "
+                  "entities run in opposite orders from the same world and the worlds after "
+                  "differ.",
+        triggers=["two actions declare effects on different entities"],
+        citations=[_hughes("prop InsertInsertWeak (k, v) (k', v') t = k /= k' ==> "
+                           "insert k v (insert k' v' t) ≏ insert k' v' (insert k v t)",
+                           "§4.3"),
+                   _hughes("prop DeleteDelete k k' t = delete k (delete k' t) ≏ "
+                           "delete k' (delete k t)", "Appendix A")],
+        owed="four-families-compare-two-stretches: needs two stretches of one tape "
+             "compared, and a projection to compare them by",
+    ),
+    _law(
+        "last-write-wins",
+        "Two writes to the same entity leave the world the second one made",
+        _cited("Hughes 2020, §4.3 Metamorphic Properties"),
+        falsifier="A tape where the same entity is written twice with different inputs and a "
+                  "read after shows the first.",
+        triggers=["an action declares `mutates` of an entity already created or mutated"],
+        citations=[_hughes("prop InsertInsert (k, v) (k', v') t = insert k v (insert k' v' t) "
+                           "≏ if k == k' then insert k v t else insert k' v' (insert k v t)",
+                           "§4.3"),
+                   _hughes("it no longer captures that \"the last insert wins\"", "§4.3")],
+        owed="four-families-compare-two-stretches: two acts on one entity, and the read "
+             "after both compared to what the second carried — the horizon machinery exists, "
+             "the native does not",
+    ),
+    _law(
+        "a-read-changes-nothing",
+        "An act that only reads leaves every value as it was",
+        _cited("RFC 9110 §9.2.1, Safe Methods"),
+        falsifier="A tape where an act declaring no writes (`touches.via: []`) encloses a "
+                  "write through a door the model knows.",
+        triggers=["an action declares `touches` with an empty `via`"],
+        citations=[(RFC_SAFE, RFC9110_URL,
+                    "Request methods are considered \"safe\" if their defined semantics are "
+                    "essentially read-only; i.e., the client does not request, and does not "
+                    "expect, any state change on the origin server as a result of applying a "
+                    "safe method to a target resource."),
+                   _hughes("prop FindNil k = find k nil === Nothing", "Appendix A")],
+        note="The frame law at its sharpest, cited on its own because RFC 9110 states it on "
+             "its own. chores declares seven such acts; the frame native convicts any write "
+             "inside one.",
+        native="conduct/frame",
+    ),
+    _law(
+        "equivalent-worlds-stay-equivalent",
+        "An act applied to two worlds the model cannot tell apart leaves two worlds the "
+        "model cannot tell apart",
+        _cited("Hughes 2020, §4.3 Preservation of Equivalence"),
+        falsifier="Two stretches whose projected worlds are equal before the same act and "
+                  "differ after it.",
+        triggers=["a projection exists and two stretches share a projected world"],
+        citations=[_hughes("prop InsertPreservesEquiv k v (t :≏: t') = insert k v t ≏ "
+                           "insert k v t'", "Fig. 5"),
+                   _hughes("many of our metamorphic properties only allow us to conclude "
+                           "that two expressions are equivalent; to use these conclusions in "
+                           "further reasoning, we need to know that equivalence is preserved "
+                           "by each operation", "§4.3")],
+        owed="the-world-is-not-yet-projected: equivalence IS projected equality",
+    ),
+    _law(
+        "every-world-is-constructible",
+        "Every world the store can hold is reachable by the declared acts from the empty "
+        "world",
+        _cited("Hughes 2020, §4.4 Inductive Testing"),
+        falsifier="A world read off a tape whose projection no sequence of the model's "
+                  "actions reaches from init.",
+        triggers=["a projection exists"],
+        citations=[_hughes("prop InsertComplete t = t === foldl (flip $ uncurry insert) nil "
+                           "(insertions t)", "§4.4"),
+                   _hughes("Inductive proofs inspire inductive tests.", "§4.4")],
+        note="The model side already exists for one direction — model/escapes asks whether "
+             "home is reachable from every state; this asks whether every observed state is "
+             "reachable from home.",
+        owed="the-world-is-not-yet-projected: reachability of a projected world needs the "
+             "projection first",
+    ),
+    _law(
+        "a-merge-keeps-both-and-prefers-the-left",
+        "Merging two worlds keeps every entity of both and, where they disagree, the "
+        "left one's value; merging is idempotent and associative",
+        _cited("Hughes 2020, §4.2: union is left-biased"),
+        falsifier="A tape where a bulk import, sync or merge drops an entity either side "
+                  "held, or resolves a disagreement to the right.",
+        triggers=["an action declares a merge of two worlds — a kind semantic-model does "
+                  "not yet have"],
+        citations=[_hughes("prop UnionPost t t' k = find k (union t t') === "
+                           "(find k t <|> find k t')", "§4.2"),
+                   _hughes("prop UnionUnionAssoc t1 t2 t3 = union (union t1 t2) t3 ≏ "
+                           "union t1 (union t2 t3)", "Appendix A")],
+        owed="no-kind-names-a-merge: thirteen of the paper's properties are about union, and "
+             "semantic-model has no binary action over two worlds",
+    ),
+    _law(
+        "a-generated-world-is-valid",
+        "A world the test harness makes up — generated, mutated or shrunk — satisfies the "
+        "model's invariants before anything is concluded from it",
+        _cited("Hughes 2020, §4.1: prop ArbitraryValid"),
+        falsifier="A mutated tape (flight-recorder's probe) whose replayed world violates an "
+                  "invariant, so that every property checked on it is checked on an invalid "
+                  "world.",
+        triggers=["a tape is mutated or generated rather than recorded"],
+        citations=[_hughes("prop ArbitraryValid t = valid t", "§4.1"),
+                   _hughes("Invalid test data provokes false positives. Bug #2, which causes "
+                           "invalid trees to be generated as test cases, causes many "
+                           "properties that do not use insert to fail. This is why prop "
+                           "ArbitraryValid is so important", "§5.1")],
+        owed="no-generated-world-is-checked: épure judges recorded tapes; the mutated tapes "
+             "flight-recorder produces are not yet held to the model before being judged",
+    ),
+    _law(
+        "a-change-moves-the-validator",
+        "Every change to an entity moves the stamp that stands for its version; no stamp "
+        "moves without a change",
+        _cited("RFC 9110 §8.8.1, Weak versus Strong"),
+        falsifier="A tape where an act writes an entity and the entity's version stamp "
+                  "reads the same after as before.",
+        triggers=["an action declares a validator door — a kind semantic-model does not "
+                  "yet have"],
+        citations=[(RFC_VALIDATORS, RFC9110_URL,
+                    "A \"strong validator\" is representation metadata that changes value "
+                    "whenever the representation data changes."),
+                   (RFC_VALIDATORS, RFC9110_URL,
+                    "A \"weak validator\" is representation metadata that might not change "
+                    "for every change to the representation data.")],
+        note="chores stamps `rev` on every household change — a strong validator in the "
+             "RFC's sense, and nothing yet holds it to the definition.",
+        owed="no-kind-names-a-validator",
+    ),
+    _law(
+        "a-conditional-write-compares-before-it-writes",
+        "An act conditioned on a version proceeds only if the world's version matches, and "
+        "refuses — changing nothing — otherwise",
+        _cited("RFC 9110 §13.1, Preconditions"),
+        falsifier="A tape where an act carrying a precondition (an expected version) writes "
+                  "although the entity's version had moved, or refuses although it had not.",
+        triggers=["an action declares a precondition on a validator — a kind semantic-model "
+                  "does not yet have"],
+        citations=[(RFC_CONDITIONAL, RFC9110_URL,
+                    "The \"If-Match\" header field makes the request method conditional on "
+                    "the recipient origin server either having at least one current "
+                    "representation of the target resource, when the field value is \"*\", "
+                    "or having a current representation of the target resource that has an "
+                    "entity tag matching a member of the list of entity tags provided in the "
+                    "field value."),
+                   ("IETF RFC 9110, HTTP Semantics — §15.5.13 412 Precondition Failed",
+                    RFC9110_URL,
+                    "The 412 (Precondition Failed) status code indicates that one or more "
+                    "conditions given in the request header fields evaluated to false when "
+                    "tested on the server.")],
+        owed="no-kind-names-a-validator",
+    ),
+
     _law(
         "the-effect-is-checkable",
         "Every declared effect names something the tape can show",
@@ -390,9 +648,19 @@ CONDUCT_SOLVERS = [
 # uncited law is red under a-law-cites-a-source — which is the honest state of it, carried
 # in this repo's tree as declared red, never laundered through the gate.
 
-CONDUCT_EXAMPLES = [next(l for l in CONDUCT_LAWS if l.id == "the-frame-holds")]
+_CENSUS = census()
+CONDUCT_EXAMPLES = [next(l for l in CONDUCT_LAWS if l.id == "the-frame-holds"), _CENSUS]
 
 CONDUCT_COUNTER_EXAMPLES = [
+    CounterExample(
+        rule="an-item-has-one-status",
+        because="a property the source states with no status — dropped from the count "
+                "without a word, which is exactly how a census stops being the source's",
+        node=Node(id="cx4-item", kind="item",
+                  name="toList (insert k v t) === L.insert (k, v) (deleteKey k (toList t))",
+                  payload={"source": "hughes-2020", "category": "model-based",
+                           "section": "§4.5", "law": ""}),
+    ),
     CounterExample(
         rule="a-law-cites-a-source",
         because="a behavior claim that names no authority — a hypothesis wearing a law's "
@@ -452,7 +720,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.2.1",
+    version="0.3.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -467,11 +735,18 @@ CONDUCT_PACKAGE = Package(
                 "conduct/faithful, conduct/frame and conduct/refusal hold a recorded run to "
                 "the effect, faithfulness, frame and refusal families through the doors an "
                 "action declares (semantic-model@0.5.0's `via`/`shown_by`), and "
-                "conduct/checkable holds the model to the checkability family. The other "
-                "four families are carried as named debts on their laws, not stretched. "
-                "0.2.1 changes no kind, rule or contract: the frame law — this package's "
-                "own example — gained its second sighting, the first the native itself "
-                "caught (chores, 2026-08-20), and a sighting on the example is content.",
+                "conduct/checkable holds the model to the checkability family. 0.3.0 is "
+                "the census correction: 0.1.0 called itself nine families folded from the "
+                "sources and had grounded the nine on its own length; read in full, the "
+                "sources state seventy properties, and the model-based family — the "
+                "abstraction function, which Hughes ranks first — was among those folded "
+                "into nothing. 0.3.0 adds the `census`/`item` kinds with the four statuses "
+                "(covered, weakened, owed, aside) and the rule that every item carries one; "
+                "ships the census of both sources as an example, every item mapped to a "
+                "law; adds the eleven laws the items named and no law held, each cited "
+                "verbatim from the source; and cites three laws 0.1.0 carried uncited "
+                "(refusal, undo, same-story) from the paper's own formulas. No contract "
+                "changes; the statuses say what the five natives do and do not yet hold.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

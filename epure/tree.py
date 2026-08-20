@@ -27,6 +27,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 
 def build() -> Quern:
+    from .census import census
     from .conduct import CONDUCT_LAWS
 
     lib, refs = consume(_ROOT, os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
@@ -37,7 +38,9 @@ def build() -> Quern:
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
-                           _TWO_STRETCHES_DEBT, *CONDUCT_LAWS]
+                           _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
+                           _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, census(),
+                           *CONDUCT_LAWS]
     return quern
 
 
@@ -332,7 +335,7 @@ _GATE = Node(
     kind="gate",
     name="What leaves this repo as a pinned, citable claim",
     links={"admits": ["publish-semantic-model-0-1-0", "publish-the-conduct-seam",
-                      "conduct-owns-its-natives"]},
+                      "conduct-owns-its-natives", "the-census-is-read-from-the-sources"]},
     payload={
         "note":
             "The gate this ledger deliberately did not plant while it had nothing to admit "
@@ -864,6 +867,171 @@ _TWO_STRETCHES_DEBT = Node(
                      "flights. Whoever writes one grounds the param above with the count that "
                      "then holds.",
              }),
+    ],
+)
+
+
+_CENSUS_DECISION = Node(
+    id="the-census-is-read-from-the-sources",
+    kind="decision",
+    name="The catalogue's size is the census of its sources — every property Hughes 2020 "
+         "and RFC 9110 state, each mapped to a law and given a status — never the count "
+         "of laws it happened to build",
+    links={"supersedes": ["publish-the-conduct-seam"]},
+    payload={
+        "rationale":
+            "publish-the-conduct-seam stands on its two-package reasoning and falls on its "
+            "count: `families: 9` was grounded on len(CONDUCT_LAWS), the catalogue measuring "
+            "itself. Read in full, the paper states some fifty properties in six categories "
+            "and ranks model-based ones — the abstraction function — first; 0.1.0 had "
+            "folded that family into nothing and weakened every one it kept from a value "
+            "comparison to a presence check. The census (epure.census, mounted below and "
+            "shipped as conduct@0.3.0's example) lists every item, maps each to a law, and "
+            "gives each exactly one status: covered, weakened, owed, aside. Its params are "
+            "computed over the items. The numbers the brief shows are the sources'.",
+        "consequence":
+            "Eleven laws enter, each cited verbatim from a formula the paper or the RFC "
+            "states; three laws carried uncited are cited the same way. What the five "
+            "natives do not hold is now 46 owed and 9 weakened items pointing at four "
+            "debts, each with a discharge — not a sentence.",
+    },
+    params={
+        "laws_before": Quantity(value=9, unit="law", provenance="verified", grounded=True,
+                                source="len(CONDUCT_LAWS) at conduct@0.2.1, digest cdcdd17b"),
+    },
+    children=[
+        Node(id="alt-keep-the-nine", kind="alternative",
+             name="Keep the nine families and add the missing ones as they become feasible",
+             payload={"why":
+                      "That is the filter restated as a plan. A family the source ranks "
+                      "first had no red pointing at it anywhere; the next reader would have "
+                      "trusted nine as the census because the brief said so."}),
+        Node(id="alt-one-law-per-item", kind="alternative",
+             name="One law per source property: seventy laws",
+             payload={"why":
+                      "A law is a form an act inherits by declaring an effect; an item is "
+                      "that form instantiated on insert, delete, find or union. Seventy "
+                      "laws would be the template-stamping the inheritance decision refused, "
+                      "and the census already keeps every item on the record."}),
+    ],
+)
+
+
+_PROJECTION_DEBT = Node(
+    id="the-world-is-not-yet-projected",
+    kind="debt",
+    name="No state-var says how the world shows its value, so no native can compare the "
+         "store to the model: the model-based family — Hughes's strongest — and the value "
+         "forms of effect and frame are unheld",
+    params={
+        "projected_state_vars": Quantity(
+            value=0, unit="state-var", provenance="asserted", grounded=False,
+            source="semantic-model@0.5.0 has no projection payload on state-var; the "
+                   "effect natives compare presences through doors, never values"),
+    },
+    payload={
+        "note":
+            "toList in the paper: a function from the concrete store to the abstract state. "
+            "Here the abstract side exists — the automaton's variables and updates — and "
+            "the concrete side is on the tape as reads. What is missing is the arrow: per "
+            "state-var, the read door and the expression that turns its result into the "
+            "variable's value. With it, one native holds projected == computed after every "
+            "act, and effect and frame become value laws for free. Variables that are views "
+            "(chores' pending flags, recomputed by the rhythm) will not project cheaply, "
+            "and that is the paper's own caveat: a projection that reimplements the "
+            "operation tests nothing.",
+    },
+    children=[
+        Node(id="projections-land-in-semantic-model", kind="discharge",
+             payload={
+                 "condition":
+                     "semantic-model publishes a projection payload on state-var (door + "
+                     "expr over the read's result), conduct publishes conduct/agrees holding "
+                     "projected == computed after every act, and a real model projects at "
+                     "least its stored variables with one real tape held to it. The param "
+                     "above is then grounded with the count projected.",
+             }),
+    ],
+)
+
+
+_MERGE_DEBT = Node(
+    id="no-kind-names-a-merge",
+    kind="debt",
+    name="semantic-model has no action over two worlds, so the thirteen union properties "
+         "of the paper — a bulk import, a sync, a merge — bind to nothing",
+    params={
+        "merge_kinds": Quantity(value=0, unit="kind", provenance="asserted", grounded=False,
+                                source="every action in semantic-model@0.5.0 is a transition "
+                                       "of one world by arguments; none takes a second world"),
+    },
+    payload={
+        "note":
+            "Not a gap any app of the estate has hit yet — no app imports or syncs a second "
+            "store — which is why it is a debt and not a law with a native. Listed at its "
+            "size: thirteen of the paper's seventy items.",
+    },
+    children=[
+        Node(id="a-merge-kind-arrives-with-its-first-app", kind="discharge",
+             payload={"condition":
+                      "The first app that merges two worlds (an import, a household sync, a "
+                      "backup restore) declares it, semantic-model gains the kind, and the "
+                      "left-biased/idempotent/associative laws get their native."}),
+    ],
+)
+
+
+_VALIDATOR_DEBT = Node(
+    id="no-kind-names-a-validator",
+    kind="debt",
+    name="No kind names an entity's version stamp or a precondition on it, so RFC 9110's "
+         "validator and conditional-request properties bind to nothing — although chores "
+         "already stamps `rev` on every change",
+    params={
+        "validator_kinds": Quantity(value=0, unit="kind", provenance="asserted",
+                                    grounded=False,
+                                    source="no payload in semantic-model@0.5.0 names a "
+                                           "validator door or a precondition"),
+    },
+    payload={
+        "note":
+            "Nine of the census's items. The strong-validator half is cheap once the stamp "
+            "is a door: every act with an effect must also pass through the validator door. "
+            "The conditional half needs an act to carry an expected version as an argument "
+            "and refuse on mismatch — chores has no such act yet.",
+    },
+    children=[
+        Node(id="the-stamp-becomes-a-door", kind="discharge",
+             payload={"condition":
+                      "semantic-model names a validator door on the model; conduct/stamped "
+                      "holds every effect to moving it; a conditional act exists in some app "
+                      "and conduct/conditional holds it to comparing first."}),
+    ],
+)
+
+
+_GENERATED_DEBT = Node(
+    id="no-generated-world-is-checked",
+    kind="debt",
+    name="A mutated tape is judged without first being held to the model's invariants, "
+         "so a property checked on it may be checked on an invalid world",
+    params={
+        "mutated_tapes_validated": Quantity(
+            value=0, unit="tape", provenance="asserted", grounded=False,
+            source="flight-recorder's mutate produces probes; épure judges whatever it is "
+                   "handed and nothing runs model/prove's invariants over a probe first"),
+    },
+    payload={
+        "note":
+            "Hughes: 'Invalid test data provokes false positives … This is why prop "
+            "ArbitraryValid is so important.' Two of the census's items.",
+    },
+    children=[
+        Node(id="probes-are-refined-before-they-are-judged", kind="discharge",
+             payload={"condition":
+                      "The suite refuses to report conduct verdicts on a probe tape whose "
+                      "trace does not refine — refinement re-checks every invariant at "
+                      "every step, which is ArbitraryValid for a recorded world."}),
     ],
 )
 

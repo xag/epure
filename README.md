@@ -32,6 +32,7 @@ Early. Today this repo holds its own design ledger, its boundary declaration, an
 | `model/prove` | exhaustive explicit-state checking of finite models; proofs as artifacts |
 | conduct natives | `conduct/effect`, `conduct/faithful`, `conduct/frame`, `conduct/refusal` on a tape and `conduct/checkable` on a model (`epure.behavior`) — the behavior laws of `conduct@` held against what the real system wrote and read back, through the doors (`via`, `shown_by`) an action declares in `semantic-model@0.5.0`; four of the nine families are carried as a named debt until a tape can witness them |
 | `epure.testimony` | one table per app, beside its `span()` call sites, naming what each act does to the store; the model generates its effect nodes from it and the app's tests hold every emission literal to it — so the drawing and the code cannot say two things about one act |
+| `epure.census` | every property the cited sources state (Hughes 2020, RFC 9110), each mapped to a law and given one status — covered, weakened, owed, aside — with the counts computed over the items; shipped as conduct@'s example, mounted in the ledger, and the number the brief shows |
 
 ```bash
 uv run python -m epure.check     # this repo's own design ledger. Exit 1 while any rule is red.
