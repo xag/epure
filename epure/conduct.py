@@ -19,16 +19,19 @@ Nothing is stamped per operation; templates survive only in the refuting example
 will demand. And the catalogue is OPT-IN: semantic-model does not require effects to be
 declared — adopting this catalogue is what makes the declaration a demand.
 
-Carried honestly: these laws are checkable claims, and the tape-level conformance natives that
-check them (`conduct/effect`, `conduct/frame`, ...) are the named next arrival. The sightings
-below are real and from this estate's own record — a law that has never caught anything is a
-law nobody should trust, and three of these families caught something the same week they were
-named.
+Five of the nine are now held against tapes by natives (`epure.behavior`): conduct/effect,
+conduct/faithful, conduct/frame, conduct/refusal on a recorded run, conduct/checkable on the
+model. Each law's payload names its `native`, or the `owed` reason the tape cannot witness it
+yet — four families need two stretches of one tape compared (a repeat, a do/undo pair, two
+identical pre-states, a read long after), and that is a named debt, not a check stretched until
+it answers. The sightings below are real and from this estate's own record — a law that has
+never caught anything is a law nobody should trust, and three of these families caught
+something the same week they were named.
 """
 
 from __future__ import annotations
 
-from quern import KindDef, Node, Rule
+from quern import KindDef, Node, Rule, SolverDef
 from quern.library import CounterExample, Package
 from quern.provenance import Quantity
 from quern.tree import PackageRef
@@ -48,7 +51,10 @@ def _uncited() -> Quantity:
 
 
 def _law(law_id, name, authority, *, falsifier, triggers, citations=(), sightings=(), note="",
-         meta=None):
+         meta=None, native="", owed=""):
+    """`native` names the conduct contract that holds this law against a tape; `owed` says
+    why none does yet. Exactly one of the two, always: a law is either checked or a debt."""
+    assert bool(native) != bool(owed), law_id
     kids = []
     kids.append(Node(id=f"{law_id}--falsifier", kind="falsifier", payload={"claim": falsifier}))
     for i, t in enumerate(triggers):
@@ -59,8 +65,9 @@ def _law(law_id, name, authority, *, falsifier, triggers, citations=(), sighting
     for i, (where, what) in enumerate(sightings):
         kids.append(Node(id=f"{law_id}--sighting-{i}", kind="sighting",
                          name=where, payload={"what": what}))
-    return Node(id=law_id, kind="law", name=name,
-                payload={"note": note} if note else {},
+    payload = {"note": note} if note else {}
+    payload.update({"native": native} if native else {"owed": owed})
+    return Node(id=law_id, kind="law", name=name, payload=payload,
                 params={"authority": authority}, children=kids,
                 meta=meta or {})
 
@@ -80,7 +87,7 @@ CONDUCT_VOCABULARY = [
         description="A claim about how an OPERATION behaves — what its effect promises "
         "under reading back, repetition, inversion, refusal, replay and time — that holds "
         "across domains because it binds to the generic effect kinds "
-        "(semantic-model@0.4.0's creates/mutates/deletes/touches), never to any one "
+        "(semantic-model@0.4.0's creates/mutates/deletes/touches, with doors since 0.5.0), never to any one "
         "operation. It carries an `authority` param, grounded when a reputable source has "
         "actually stated it and ungrounded when it is observation carried honestly as a "
         "debt.",
@@ -166,6 +173,7 @@ CONDUCT_LAWS = [
         citations=[(HUGHES, HUGHES_URL, HUGHES_POSTCONDITION)],
         note="The floor of every postcondition: the operation is not a no-op wearing a verb. "
              "Deletion inverts the check, which is why `deletes` is its own kind.",
+        native="conduct/effect",
     ),
     _law(
         "the-effect-matches-its-inputs",
@@ -185,6 +193,7 @@ CONDUCT_LAWS = [
         ],
         note="Presence without fidelity is half a check: an object created is actually "
              "created, consistent with its inputs — the founder's own phrasing.",
+        native="conduct/faithful",
     ),
     _law(
         "the-frame-holds",
@@ -203,6 +212,7 @@ CONDUCT_LAWS = [
         ],
         note="Inside a proved model the frame holds by construction — updates name every "
              "moving var. The law exists for tapes, where the real system writes.",
+        native="conduct/frame",
     ),
 
     # --- what shape the effect has under algebra ----------------------------------
@@ -221,6 +231,9 @@ CONDUCT_LAWS = [
         note="Not every action is idempotent and the model already says which: a guard that "
              "refuses its own post-state (the turnstile's insert-coin when unlocked) exits "
              "the family; a guard that re-admits enters it.",
+        owed="needs two consecutive acts with the same kind and data, the automaton's "
+             "verdict that the guard re-admits, and the world read back after each — a "
+             "comparison of two stretches, which no tape in the estate yet stages",
     ),
     _law(
         "refusal-changes-nothing",
@@ -236,6 +249,7 @@ CONDUCT_LAWS = [
               "carried uncited on purpose: atomicity literature states it for transactions "
               "only, and no source has been found for the general form. Source it or keep "
               "carrying it red."},
+        native="conduct/refusal",
     ),
     _law(
         "undo-restores",
@@ -250,6 +264,9 @@ CONDUCT_LAWS = [
         meta={"expected:a-law-cites-a-source":
               "Hughes gestures at do-undo under metamorphic properties but never states "
               "this form; carried red until somebody finds it stated."},
+        owed="needs the world read back before the create and after the delete, compared "
+             "whole — conduct/effect holds the delete's own half (the entity is gone); "
+             "the residue and the bystanders want a snapshot comparison no door declares",
     ),
     _law(
         "same-state-same-story",
@@ -264,6 +281,10 @@ CONDUCT_LAWS = [
         meta={"expected:a-law-cites-a-source":
               "the replay premise the estate already lives by; no authority found stating "
               "it as a law over operations. Source it or keep carrying it red."},
+        owed="needs two stretches with identical abstract state and data, and a notion of "
+             "which differences in what was written are declared nondeterminism (a `now`, "
+             "a `rand`, an id drawn) — the flight-recorder's replay answers this per tape; "
+             "the cross-stretch form is not yet a native",
     ),
     _law(
         "shown-once-shown-until-touched",
@@ -285,6 +306,10 @@ CONDUCT_LAWS = [
         meta={"expected:a-law-cites-a-source":
               "ACID durability is stated for transactions only; the general "
               "observable-effect form is unsourced. Source it or keep carrying it red."},
+        owed="conduct/effect stops at the first read that shows the effect; this law wants "
+             "every later read through the same door, until an act declaring the entity "
+             "intervenes — the horizon is computable now that positions travel, and the "
+             "check is the next native to write, not a stretch of this one",
     ),
     _law(
         "the-effect-is-checkable",
@@ -300,7 +325,50 @@ CONDUCT_LAWS = [
         meta={"expected:a-law-cites-a-source":
               "Popper states falsifiability in general; nobody found states it for effect "
               "declarations. Source it or keep carrying it red."},
+        native="conduct/checkable",
     ),
+]
+
+
+# --- the contracts: the laws as natives a rule can reach ------------------------------
+#
+# Descriptors only (native=True, no blob), the geometry pattern: the implementations are
+# host code in `epure.behavior`, their demonstrations registered beside them, and the
+# publish gate refuses this package in any process that cannot see them satisfied. The
+# names are conduct's — a law family's check belongs to the catalogue that states the
+# family, so that adopting conduct@ is what makes the check a demand; semantic-model@0.5.0
+# carries only the declaration vocabulary (the doors) the checks read.
+
+CONDUCT_SOLVERS = [
+    SolverDef(
+        name="conduct/effect", native=True,
+        description="(path, rel): count the declared effects under `path` the world failed "
+        "to show — a creates/mutates whose `via` write is absent from the act or whose "
+        "`shown_by` read after it (before the entity's next act) does not return what the "
+        "write carried; a deletes whose `shown_by` read after it still does. A read that "
+        "never comes is a note, not a count.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/faithful", native=True,
+        description="(path, rel): count the effects under `path` whose `via` write does not "
+        "carry every input the effect's `from` names, as the span testified them.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/frame", native=True,
+        description="(path, rel): count the writes under `path` through a door the model "
+        "knows (any `via` it declares) that the act's own `touches.via` and effects' `via` "
+        "do not admit. Acts whose actions declare no `touches` are outside the law.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/refusal", native=True,
+        description="(path, rel): count the outermost spans under `path` that ended in error "
+        "having written through a door the model knows.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/checkable", native=True,
+        description="(path): on the model at `path`, count the declarations no tape could "
+        "witness — an effect naming no state-var, no `via`, or no `shown_by`; a `touches` "
+        "naming an unknown state-var."),
 ]
 
 
@@ -375,30 +443,34 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.1.0",
+    version="0.2.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
                 "(replay, persistence, witnessability). Nine families, a census folded from "
                 "Hughes's five approaches to writing properties onto what a tape can "
-                "witness. Laws bind by INHERITANCE to semantic-model@0.4.0's generic effect "
+                "witness. Laws bind by INHERITANCE to semantic-model's generic effect "
                 "kinds — an action declares `creates` and every creates-law arrives; nothing "
                 "is stamped per operation. Each law carries the tape that would convict it, "
                 "the declaration that switches it on, and the source that authorises it; an "
                 "uncited law is an ungrounded param the ledger's own gate refuses to let "
-                "travel as settled. The tape-level conformance natives that hold these "
-                "against executions are the named next arrival — this version ships the "
-                "shape and its gates.",
+                "travel as settled. 0.2.0 delivers the natives 0.1.0 named: conduct/effect, "
+                "conduct/faithful, conduct/frame and conduct/refusal hold a recorded run to "
+                "the effect, faithfulness, frame and refusal families through the doors an "
+                "action declares (semantic-model@0.5.0's `via`/`shown_by`), and "
+                "conduct/checkable holds the model to the checkability family. The other "
+                "four families are carried as named debts on their laws, not stretched.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
-        # carry; semantic-model@0.4.0 for the effect kinds the triggers bind to — the
+        # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.4.0"),
+        PackageRef(name="semantic-model", version="0.5.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,
+    solvers=CONDUCT_SOLVERS,
     examples=CONDUCT_EXAMPLES,
     counter_examples=CONDUCT_COUNTER_EXAMPLES,
 )

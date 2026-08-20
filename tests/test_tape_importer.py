@@ -129,3 +129,24 @@ def test_a_hand_written_rule_reads_a_verdict_off_the_imported_tape():
     assert verdict["corpus-loads-before-registering"]
     assert verdict["a-failure-is-reported-after-it-fails"]
     assert not verdict["registering-precedes-loading"]
+
+
+def test_positions_travel_with_every_event_and_span():
+    """Each raw event knows its index in the call's stream; each span its begin and end
+    marks; the scenario's parked events likewise — so "after" is computable downstream."""
+    scenario = import_scenario(_FIXTURE).children[0]
+    (enrol,) = scenario.children
+    assert enrol.payload["at"] < enrol.payload["to"]
+    assert len(scenario.payload["pos"]) == len(scenario.payload["events"])
+
+    def check(node):
+        assert len(node.payload["pos"]) == len(node.payload["events"])
+        for c in node.children:
+            assert node.payload["at"] < c.payload["at"]
+            if node.payload["to"] is not None and c.payload["to"] is not None:
+                assert c.payload["to"] < node.payload["to"]
+            for pos in c.payload["pos"]:
+                assert c.payload["at"] < pos < (c.payload["to"] or float("inf"))
+            check(c)
+
+    check(enrol)

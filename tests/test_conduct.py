@@ -23,6 +23,10 @@ _ROOT = Path(__file__).resolve().parents[1]
 UNSOURCED = {"refusal-changes-nothing", "undo-restores", "same-state-same-story",
              "shown-once-shown-until-touched", "the-effect-is-checkable"}
 
+# The families no native holds yet — the ledger's `families_owed` param, computed here.
+OWED = {"twice-is-once", "undo-restores", "same-state-same-story",
+        "shown-once-shown-until-touched"}
+
 
 def test_the_pin_is_this_content():
     refs = {r.name: r for r in read_lock(_ROOT / "quern.lock")}
@@ -38,6 +42,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     # checkout exists, and from the repo's own committed cache otherwise — CI has no
     # registry, by decision (see test.yml). semantic-model's native contracts must be
     # in-process for its own re-validation beneath this one.
+    import epure.behavior  # noqa: F401
     import epure.conformance  # noqa: F401
     import epure.prove  # noqa: F401
     registry = Path(os.environ.get("QUERN_REGISTRY", _ROOT.parent / "quern-registry"))
@@ -45,6 +50,22 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     log = validate_package(CONDUCT_PACKAGE, tmp_path, source)
     assert any("3 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
+    held = [line for line in log if line.startswith("contract 'conduct/")]
+    assert len(held) == 5, log
+
+
+def test_every_law_is_checked_or_owed_and_the_owed_are_these():
+    """A law names the native that holds it or says why none does — never both, never
+    neither — and the natives named are contracts the package declares."""
+    declared = {s.name for s in CONDUCT_PACKAGE.solvers}
+    for law in CONDUCT_LAWS:
+        native, owed = law.payload.get("native"), law.payload.get("owed")
+        assert bool(native) != bool(owed), law.id
+        if native:
+            assert native in declared, f"{law.id} names {native}, which is not declared"
+    assert {law.id for law in CONDUCT_LAWS if law.payload.get("owed")} == OWED
+    assert {law.payload["native"] for law in CONDUCT_LAWS if law.payload.get("native")} \
+        == declared
 
 
 def test_every_rule_carries_a_counter_example():

@@ -160,3 +160,159 @@ SEMANTIC_MODEL_SPEC = {
     "model/total": TOTAL,
     "model/refines": REFINES,
 }
+
+
+# =========================================================================================
+# The conduct contracts (conduct@0.2.0, natives in `epure.behavior`): what each behavior
+# law answers, on the cloakroom — the published model that declares doors. The recorded
+# runs below are built THROUGH the importer (`epure.tape._scenario`) from literal call
+# records, so the positions the checks reason about are the ones a real tape would carry,
+# not ones a spec hand-typed to suit itself. Each family's refuting tape fails that family
+# alone: the lawful tape is green under all four tape-level checks, and every red tape
+# differs from it by exactly the one thing its law forbids.
+# =========================================================================================
+
+
+def cloakroom() -> Node:
+    return EXAMPLES[1].model_copy(deep=True)
+
+
+def _sem(name: str, phase: str, sid: int, data: dict | None = None,
+         outcome: str | None = None) -> dict[str, Any]:
+    ev: dict[str, Any] = {"k": "sem", "name": name, "phase": phase, "sid": sid}
+    if data is not None:
+        ev["data"] = data
+    if outcome is not None:
+        ev["outcome"] = outcome
+    return ev
+
+
+def _write(coat: str) -> dict[str, Any]:
+    return {"k": "fx", "fn": "hook.write", "args": [{"coat": coat}], "kwargs": {},
+            "res": None}
+
+
+def _read(res: Any) -> dict[str, Any]:
+    return {"k": "fx", "fn": "hook.read", "args": [], "kwargs": {}, "res": res}
+
+
+_REMOVE: dict[str, Any] = {"k": "fx", "fn": "hook.delete", "args": ["hook"], "kwargs": {},
+                           "res": None}
+
+
+def _act(name: str, data: dict, *events: dict, outcome: str = "ok") -> list[dict]:
+    """One span with its enclosed raw events, as the tape would carry them."""
+    return [_sem(name, "begin", 1, data), *events, _sem(name, "end", 1, outcome=outcome)]
+
+
+def visit(*calls: list[dict]) -> Node:
+    """A recorded visit to the cloakroom: each call a list of tape events, in order."""
+    from .tape import _scenario
+
+    return Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
+        _scenario({"seq": i + 1, "fn": "cloakroom", "kwargs": {}, "events": events})
+        for i, events in enumerate(calls)])
+
+
+RED = {"coat": "red"}
+
+SHOWN = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})])
+LOST = visit([*_act("deposit", RED, _write("red")), _read(None)])
+NOOP = visit([*_act("deposit", RED), _read({"coat": "red"})])
+UNREAD = visit([*_act("deposit", RED, _write("red"))])
+SWAPPED = visit([*_act("deposit", RED, _write("blue")), _read({"coat": "blue"})])
+RECLAIMED = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+                  [*_act("reclaim", {}, _REMOVE), _read(None)])
+RESIDUE = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+                [*_act("reclaim", {}, _REMOVE), _read({"coat": "red"})])
+OVERREACH = visit([*_act("deposit", RED, _write("red")), _read({"coat": "red"})],
+                  [*_act("reclaim", {}, _REMOVE, _write("blue")), _read(None)])
+HALF_DONE = visit([*_act("deposit", RED, _write("red"), outcome="error"), _read(None)])
+REFUSED_CLEAN = visit([*_act("deposit", RED, outcome="error"), _read(None)])
+
+
+def c(contract: str, nodes: list[Node], args: list, because: str, **expect):
+    return Demonstration(contract=f"conduct/{contract}", nodes=nodes, args=args,
+                         because=because, **expect)
+
+
+def visited(tape: Node) -> list[Node]:
+    return [cloakroom(), tape]
+
+
+EFFECT = [
+    c("effect", visited(SHOWN), ["visit", "model"], expect=0,
+      because="the deposit wrote the coat and the hook reads it back afterwards — the "
+              "postcondition's floor, held on the tape rather than in the automaton"),
+    c("effect", visited(LOST), ["visit", "model"], expect=1,
+      because="the deposit wrote and the read after it returns nothing: the act refined "
+              "perfectly and the world lost the write — the failure no model check can see"),
+    c("effect", visited(NOOP), ["visit", "model"], expect=1,
+      because="a deposit span with no hook.write under it: a verb with nothing beneath it. "
+              "Licensing convicts it too; this convicts it as an effect that never "
+              "materialized, which is a different sentence"),
+    c("effect", visited(UNREAD), ["visit", "model"], expect=0,
+      because="written and never read back: not shown, and not convicted — a law is refuted "
+              "by a read that disagrees, and silence is reported as a note, never as a pass "
+              "dressed up or a violation invented"),
+    c("effect", visited(RECLAIMED), ["visit", "model"], expect=0,
+      because="deposit, read, reclaim, read nothing: the delete's inverted check holds"),
+    c("effect", visited(RESIDUE), ["visit", "model"], expect=1,
+      because="after the reclaim the hook still reads the red coat the deposit wrote — the "
+              "removal did not remove, the inverted postcondition's one failure"),
+    c("effect", [cloakroom(), Node(id="visit", kind="session")], ["visit", "model"],
+      expect_error="links 'model' to 0",
+      because="a tape naming no model is unjudged, never green"),
+]
+
+FAITHFUL = [
+    c("faithful", visited(SHOWN), ["visit", "model"], expect=0,
+      because="the span testifies coat=red and the write carried red"),
+    c("faithful", visited(SWAPPED), ["visit", "model"], expect=1,
+      because="the span testifies coat=red and the write carried blue: made from one value, "
+              "written as another — the read after it shows blue, so conduct/effect stays "
+              "green and only this law sees it"),
+    c("faithful", visited(LOST), ["visit", "model"], expect=0,
+      because="faithfulness is about the write and its inputs; that the world later lost "
+              "it is conduct/effect's finding, not this one's"),
+]
+
+FRAME = [
+    c("frame", visited(RECLAIMED), ["visit", "model"], expect=0,
+      because="each act passes only through the doors it declared"),
+    c("frame", visited(OVERREACH), ["visit", "model"], expect=1,
+      because="the reclaim also wrote the hook: a door the model knows, outside the act's "
+              "declared boundary — something moved that the act never claimed to touch"),
+    c("frame", visited(NOOP), ["visit", "model"], expect=0,
+      because="an act that wrote nothing at all moved nothing outside its frame, whatever "
+              "else is wrong with it"),
+]
+
+REFUSAL = [
+    c("refusal", visited(REFUSED_CLEAN), ["visit", "model"], expect=0,
+      because="a deposit that failed and wrote nothing: the refusal changed nothing"),
+    c("refusal", visited(HALF_DONE), ["visit", "model"], expect=1,
+      because="a deposit that failed AFTER writing the hook: the error path half-did the "
+              "thing, which is the least-tested path and the most likely to"),
+    c("refusal", visited(SHOWN), ["visit", "model"], expect=0,
+      because="an act that succeeded is not a refusal; its writes are the effect law's"),
+]
+
+CHECKABLE = [
+    c("checkable", [cloakroom()], ["cloakroom"], expect=0,
+      because="every effect of the cloakroom names a state-var and both doors"),
+    c("checkable", [turnstile()], ["turnstile"], expect=2,
+      because="the turnstile's two mutates name no doors: a hardware model with no store "
+              "to read back from, and the other laws silently skip exactly what this one "
+              "counts"),
+    c("checkable", visited(SHOWN), ["visit"], expect_error="not a model",
+      because="pointed at a tape it refuses: declarations live on the model"),
+]
+
+CONDUCT_SPEC = {
+    "conduct/effect": EFFECT,
+    "conduct/faithful": FAITHFUL,
+    "conduct/frame": FRAME,
+    "conduct/refusal": REFUSAL,
+    "conduct/checkable": CHECKABLE,
+}

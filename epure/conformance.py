@@ -61,6 +61,9 @@ class Conformance(BaseModel):
     check: str
     violations: int
     diagnostics: list[str] = Field(default_factory=list)
+    #: What the check could not decide and says so: a conduct law whose witnessing read
+    #: never came. Not violations — a green resting on silence, made visible as such.
+    notes: list[str] = Field(default_factory=list)
 
 
 # --- the convention: one slice, one model ---------------------------------------------

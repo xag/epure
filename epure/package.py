@@ -1,4 +1,4 @@
-"""semantic-model@0.2.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.5.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -144,37 +144,55 @@ VOCABULARY = [
     KindDef(
         kind="creates",
         description="An action's declared effect: something comes into being. Payload: "
-        "`entity` (what, in the model's own words — usually a state-var or event the "
-        "world can show) and `from` ([arg names] — the inputs that determine it, the "
-        "faithfulness laws' subject). A child of `action`, and the seam the conduct "
-        "laws bind to: the law is written ONCE against this kind, and every action "
-        "that declares the effect inherits it — inheritance over template-stamping, "
-        "the same way ledger@'s gate law binds every domain's gates. Carried "
-        "honestly: the tape-level checks (did it, does it match, did nothing else "
-        "move) are conformance natives still owed; what this kind settles today is "
-        "that the declaration EXISTS as data, which is what any generator needs.",
+        "`entity` (what, in the model's own words — a state-var of the model), `from` "
+        "([arg names] — the inputs that determine it, the faithfulness law's subject), "
+        "and, since 0.5.0, the two DOORS that bind the abstract entity to what a tape "
+        "can show: `via` (the write that materializes it, inside the act) and "
+        "`shown_by` (the read through which the world shows it back, after the act). "
+        "A door is a fnmatch pattern over a raw event's name (fn / op / k), or "
+        "{\"event\": pattern, \"where\": {arg: pattern}} to narrow it by an argument "
+        "— `where` keys name a kwarg, or a positional index as a string; either form "
+        "may be given as a list. A child of `action`, and the seam the conduct laws "
+        "bind to: the law is written ONCE against this kind, and every action that "
+        "declares the effect inherits it — inheritance over template-stamping, the "
+        "same way ledger@'s gate law binds every domain's gates. The doors are what "
+        "make the laws checkable on a tape: `conduct/effect` holds that what the "
+        "`via` write carried shows back through `shown_by` afterwards, and an effect "
+        "declaring no doors is one no tape can witness, which `conduct/checkable` "
+        "counts. Door patterns name an act, never its argument, unless `where` says "
+        "so — the same cut a license makes.",
     ),
     KindDef(
         kind="mutates",
         description="An action's declared effect: something existing changes. Payload: "
-        "`entity` and `from` ([arg names]), exactly as `creates` — a separate kind "
-        "rather than a mode flag because rules bind by kind and the grammar reads no "
-        "payload (the assay lesson, applied in advance).",
+        "`entity`, `from` ([arg names]), `via` and `shown_by`, exactly as `creates` — a "
+        "separate kind rather than a mode flag because rules bind by kind and the "
+        "grammar reads no payload (the assay lesson, applied in advance).",
     ),
     KindDef(
         kind="deletes",
-        description="An action's declared effect: something ceases. Payload: `entity`. "
-        "The effect law's shape inverts here — after the action, the entity must NOT "
-        "be shown — which is why deletion is its own kind and not a mutation.",
+        description="An action's declared effect: something ceases. Payload: `entity`, "
+        "`via` (the removing write, inside the act) and `shown_by` (the read that would "
+        "show the entity if it were still there). The effect law's shape inverts here "
+        "— after the action, the entity must NOT be shown: a `shown_by` read after the "
+        "act that still returns what a prior `creates`/`mutates` of the same entity "
+        "wrote, or that still names what the `via` write named, convicts — which is "
+        "why deletion is its own kind and not a mutation.",
     ),
     KindDef(
         kind="touches",
         description="An action's declared write boundary: the state it may change. "
-        "Payload: `only` ([state-var names]). The frame laws' subject — «a value must "
-        "be the same if it wasn't changed» needs to know what counts as changed, and "
-        "this is that declaration. Inside a proved model the frame holds by "
-        "construction (updates name every moving var); this kind exists so the SAME "
-        "claim can be held against tapes, where the real system writes.",
+        "Payload: `only` ([state-var names]) and, since 0.5.0, `via` ([doors] — the "
+        "writes this act may make, in the tape's own names; same door shape as an "
+        "effect's). The frame law's subject — «a value must be the same if it wasn't "
+        "changed» needs to know what counts as changed, and this is that declaration. "
+        "Inside a proved model the frame holds by construction (updates name every "
+        "moving var); `only` exists so the SAME claim can be held against tapes, and "
+        "`via` is how: `conduct/frame` takes every door any effect in the model "
+        "declares as the model's known writes, and convicts an act that passes through "
+        "one its own `touches.via` (and its effects' `via`) does not admit. A write "
+        "door the model never declares is invisible to the frame — totality's catch, "
+        "not this one's. `via: []` is a real statement: this act writes nothing.",
     ),
     KindDef(
         kind="invariant",
@@ -314,7 +332,7 @@ EXAMPLES = [
             Node(id="held", kind="state-var",
                  payload={"type": "int", "domain": {"min": 0, "max": 1}, "init": 0}),
             Node(id="deposit", kind="event-kind",
-                 payload={"args": {}},
+                 payload={"args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
                      Node(id="deposit-license", kind="license",
                           payload={"expr": "len(evidence('hook.write')) >= 1",
@@ -332,16 +350,19 @@ EXAMPLES = [
             Node(id="check-coat", kind="action",
                  payload={"guard": "held == 0",
                           "updates": [{"var": "held", "expr": "1"}],
-                          "args": {}},
+                          "args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
                      Node(id="check-coat-witness", kind="observation",
                           payload={"event": "deposit"}),
                      Node(id="check-coat-creates", kind="creates",
-                          payload={"entity": "held", "from": []},
+                          payload={"entity": "held", "from": ["coat"],
+                                   "via": "hook.write", "shown_by": "hook.read"},
                           name="the ticket comes into being: after this action, "
-                               "the world must show it, and show it as deposited"),
+                               "the world must show it, and show it as deposited — "
+                               "the hook.write carried the coat, and a hook.read "
+                               "afterwards returns what it carried"),
                      Node(id="check-coat-touches", kind="touches",
-                          payload={"only": ["held"]}),
+                          payload={"only": ["held"], "via": ["hook.write"]}),
                  ]),
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -351,12 +372,13 @@ EXAMPLES = [
                      Node(id="reclaim-coat-witness", kind="observation",
                           payload={"event": "reclaim"}),
                      Node(id="reclaim-coat-deletes", kind="deletes",
-                          payload={"entity": "held"},
+                          payload={"entity": "held",
+                                   "via": "hook.delete", "shown_by": "hook.read"},
                           name="the ticket ceases: after this action, the world "
                                "must NOT show it — the effect law inverted, which "
                                "is why deletion is its own kind"),
                      Node(id="reclaim-coat-touches", kind="touches",
-                          payload={"only": ["held"]}),
+                          payload={"only": ["held"], "via": ["hook.delete"]}),
                  ]),
             Node(id="never-two-coats", kind="invariant",
                  payload={"expr": "held <= 1",
@@ -436,7 +458,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.4.0",
+    version="0.5.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -459,10 +481,19 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "effect kind and every action that declares the effect inherits it, "
                 "inheritance over template-stamping. No new rules: whether a model MUST "
                 "declare effects is the conduct catalogue's demand, opt-in, not this "
-                "vocabulary's. Declaration only in 0.4.0 — the tape-level conduct natives "
-                "(did it, does it match its inputs, did nothing else move) are the named "
-                "next arrival. The cloakroom example instantiates creates and deletes; "
-                "the turnstile, mutates and touches.",
+                "vocabulary's. 0.5.0 pays 0.4.0's named debt: an effect declaration now "
+                "carries its DOORS — `via`, the write that materializes it inside the "
+                "act, and `shown_by`, the read through which the world shows it back — "
+                "and `touches` carries `via`, the writes the act may make. A door is a "
+                "name pattern over raw events, optionally narrowed by an argument, the "
+                "same cut a license makes; it is what binds the model's abstract entity "
+                "to what a tape can show, so the conduct natives (conduct@0.2.0) can "
+                "hold the laws against executions. No new rules, still opt-in. The "
+                "cloakroom example instantiates creates and deletes with doors and takes "
+                "a `coat` argument so faithfulness has an input to check; the turnstile "
+                "keeps mutates and touches WITHOUT doors — a hardware model with no "
+                "store to read back from, which is exactly what conduct/checkable "
+                "reports it as.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

@@ -18,6 +18,16 @@ licensing, totality, refinement, and whatever a domain writes with the trace ver
 asked with `run_rules` over the tree, never by bespoke tape-walking code in a consumer. It
 is a pure function of the tape bytes: no clock, no writes, no interpretation. It carries
 names and payloads across and judges nothing — the judging is a rule's, later.
+
+POSITIONS TRAVEL. The span tree separates a node's own raw events from its children's, which
+is what makes it readable — and it is what lost the interleaving: a point's place among its
+parent's raw events did not survive import, so no check could say "after". The conduct
+natives (`epure.behavior`) need exactly that — an effect is shown by a read that comes AFTER
+the act — so every span now carries `at`/`to` (the stream index of its begin and end marks)
+and every event list a parallel `pos` (each event's index in the call's stream). The lists
+are unchanged; the indexes ride beside them, so nothing that read a tape before reads it
+differently now. This is the first half of the `license-direction-is-blind` discharge in
+the ledger; the other half (a direction on `evidence()`) waits for the license that needs it.
 """
 
 from __future__ import annotations
@@ -54,25 +64,57 @@ def import_scenario(source: str | Path | Recording | CallHandle) -> Node:
     everywhere, so the trace verbs' notion of "before" coincides with emission order.
     """
     if isinstance(source, CallHandle):
-        return _scenario(source.record, source.spans())
+        return _scenario(source.record)
     if isinstance(source, Recording):
-        calls, trees = source.calls, source.spans()
+        calls = source.calls
     else:
         calls = [ln for ln in read_tape(source) if ln.get("ev") == "call"]
-        trees = Recording({}, calls).spans()
     return Node(id="session", kind="session",
-                children=[_scenario(rec, tree) for rec, tree in zip(calls, trees)])
+                children=[_scenario(rec) for rec in calls])
 
 
-def _scenario(record: dict[str, Any], tree: dict[str, Any]) -> Node:
+def _skeleton(record: dict[str, Any]) -> dict[str, Any]:
+    """The call's span tree, derived from order exactly as flight-recorder's own
+    `_span_tree` derives it (the round-trip is tested), plus what that tree drops: each
+    node's `at`/`to` and each event's `pos` in the call's stream. Forgiving about a
+    malformed tape for the same reason it is — an `end` with nothing open is ignored, an
+    unclosed span stays open with `outcome: None`."""
+    root: dict[str, Any] = {"name": record.get("fn"), "data": record.get("kwargs") or {},
+                            "outcome": "error" if record.get("error") else "ok",
+                            "children": [], "events": [], "pos": [], "at": -1, "to": None}
+    stack = [root]
+    for i, ev in enumerate(record.get("events") or []):
+        if ev.get("k") != "sem":
+            stack[-1]["events"].append(ev)
+            stack[-1]["pos"].append(i)
+            continue
+        phase = ev.get("phase")
+        node = {"name": ev.get("name"), "data": ev.get("data") or {}, "outcome": None,
+                "children": [], "events": [], "pos": [], "at": i, "to": i}
+        if phase == "point":
+            stack[-1]["children"].append(node)
+        elif phase == "begin":
+            node["to"] = None
+            stack[-1]["children"].append(node)
+            stack.append(node)
+        elif phase == "end" and len(stack) > 1:
+            done = stack.pop()
+            done["outcome"] = ev.get("outcome")
+            done["to"] = i
+    root["to"] = len(record.get("events") or [])
+    return root
+
+
+def _scenario(record: dict[str, Any]) -> Node:
     """One call: a `scenario` node named for its `fn`, over the span tree of its `sem` events.
     Raw events enclosed by no span land in `payload["events"]`, the totality check's tally."""
+    tree = _skeleton(record)
     return Node(
         id=f"call{record.get('seq')}",
         kind="scenario",
         name=record.get("fn") or "",
         payload={"seq": record.get("seq"), "ts": record.get("ts"),
-                 "ms": record.get("ms"), "events": tree["events"]},
+                 "ms": record.get("ms"), "events": tree["events"], "pos": tree["pos"]},
         children=[_span(child, i) for i, child in enumerate(tree["children"])],
     )
 
@@ -80,11 +122,14 @@ def _scenario(record: dict[str, Any], tree: dict[str, Any]) -> Node:
 def _span(node: dict[str, Any], i: int) -> Node:
     """A span or point of the flight-recorder span tree as a node: its `name` is the kind
     (the semantic alphabet is the node vocabulary), its data/outcome/events the payload, its
-    nested spans and points the children — all in document order."""
+    nested spans and points the children — all in document order. `at`/`to` are the stream
+    indexes of its begin and end marks (a point: both its own; an unclosed span: `to` None);
+    `pos` is the index of each of its own events."""
     return Node(
         id=f"s{i}",
         kind=node["name"],
         payload={"data": node["data"], "outcome": node["outcome"],
-                 "events": node["events"]},
+                 "events": node["events"], "pos": node["pos"],
+                 "at": node["at"], "to": node["to"]},
         children=[_span(child, j) for j, child in enumerate(node["children"])],
     )

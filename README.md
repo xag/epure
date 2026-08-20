@@ -30,6 +30,7 @@ Early. Today this repo holds its own design ledger, its boundary declaration, an
 | tape importer | a semantic tape becomes a tree the rule language can ask questions of |
 | conformance natives | `model/licensed`, `model/total`, `model/refines` — counts, `== 0` in an ordinary rule |
 | `model/prove` | exhaustive explicit-state checking of finite models; proofs as artifacts |
+| conduct natives | `conduct/effect`, `conduct/faithful`, `conduct/frame`, `conduct/refusal` on a tape and `conduct/checkable` on a model (`epure.behavior`) — the behavior laws of `conduct@` held against what the real system wrote and read back, through the doors (`via`, `shown_by`) an action declares in `semantic-model@0.5.0`; four of the nine families are carried as a named debt until a tape can witness them |
 
 ```bash
 uv run python -m epure.check     # this repo's own design ledger. Exit 1 while any rule is red.

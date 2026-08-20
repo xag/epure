@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 
 import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's own gate rules
+import epure.behavior  # noqa: F401 -- conduct@'s contracts need their natives in-process
 import epure.conformance  # noqa: F401 -- consume() re-gates the synced closure, and
 import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
 from quern import Quern, Node
@@ -35,7 +36,8 @@ def build() -> Quern:
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
-                           _INHERITANCE, _CONDUCT_PUBLISH, *CONDUCT_LAWS]
+                           _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
+                           _TWO_STRETCHES_DEBT, *CONDUCT_LAWS]
     return quern
 
 
@@ -329,7 +331,8 @@ _GATE = Node(
     id="publication",
     kind="gate",
     name="What leaves this repo as a pinned, citable claim",
-    links={"admits": ["publish-semantic-model-0-1-0", "publish-the-conduct-seam"]},
+    links={"admits": ["publish-semantic-model-0-1-0", "publish-the-conduct-seam",
+                      "conduct-owns-its-natives"]},
     payload={
         "note":
             "The gate this ledger deliberately did not plant while it had nothing to admit "
@@ -714,6 +717,153 @@ _CONDUCT_PUBLISH = Node(
                       "the model vocabulary, and every consumer of the kinds would repin "
                       "for a change that touches no kind. One package, one subject — the "
                       "same call the ledger already records for semantic-model itself."}),
+    ],
+)
+
+
+_DOORS = Node(
+    id="an-effect-binds-to-the-tape-through-doors",
+    kind="decision",
+    name="An effect declaration binds its abstract entity to the tape through two DOORS — "
+         "`via`, the write that materializes it, and `shown_by`, the read that shows it back "
+         "— each a name pattern over raw events, optionally narrowed by an argument",
+    payload={
+        "rationale":
+            "The laws speak in the model's words (an entity is a state-var) and the tape "
+            "speaks in the app's (a path, a field, a document). Something has to say how one "
+            "is the other, and the cheapest honest thing is the cut a license already makes: "
+            "name the act. `via` names the write inside the act; `shown_by` names the read "
+            "after it; `touches.via` names every write the act may make. What the write "
+            "carried (its container arguments) must then appear, as a structural subset, in "
+            "what the read returned — Hughes's postcondition read literally, with no "
+            "app-specific navigation in the checker. The same door shape narrows by argument "
+            "(`where`) where a name alone would admit too much, which is exactly the cut "
+            "chores' licenses asked for and could not get.",
+        "consequence":
+            "The natives are generic and the binding is per action, as declarations — "
+            "templates stay out of the laws. A door is a claim the model makes about the "
+            "app's I/O surface and it can be wrong the way a license can be wrong: a door "
+            "naming an event the app never emits convicts every act that declares it, which "
+            "is the failure mode that surfaces instead of hiding. And a model with no store "
+            "(the turnstile) declares no doors and is counted by conduct/checkable as "
+            "unwitnessable rather than silently passing.",
+    },
+    children=[
+        Node(id="alt-abstraction-function", kind="alternative",
+             name="Declare per state-var how its value is read off the store (a refinement "
+                  "mapping), then compare abstract pre/post states against reads",
+             payload={"why":
+                      "The right thing in a textbook and the wrong first thing here: it "
+                      "needs an expression language that reaches into event payloads, "
+                      "which the rule grammar deliberately does not have, and it would make "
+                      "every model author write a projection for every variable before any "
+                      "law could fire. The door asks for one name per effect. The mapping "
+                      "can arrive later, behind the same contracts, if a law needs a value "
+                      "rather than a presence."}),
+        Node(id="alt-match-the-entity-name", kind="alternative",
+             name="Search raw events for the entity's name",
+             payload={"why":
+                      "The entity is `held` and the tape says `hook`; the entity is "
+                      "`wash_pending` and the tape says `done.c_wfNc7Q`. Text matching "
+                      "would bind by accident and miss by design."}),
+        Node(id="alt-witness-expr", kind="alternative",
+             name="A `shown` expr per effect, evaluated like a license",
+             payload={"why":
+                      "A license answers 'is there evidence'; the effect law asks 'does the "
+                      "read agree with the write', which is a relation between two events, "
+                      "and the grammar counts events, it does not compare their payloads. "
+                      "The comparison lives in the native, once, and the declaration names "
+                      "the two events it relates."}),
+    ],
+)
+
+
+_CONDUCT_NATIVES = Node(
+    id="conduct-owns-its-natives",
+    kind="decision",
+    name="The conduct contracts (conduct/effect, faithful, frame, refusal, checkable) are "
+         "declared by conduct@0.2.0; the door vocabulary they read is semantic-model@0.5.0's",
+    payload={
+        "rationale":
+            "A law family's check belongs to the catalogue that states the family: the "
+            "native IS the law held against a tape, so adopting conduct@ is what makes the "
+            "check a demand, and a model that declares effects without adopting the "
+            "catalogue owes nothing — the opt-in the seam decision promised. semantic-model "
+            "changes too, because the declaration has to say where on the tape to look, and "
+            "that is vocabulary; but it gains no contract and no rule, and its 0.5.0 is a "
+            "payload addition every existing model accepts unchanged.",
+        "consequence":
+            "Two publishes, two clocks, as the seam decision drew them: a sharper check "
+            "republishes conduct; a richer door shape republishes semantic-model. The natives "
+            "live in epure.behavior, imported explicitly — a third door beside epure.prove and "
+            "epure.conformance — so a process that wants only the model checks pays nothing "
+            "for the laws.",
+    },
+    params={
+        "natives": Quantity(
+            value=5, unit="contract", provenance="verified", grounded=True,
+            source="conduct@0.2.0 SOLVERS; 19 demonstrations registered beside the "
+                   "implementation hold at publish (digest b51ebee9ef51), each family's "
+                   "refuting tape red under its own native and green under the other three "
+                   "(tests/test_behavior.py)"),
+        "families_owed": Quantity(
+            value=4, unit="law", provenance="verified", grounded=True,
+            source="the laws whose payload carries `owed` rather than `native`: "
+                   "twice-is-once, undo-restores, same-state-same-story, "
+                   "shown-once-shown-until-touched — asserted equal in tests/test_conduct.py"),
+    },
+    children=[
+        Node(id="alt-natives-in-semantic-model", kind="alternative",
+             name="Declare the conduct contracts in semantic-model@0.5.0 beside model/*",
+             payload={"why":
+                      "Makes the laws' checks look like the vocabulary's own demand, which "
+                      "the seam decision refused: effects are opt-in, and a model author who "
+                      "never adopted conduct@ would find five contracts pinned under their "
+                      "model. And it couples the clocks the seam decision separated."}),
+        Node(id="alt-one-native-per-law", kind="alternative",
+             name="One contract per family, nine names, four of them raising 'not yet'",
+             payload={"why":
+                      "A contract that refuses every input is a descriptor with no "
+                      "demonstration that can hold, and the publish gate is right to refuse "
+                      "it. A family the tape cannot witness is a debt on the law node, "
+                      "where it is red-able, not a stub in the solver table."}),
+    ],
+)
+
+
+_TWO_STRETCHES_DEBT = Node(
+    id="four-families-compare-two-stretches",
+    kind="debt",
+    name="twice-is-once, undo-restores, same-state-same-story and "
+         "shown-once-shown-until-touched compare two stretches of one tape; no native does",
+    params={
+        "stretch_comparing_natives": Quantity(
+            value=0, unit="contract", provenance="asserted", grounded=False,
+            source="the five natives each judge one act against the reads after it; none "
+                   "relates two acts, two pre-states, or a read long after to a read just "
+                   "after"),
+    },
+    payload={
+        "note":
+            "Named rather than stretched: conduct/effect could have been widened to keep "
+            "reading after the first agreeing read and call that durability, or to compare "
+            "two consecutive same-kind acts and call that idempotence, and each widening "
+            "would have convicted by accident the first time a tape did something the "
+            "widening had not imagined. Positions now travel on the imported tape, so every "
+            "one of the four is computable; what each still needs is a tape in the estate "
+            "that stages its scenario, so the native is written against a real refuter and "
+            "not a guessed one.",
+    },
+    children=[
+        Node(id="durability-first", kind="discharge",
+             payload={
+                 "condition":
+                     "A native per family, each arriving when a tape in the estate can "
+                     "witness it — shown-once-shown-until-touched first, since every read "
+                     "through the same door after the witnessing read is already on chores' "
+                     "flights. Whoever writes one grounds the param above with the count that "
+                     "then holds.",
+             }),
     ],
 )
 
