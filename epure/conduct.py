@@ -461,8 +461,10 @@ CONDUCT_LAWS = [
                    _hughes("prop FindNil k = find k nil === Nothing", "Appendix A")],
         note="The frame law at its sharpest, cited on its own because RFC 9110 states it on "
              "its own. chores declares seven such acts; the frame native convicts any write "
-             "inside one.",
-        native="conduct/frame",
+             "inside one — and conduct/doors holds, on the model, that every write function "
+             "the recorder knows is some action's door, which is what makes the RFC's WHOLE "
+             "state the frame's whole state.",
+        native="conduct/frame, conduct/doors",
     ),
     _law(
         "equivalent-worlds-stay-equivalent",
@@ -574,6 +576,30 @@ CONDUCT_LAWS = [
     ),
 
     _law(
+        "what-is-promised-eventually-happens",
+        "What the model promises will happen, happens — on every tape, within the horizon "
+        "the promise names",
+        _cited("Lamport 1977, Proving the Correctness of Multiprocess Programs"),
+        falsifier="A tape on which a state the model marks as pending is entered and never "
+                  "left by the act that discharges it, though the tape runs past the horizon "
+                  "the promise names.",
+        triggers=["a model declares a liveness predicate — a kind semantic-model does not "
+                  "have yet"],
+        citations=[("Leslie Lamport — Proving the Correctness of Multiprocess Programs (IEEE "
+                    "TSE, 1977), the author's annotation",
+                    "https://lamport.azurewebsites.net/pubs/pubs.html",
+                    "This paper introduced the concepts of safety and liveness as the proper "
+                    "generalizations of partial correctness and termination to concurrent "
+                    "programs.")],
+        note="The third source in the census and the ledger's oldest debt: every predicate "
+             "épure proves is a safety property, and the stretch machinery (worlds around "
+             "acts, horizons) is most of the evaluator a liveness predicate needs. The word "
+             "is missing, not the means.",
+        owed="temporal-predicates-are-inexpressible: semantic-model has one predicate kind, "
+             "the state invariant; `eventually`/`until` over a trace has no vocabulary",
+    ),
+
+    _law(
         "the-effect-is-checkable",
         "Every declared effect names something the tape can show",
         _uncited(),
@@ -672,6 +698,11 @@ CONDUCT_SOLVERS = [
         description="(path, rel): count the distinct projected worlds read off `path` that no "
         "sequence of the model's actions reaches from init.",
         params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/doors", native=True,
+        description="(path): on the model at `path`, count the write functions its `boundary` "
+        "declares that no action admits through any door. Zero with a boundary means the "
+        "frame's empty boundary is the whole state; no boundary is a note."),
     SolverDef(
         name="conduct/merge", native=True,
         description="(path, rel): count the merges under `path` after which a merged variable "
@@ -784,7 +815,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.6.0",
+    version="0.7.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -830,15 +861,16 @@ CONDUCT_PACKAGE = Package(
                 "If-Match/412, over the `validator` kind and `requires`), and probe tapes "
                 "held to conduct/constructible before any other law. Every item the two "
                 "sources state is now covered by a native in the source's own form, except "
-                "the half of `safe` that names the WHOLE state: a write through a door no "
-                "declaration names is owed to a door census, and the census says so.",
+                "the half of `safe` that names the WHOLE state. 0.7.0 pays that too: "
+                "conduct/doors, over semantic-model@0.9.0's `boundary`, holds every write "
+                "function the recorder knows to being some action's door.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.8.0"),
+        PackageRef(name="semantic-model", version="0.9.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

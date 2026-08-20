@@ -12,13 +12,13 @@
     },
     {
       "name": "semantic-model",
-      "version": "0.8.0",
-      "sha256": "de70091b7c9e6340ed0ce2d2f15070a178698f2c962c486d3d5a03a2d7ee0356"
+      "version": "0.9.0",
+      "sha256": "033ba38f5c0a15b34420144ae69829dab433b83b61caa762a98806a079289ca2"
     },
     {
       "name": "conduct",
-      "version": "0.6.0",
-      "sha256": "a3893bb2ff4676d7d802ead53d6131d0d2381bbc363a26df8bf8186466d5552f"
+      "version": "0.7.0",
+      "sha256": "4914eee4e9747d42c33c3741a7320f74114c6cda63fd840dfa0d47e2ee4045c3"
     }
   ]
 }

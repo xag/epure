@@ -166,9 +166,12 @@ def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     the span's data and two evidence readers in the environment:
 
     - `ctx('events')` — the claiming span's OWN raw window, exactly as in v0.
-    - `evidence(pattern, scope='own')` — the raw events whose name (fn / op / k) matches the
-      fnmatch `pattern`; scope `'enclosing'` widens the pool to the claim's lineage: its own
-      window plus every raw event a testimony ancestor directly encloses, outermost first.
+    - `evidence(pattern, scope='own', direction='any')` — the raw events whose name (fn /
+      op / k) matches the fnmatch `pattern`; scope `'enclosing'` widens the pool to the
+      claim's lineage: its own window plus every raw event a testimony ancestor directly
+      encloses, outermost first; direction `'before'` keeps those positioned before the
+      claim's begin mark, `'after'` those after its end — the discharge of the
+      license-direction-is-blind debt, possible since positions travel on the import.
 
     The cut is deliberate: a license may look beyond its own window ONLY by naming what it
     looks for — a bare count over an ancestor's window would be satisfied by any unrelated
@@ -183,7 +186,7 @@ def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     alphabet = _events(model)
     diagnostics: list[str] = []
 
-    def judge(p: str, span: Node, lineage: list[dict[str, Any]]) -> None:
+    def judge(p: str, span: Node, lineage: list[tuple[int, dict[str, Any]]]) -> None:
         entry = alphabet.get(span.kind)
         if entry is None:
             diagnostics.append(f"{p}: '{span.kind}' names no event-kind of the model — "
@@ -207,16 +210,32 @@ def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                                  "it sees the claiming span's raw events and nothing else")
             return _w
 
-        def evidence(pattern: str, scope: str = "own", _w=window, _lineage=lineage):
+        at = span.payload.get("at", -1)
+        to = span.payload.get("to")
+        own = list(zip(span.payload.get("pos") or [], window))
+
+        def evidence(pattern: str, scope: str = "own", direction: str = "any",
+                     _own=own, _lineage=lineage, _at=at, _to=to):
+            """The named events in scope — and, since positions travel, in a DIRECTION
+            relative to the claim: 'before' its begin mark, 'after' its end mark, 'any'.
+            For a point, before and after are relative to the point itself."""
             if scope == "own":
-                pool = _w
+                pool = _own
             elif scope == "enclosing":
-                pool = _lineage + _w
+                pool = _lineage + _own
             else:
                 raise ValueError(f"unknown evidence scope '{scope}' — a license looks in "
                                  "'own' (the claiming span's window) or 'enclosing' "
                                  "(its window plus its testimony ancestors')")
-            return [e for e in pool if fnmatch(_named(e), pattern)]
+            if direction == "before":
+                pool = [(pos, e) for pos, e in pool if pos < _at]
+            elif direction == "after":
+                end = _to if _to is not None else _at
+                pool = [(pos, e) for pos, e in pool if pos > end]
+            elif direction != "any":
+                raise ValueError(f"unknown evidence direction '{direction}' — 'before' the "
+                                 "claim, 'after' it, or 'any'")
+            return [e for _, e in pool if fnmatch(_named(e), pattern)]
 
         env = {**_ENV, "ctx": ctx, "evidence": evidence}
         variables = {**{a: data[a] for a in entry["args"]}, **_LITERALS}
@@ -234,13 +253,14 @@ def licensed(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     f"({len(lineage)} more along its lineage)")
                 break
 
-    def walk(p: str, span: Node, lineage: list[dict[str, Any]]) -> None:
+    def walk(p: str, span: Node, lineage: list[tuple[int, dict[str, Any]]]) -> None:
         if span.kind in _STRUCTURE:
             for c in span.children:
                 walk(f"{p}/{c.id}", c, [])
             return
         judge(p, span, lineage)
-        below = lineage + (span.payload.get("events") or [])
+        below = lineage + list(zip(span.payload.get("pos") or [],
+                                   span.payload.get("events") or []))
         for c in span.children:
             walk(f"{p}/{c.id}", c, below)
 

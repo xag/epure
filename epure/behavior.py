@@ -1370,6 +1370,56 @@ def conditional(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     return _stretch_check("conduct/conditional", tree, path, rel, judge)
 
 
+# --- conduct/doors: every write function the boundary records is some action's door --------
+
+
+def doors_census(tree: Quern | TreeStore, path: str) -> Conformance:
+    """How many write functions the model's `boundary` declares that no action admits through
+    any door — `via` of an effect or `touches.via`. On the model, like conduct/checkable. A
+    model declaring no boundary is noted: its frame holds declared doors only."""
+    from quern import get_node
+    node = get_node(tree, path)
+    if node is None:
+        raise ValueError(f"no node at '{path}'")
+    if node.kind != "model":
+        raise ValueError(f"'{path}' is a '{node.kind}', not a model")
+    writes = [w for c in node.children if c.kind == "boundary"
+              for w in (c.payload.get("writes") or [])]
+    if not writes:
+        return Conformance(check="conduct/doors", violations=0,
+                           notes=[f"{path}: no `boundary` declares the write functions — the "
+                                  "frame holds declared doors only, not the whole state"])
+    # every door pattern any action admits, as the name pattern it matches
+    admitted: list[str] = []
+    for c in node.children:
+        if c.kind != "action":
+            continue
+        for k in c.children:
+            specs = []
+            if k.kind in EFFECTS:
+                specs = k.payload.get("via")
+            elif k.kind == "touches":
+                specs = k.payload.get("via")
+            for spec in (specs if isinstance(specs, list) else [specs]):
+                if isinstance(spec, str):
+                    admitted.append(spec)
+                elif isinstance(spec, dict) and spec.get("event"):
+                    admitted.append(str(spec["event"]))
+    diagnostics = []
+    for w in writes:
+        # a boundary function is covered if some admitted door's name pattern would match a
+        # call of it — or the boundary's own pattern matches the door's name
+        if not any(fnmatch(w, a) or fnmatch(a, w) for a in admitted):
+            diagnostics.append(f"{path}: the boundary records '{w}' as a write and no action "
+                               "admits it through any door — a write the frame could never see")
+    return Conformance(check="conduct/doors", violations=len(diagnostics),
+                       diagnostics=diagnostics, judged=len(writes))
+
+
+def doors_count(tree, path) -> float:
+    return float(doors_census(tree, path).violations)
+
+
 # --- vocabulary coverage: what of the world is declared at all ------------------------------
 
 
@@ -1440,6 +1490,7 @@ register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"])
 register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"])
 register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"])
 register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])
+register_native("conduct/doors", doors_count, CONDUCT_SPEC["conduct/doors"])
 for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
                    ("undo", undo), ("durable", durable), ("same-story", same_story),
                    ("constructible", constructible), ("merge", merge), ("stamped", stamped),

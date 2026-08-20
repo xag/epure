@@ -7,7 +7,7 @@ from collections import Counter
 
 from quern import get_node
 
-from epure.census import HUGHES, ITEMS, RFC, STATUSES, census, laws_named
+from epure.census import HUGHES, ITEMS, LAMPORT, RFC, STATUSES, census, laws_named
 from epure.conduct import CONDUCT_LAWS
 
 
@@ -37,8 +37,8 @@ def test_the_counts_on_the_node_are_computed_over_the_items():
         assert node.params[s].grounded and node.params[s].provenance == "computed"
     # the honest size, stated once here so a change is a diff somebody reads
     assert (counts["covered"], counts["weakened"], counts["owed"], counts["aside"]) == \
-        (61, 1, 1, 8)
-    assert Counter(it["source"] for it in ITEMS) == {HUGHES: 57, RFC: 14}
+        (63, 1, 1, 8)
+    assert Counter(it["source"] for it in ITEMS) == {HUGHES: 57, RFC: 14, LAMPORT: 2}
 
 
 def test_every_owed_item_points_at_a_debt_the_ledger_carries():

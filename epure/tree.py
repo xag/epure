@@ -590,17 +590,21 @@ _WIDER_GAZE = Node(
 _DIRECTION_DEBT = Node(
     id="license-direction-is-blind",
     kind="debt",
-    name="A license is satisfied by evidence anywhere in scope — before or after the "
-         "claim; no direction can be expressed",
+    name="A license was satisfied by evidence anywhere in scope — before or after the "
+         "claim; no direction could be expressed. Discharged 2026-08-20: positions travel "
+         "and evidence() takes a direction",
     params={
         # Ungrounded on purpose: nothing establishes that zero directional vocabulary is
         # enough — the first license that genuinely needs before/after grounds it or
         # discharges the debt.
+        # Grounded by the discharge: positions travel on the import (2026-08-20, the
+        # conduct natives needed them) and evidence() took its third argument the same day.
         "directions_expressible": Quantity(
-            value=0, unit="direction", provenance="asserted", grounded=False,
-            source="evidence(pattern, scope) filters by name only; 'the write landed' "
-                   "(a following write) and 'the shown pick was read first' (a preceding "
-                   "read) compile to the same expr"),
+            value=2, unit="direction", provenance="verified", grounded=True,
+            source="evidence(pattern, scope, 'before' | 'after'); the turnstile's "
+                   "passage-counted license says the sensor read came before the count, "
+                   "and model/licensed convicts the point placed before the read "
+                   "(epure.spec LICENSED)"),
     },
     payload={
         "note":
@@ -1062,15 +1066,15 @@ _GENERATED_DEBT = Node(
 _DOOR_CENSUS_DEBT = Node(
     id="no-door-census",
     kind="debt",
-    name="A write through a door no declaration names, inside a read-act, to a variable "
-         "nothing projects, passes every law: the frame sees declared doors, agrees sees "
-         "projected variables, and RFC 9110's `safe` says the WHOLE state",
+    name="A write through a door no declaration named, inside a read-act, passed every "
+         "law: the frame saw declared doors and RFC 9110's `safe` says the WHOLE state. "
+         "Discharged 2026-08-20: the `boundary` kind and conduct/doors",
     params={
         "write_functions_undeclared": Quantity(
-            value=0, unit="function", provenance="asserted", grounded=False,
-            source="nobody has counted: the boundary declaration (flight-recorder) lists every "
-                   "write function the app records, the model's doors name a subset, and no "
-                   "census compares the two"),
+            value=0, unit="function", provenance="verified", grounded=True,
+            source="conduct/doors on the cloakroom (5 write functions, all admitted) and on "
+                   "chores-model@0.16.0 (the recorder's 7 write functions held against the "
+                   "doors) - ledger/conformance.json"),
     },
     payload={
         "note":

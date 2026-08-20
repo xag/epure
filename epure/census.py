@@ -37,6 +37,7 @@ from quern.provenance import Quantity
 
 HUGHES = "hughes-2020"
 RFC = "rfc-9110"
+LAMPORT = "lamport-1977"
 
 # Debts the owed items point at (ids in this repo's ledger).
 TWO_STRETCHES = "four-families-compare-two-stretches"
@@ -45,6 +46,7 @@ MERGE = "no-kind-names-a-merge"
 CONDITIONAL = "no-kind-names-a-validator"
 GENERATED = "no-generated-world-is-checked"
 DOORS = "no-door-census"
+TEMPORAL = "temporal-predicates-are-inexpressible"
 
 
 def _item(id: str, source: str, category: str, formula: str, law: str, status: str,
@@ -349,10 +351,13 @@ ITEMS: list[dict] = [
             "conduct/frame convicts a write through any door the model knows inside an act "
             "declaring touches.via = []; conduct/agrees convicts a projected variable that "
             "moved across it", "§9.2.1"),
-    owed("safe-undeclared-doors", RFC, "method property",
-         "...MUST NOT change the state of the origin server — the WHOLE state, including what "
-         "no declaration names",
-         "a-read-changes-nothing", DOORS, "§9.2.1, the half a door census closes"),
+    covered("safe-undeclared-doors", RFC, "method property",
+            "...MUST NOT change the state of the origin server — the WHOLE state, including what "
+            "no declaration names",
+            "a-read-changes-nothing",
+            "conduct/doors: every write function the model's boundary declares is a door of "
+            "some action, so a read-act's empty boundary excludes the whole state the recorder "
+            "can see", "§9.2.1"),
     covered("idempotent", RFC, "method property",
          "the intended effect on the server of multiple identical requests with that method is "
          "the same as the effect for a single such request",
@@ -430,6 +435,22 @@ ITEMS: list[dict] = [
              "§15.4.5"),
 ]
 
+ITEMS += [
+    # --- Lamport 1977, Proving the Correctness of Multiprocess Programs: the two kinds -------
+    covered("safety", LAMPORT, "property kind",
+            "safety ... the proper generalization of partial correctness to concurrent programs "
+            "- something bad never happens",
+            "the-invariant-holds",
+            "model/prove over every reachable state, re-checked by model/refines at every step "
+            "of a tape; conduct/constructible holds every world read off a tape to reachability",
+            "the paper's own annotation, lamport.azurewebsites.net/pubs"),
+    owed("liveness", LAMPORT, "property kind",
+         "liveness ... the proper generalization of termination to concurrent programs - "
+         "something good eventually happens",
+         "what-is-promised-eventually-happens", TEMPORAL,
+         "the paper's own annotation, lamport.azurewebsites.net/pubs"),
+]
+
 STATUSES = ("covered", "weakened", "owed", "aside")
 
 
@@ -446,12 +467,14 @@ def census() -> Node:
                                    "section": it["section"], "law": it["law"]},
                           children=[status]))
     counts = {s: sum(1 for it in ITEMS if it["status"] == s) for s in STATUSES}
-    by_source = {src: sum(1 for it in ITEMS if it["source"] == src) for src in (HUGHES, RFC)}
+    by_source = {src: sum(1 for it in ITEMS if it["source"] == src)
+                 for src in (HUGHES, RFC, LAMPORT)}
     params = {
         "items": Quantity(value=len(ITEMS), unit="item", provenance="computed", grounded=True,
                           source=f"len(ITEMS): {by_source[HUGHES]} from Hughes 2020 (every "
                                  f"`prop` in Figures 3–8 and the text), {by_source[RFC]} from "
-                                 "RFC 9110 §8.8, §9.2, §13, §15"),
+                                 f"RFC 9110 §8.8, §9.2, §13, §15, {by_source[LAMPORT]} from "
+                                 "Lamport 1977 (safety, liveness)"),
     }
     for s in STATUSES:
         params[s] = Quantity(value=counts[s], unit="item", provenance="computed", grounded=True,

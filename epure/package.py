@@ -1,4 +1,4 @@
-"""semantic-model@0.8.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.9.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -128,7 +128,9 @@ VOCABULARY = [
         "raw window, in order — and `evidence(pattern, scope)` — the events whose name "
         "(fn / op / k) matches the fnmatch pattern, where scope 'own' (default) is that "
         "same window and 'enclosing' is the claim's lineage: its window plus every raw "
-        "event a testimony ancestor directly encloses. The cut: a license may look beyond "
+        "event a testimony ancestor directly encloses; a third argument, the direction, "
+        "keeps only events 'before' the claim's begin or 'after' its end (0.9.0: positions "
+        "travel on the import, so a license can say the read came first). The cut: a license may look beyond "
         "its own window ONLY by naming what it looks for — an instantaneous act's evidence "
         "usually lives one level up, in the act that produced it, but a bare count over an "
         "ancestor's window would be satisfied by any unrelated I/O, which is no license at "
@@ -223,6 +225,17 @@ VOCABULARY = [
         "matching the stamp the world shows before it (If-Match), and conduct/conditional "
         "holds that a matching act proceeds and a mismatching one refuses without writing "
         "(412).",
+    ),
+    KindDef(
+        kind="boundary",
+        description="A child of `model`: the write functions the app's recording boundary "
+        "declares - the names that reach the tape as `fn` when the world is changed. Payload: "
+        "`writes` ([fnmatch patterns]). The boundary itself is flight-recorder's (the app "
+        "says which module functions it records); this says which of them WRITE, so the door "
+        "census (conduct/doors) can hold every one to being a door of some action. Without "
+        "it `touches.via: []` means 'no declared door', with it the whole state: a write "
+        "function no act admits is a write the frame could never see, and the census says so "
+        "before any tape does.",
     ),
     KindDef(
         kind="touches",
@@ -321,13 +334,14 @@ EXAMPLES = [
                  payload={"args": {}},
                  children=[
                      Node(id="passage-counted-license", kind="license",
-                          payload={"expr": "len(evidence('sensor.read', 'enclosing')) >= 1",
+                          payload={"expr": "len(evidence('sensor.read', 'enclosing', 'before')) >= 1",
                                    "note": "the derived, instantaneous act: the tally "
                                            "increments because the rotation sensor read a "
                                            "passage, but the read happened in the act that "
                                            "detected it, one level up — a point encloses "
-                                           "nothing, so its license names the evidence and "
-                                           "looks along its lineage. Decomposition, not a "
+                                           "nothing, so its license names the evidence, "
+                                           "looks along its lineage, and says the read came "
+                                           "BEFORE the count (0.9.0). Decomposition, not a "
                                            "transition: it nests under the push that "
                                            "counted it and no action witnesses it"}),
                  ]),
@@ -390,6 +404,11 @@ EXAMPLES = [
                       "commute"),
             # the register's version stamp: every write of the register bumps it, nothing
             # else does, and a conditional retag is handed the stamp it expects
+            Node(id="cloakroom-boundary", kind="boundary",
+                 payload={"writes": ["hook.write", "hook.delete", "tag.write", "shelf.write",
+                                     "register.write"]},
+                 name="every function the cloakroom's recorder knows as a write; each is a "
+                      "door of some action below, which conduct/doors holds"),
             Node(id="register-rev", kind="validator",
                  payload={"door": "register.read", "expr": "at('rev')"},
                  name="the cloakroom register's revision: RFC 9110's strong validator, "
@@ -633,7 +652,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.8.0",
+    version="0.9.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -686,7 +705,11 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "that stands for the world's version - RFC 9110's ETag, chores' rev) and "
                 "`requires` on an action (If-Match: conditional on the stamp). The cloakroom "
                 "gains a register revision, a conditional retag and an import that merges "
-                "another register.",
+                "another register. 0.9.0 adds `boundary`: the write functions the app's "
+                "recorder declares, so the door census can hold every one to being some "
+                "action's door - the word that makes an empty boundary mean the whole state - "
+                "and a direction on `evidence()`: a license can now say the evidence came "
+                "before the claim.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

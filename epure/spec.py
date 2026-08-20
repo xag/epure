@@ -53,9 +53,15 @@ FX_PUSH: dict[str, Any] = {"k": "fx", "fn": "sensor.read", "args": [], "kwargs":
 
 
 def span(id: str, kind: str, events: list, children: list | None = None) -> Node:
+    """A span as the importer would carry it - with positions, since licenses may now say
+    'before' and 'after': the span begins at 0, its own events follow it, its children
+    come after them, and it ends past everything."""
+    kids = list(children or [])
     return Node(id=id, kind=kind,
-                payload={"data": {}, "outcome": "ok", "events": list(events)},
-                children=list(children or []))
+                payload={"data": {}, "outcome": "ok", "events": list(events),
+                         "pos": list(range(1, len(events) + 1)), "at": 0,
+                         "to": len(events) + 10 * (len(kids) + 1)},
+                children=kids)
 
 
 def session(*spans: Node, raw: list | None = None) -> Node:
@@ -75,6 +81,25 @@ ORPHAN = session(span("s0", "coin", [FX_COIN]), span("s1", "push", [FX_PUSH]),
 NESTED = session(
     span("s0", "coin", [FX_COIN], children=[span("s0", "coin", [FX_COIN])]),
     span("s1", "push", [FX_PUSH]))
+
+
+def _counted(read_first: bool) -> Node:
+    """A push whose passage-counted point sits after (lawful) or before (not) the sensor read:
+    the events are staged through the importer so the point has a position."""
+    from .tape import _scenario
+
+    point = {"k": "sem", "name": "passage-counted", "phase": "point", "sid": 2}
+    events = [{"k": "sem", "name": "coin", "phase": "begin", "sid": 1}, FX_COIN,
+              {"k": "sem", "name": "coin", "phase": "end", "sid": 1, "outcome": "ok"},
+              {"k": "sem", "name": "push", "phase": "begin", "sid": 3},
+              *([FX_PUSH, point] if read_first else [point, FX_PUSH]),
+              {"k": "sem", "name": "push", "phase": "end", "sid": 3, "outcome": "ok"}]
+    return Node(id="session", kind="session", links={"model": ["turnstile"]}, children=[
+        _scenario({"seq": 1, "fn": "ride", "kwargs": {}, "events": events})])
+
+
+COUNTED_AFTER_THE_READ = _counted(read_first=True)
+COUNTED_BEFORE_THE_READ = _counted(read_first=False)
 
 
 def d(contract: str, nodes: list[Node], args: list, because: str, **expect):
@@ -116,6 +141,13 @@ LICENSED = [
     d("licensed", judged(UNKNOWN), ["session", "model"], expect=1,
       because="a span the model has no license for at all is unlicensed by definition, "
               "not ignored"),
+    d("licensed", judged(COUNTED_AFTER_THE_READ), ["session", "model"], expect=0,
+      because="the passage is counted after the sensor read it: the point's license names "
+              "the read along its lineage and says it came before — satisfied"),
+    d("licensed", judged(COUNTED_BEFORE_THE_READ), ["session", "model"], expect=1,
+      because="the same point placed before the sensor read: the evidence is there, in "
+              "scope, and in the wrong direction — a count that preceded what it counted, "
+              "which a direction-blind license could not tell from the lawful tape"),
 ]
 
 
@@ -632,7 +664,28 @@ CONDITIONAL_SPEC = [
       because="handed the current rev and refused: a match that did not proceed"),
 ]
 
+def cloakroom_with_a_stray_writer() -> Node:
+    """The recorder knows a write function no action admits."""
+    model = cloakroom()
+    boundary = next(c for c in model.children if c.kind == "boundary")
+    boundary.payload = {"writes": [*boundary.payload["writes"], "ledger.append"]}
+    return model
+
+
+DOORS = [
+    c("doors", [cloakroom()], ["cloakroom"], expect=0,
+      because="every write function the cloakroom's recorder declares is a door of some "
+              "action: the frame's empty boundary means the whole state"),
+    c("doors", [cloakroom_with_a_stray_writer()], ["cloakroom"], expect=1,
+      because="the recorder also records ledger.append and no action admits it: a write the "
+              "frame could never see, named by the census before any tape takes that path"),
+    c("doors", [turnstile()], ["turnstile"], expect=0,
+      because="the turnstile declares no boundary: noted, the frame holds declared doors "
+              "only — not a violation, not a whole-state claim either"),
+]
+
 CONDUCT_SPEC = {
+    "conduct/doors": DOORS,
     "conduct/merge": MERGE,
     "conduct/stamped": STAMPED_SPEC,
     "conduct/conditional": CONDITIONAL_SPEC,
