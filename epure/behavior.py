@@ -801,16 +801,20 @@ class _Worlds:
                 if pos >= act.at:
                     continue
                 if _through(e, v.doors):
-                    before = v.value(e)
-                    break
+                    if (val := v.value(e)) is not None:   # a read that shows no stamp is no read
+                        before = val
+                        break
+                    continue
                 if _through(e, self.model.known):
                     break
             for pos, e in self.stream:
                 if pos <= act.to:
                     continue
                 if _through(e, v.doors):
-                    after = v.value(e)
-                    break
+                    if (val := v.value(e)) is not None:
+                        after = val
+                        break
+                    continue
                 if _through(e, self.model.known):
                     break
             if before is not None or after is not None:
@@ -1336,8 +1340,10 @@ def conditional(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     if pos >= act.at:
                         continue
                     if _through(e, v.doors):
-                        before = v.value(e)
-                        break
+                        if (val := v.value(e)) is not None:
+                            before = val
+                            break
+                        continue
                     if _through(e, W.model.known):
                         break
                 if before is not None:
