@@ -717,16 +717,17 @@ class _Worlds:
                                          for u in c.payload.get("updates") or []}
                 self.guard_src[c.id] = str(c.payload.get("guard", ""))
         self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
-        # the doors that write each projected variable: every door of every action that
-        # UPDATES it (its effects' via and its touches.via). A read is a valid world before
-        # an act only if nothing passed through them between the read and the act, and a
-        # valid world after only if nothing passed through them between the act and the read.
+        # the doors that write each projected variable: the EFFECT doors (`via`) of every
+        # action that updates it - the writes that carry its value, not the stamps and rows
+        # the action's boundary also admits. A read is a valid world before an act only if
+        # nothing passed through them between the read and the act, and a valid world after
+        # only if nothing passed through them between the act and the read.
         self.writes_of: dict[str, list[Door]] = {v: [] for v in self.projections}
         for a in self.model.actions:
             moved = {var for var, _ in self.by_id[a.id]["updates"]} if a.id in self.by_id else set()
             for e in a.effects:
                 moved.add(e.entity)
-            ds = list(a.touches_via) + [d for e in a.effects for d in e.via]
+            ds = [d for e in a.effects for d in e.via] or list(a.touches_via)
             for var in moved:
                 if var in self.writes_of:
                     self.writes_of[var].extend(ds)
