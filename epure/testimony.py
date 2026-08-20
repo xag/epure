@@ -22,10 +22,11 @@ written once, per act, with its entities TEMPLATED over the act's arguments (`"{
 and instantiated per action with that action's fixed binding. The template lives here, in the
 app's declaration, never in a law: the laws stay generic, the binding is the app's to state.
 
-An app that can afford épure at runtime may also emit through `Acts.span`/`Acts.note`, which
-refuse an undeclared act at the call; one that cannot (a private dependency its test runner
-holds no credential for) keeps emitting through flight-recorder directly and relies on the
-source test. Both are the same guarantee at different moments.
+The emission-side guard lives in flight-recorder, not here: `flight_recorder.declare(ACTS)`
+takes this same table and refuses, while a tape is being made, a span or note the table does
+not know — so the app carries no dependency on épure (which carries quern, which carries a
+wasm runtime a running app has no use for). `Acts.undeclared` stays as the second reader,
+for a source scan in the app's tests; `Acts.children` is the model side.
 """
 
 from __future__ import annotations
@@ -164,25 +165,6 @@ class Acts:
             text = Path(src).read_text(encoding="utf-8")
             names.update(m.group(2) for m in _EMISSION.finditer(text))
         return names
-
-    # --- emitting through the table, for apps that carry épure at runtime -------------
-
-    def span(self, name: str, **data: Any):
-        import flight_recorder as fr
-        self._admit(name, data)
-        return fr.span(name, **data)
-
-    def note(self, name: str, **data: Any) -> None:
-        import flight_recorder as fr
-        self._admit(name, data)
-        fr.note(name, **data)
-
-    def _admit(self, name: str, data: dict[str, Any]) -> None:
-        act = self[name]
-        missing = [a for a in act.args if a not in data]
-        if missing:
-            raise ValueError(f"act '{name}' testifies with {act.args}; this emission "
-                             f"lacks {missing}")
 
 
 def _listed(value: Any) -> list[Any]:

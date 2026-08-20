@@ -72,11 +72,3 @@ def test_the_source_is_held_to_the_table(tmp_path):
     acts = Acts.from_table(TABLE)
     assert acts.undeclared([src]) == [f"{src}:3: vanish"]
     assert acts.emitted([src]) == {"deposit", "look", "vanish"}
-
-
-def test_emitting_through_the_table_refuses_an_undeclared_or_underbound_act():
-    acts = Acts.from_table(TABLE)
-    with pytest.raises(KeyError, match="not a declared act"):
-        acts.span("vanish")
-    with pytest.raises(ValueError, match="lacks \\['coat'\\]"):
-        acts.span("deposit")
