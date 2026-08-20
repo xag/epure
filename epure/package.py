@@ -86,9 +86,11 @@ VOCABULARY = [
         "value: the read (a door, as an effect's `shown_by`) whose result, bound as `res`, "
         "the expr turns into a value of the domain. The expr's environment offers `at(path, "
         "default?)` (a dotted path into res; `*` takes the first value of a map), "
-        "`exists()` (1 if res is not null/false/empty, else 0), `count(xs, key, value)` "
-        "(members of a map or list whose `key` equals `value`), `weekday(iso)` (0 = Monday), "
-        "and the arithmetic helpers. This is Hoare's abstraction function, toList in "
+        "`exists()` (1 if res is not null/false/empty, else 0), `count(xs, key, value, "
+        "...)` (members of a map or list matching every key/value pair), `latest(xs, "
+        "field, key, value, ...)` (the greatest `field` among matching members, or null), "
+        "`weekday(iso, absent?)` (0 = Monday; `absent` when there is no date), and the "
+        "arithmetic helpers. This is Hoare's abstraction function, toList in "
         "Hughes: with it, `conduct/agrees` holds the world to the model's own updates after "
         "every act — project the reads before, apply the action, compare with the reads "
         "after — and the effect and frame laws gain their VALUE forms. A variable that is a "
@@ -486,7 +488,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.6.0",
+    version="0.6.1",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -526,7 +528,10 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "— Hoare's abstraction function, Hughes's toList, the family the paper "
                 "ranks first and the conduct census had owed. The cloakroom projects both "
                 "its variables and gains a ticket counter, so the value frame has a "
-                "bystander to hold still.",
+                "bystander to hold still. 0.6.1 documents two more projection helpers — "
+                "`latest` and multi-pair `count` — and `weekday`'s `absent`: a log's last "
+                "completion day and its completion count are what a real model's stored "
+                "variables turned out to need.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

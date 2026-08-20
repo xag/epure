@@ -226,12 +226,32 @@ def _at(res: Any, path: str, default: Any = None) -> Any:
     return cur
 
 
-def _count(xs: Any, key: str, value: Any) -> float:
+def _members(xs: Any, *filters: Any) -> list[dict[str, Any]]:
+    """The dict members of a map or list that match every (key, value) pair in `filters`."""
     members = list(xs.values()) if isinstance(xs, dict) else list(xs or [])
-    return float(sum(1 for m in members if isinstance(m, dict) and m.get(key) == value))
+    pairs = list(zip(filters[0::2], filters[1::2]))
+    return [m for m in members if isinstance(m, dict)
+            and all(m.get(k) == v for k, v in pairs)]
 
 
-def _weekday(iso: Any) -> float:
+def _count(xs: Any, *filters: Any) -> float:
+    """`count(xs, key, value, key2, value2, ...)`: members matching every pair."""
+    return float(len(_members(xs, *filters)))
+
+
+def _latest(xs: Any, field: str, *filters: Any) -> Any:
+    """`latest(xs, field, key, value, ...)`: the greatest `field` among matching members, or
+    None when none match — the last day something was done, the newest stamp."""
+    values = [m.get(field) for m in _members(xs, *filters) if m.get(field) is not None]
+    return max(values) if values else None
+
+
+def _weekday(iso: Any, absent: Any = None) -> Any:
+    """`weekday(iso[, absent])`: 0 = Monday; `absent` when there is no date to read."""
+    if iso is None:
+        if absent is None:
+            raise ValueError("weekday of nothing — pass an `absent` value")
+        return absent
     from datetime import date
     return float(date.fromisoformat(str(iso)[:10]).weekday())
 
@@ -241,6 +261,7 @@ def _projection_env(res: Any) -> dict[str, Any]:
             "at": lambda path, default=None: _at(res, path, default),
             "exists": lambda: 1.0 if res not in (None, False, {}, [], "", 0) else 0.0,
             "count": _count,
+            "latest": _latest,
             "weekday": _weekday}
 
 

@@ -733,7 +733,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.4.0",
+    version="0.4.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -764,14 +764,15 @@ CONDUCT_PACKAGE = Package(
                 "lets it declare and holding the world to the model's own updates after "
                 "every act — which is the effect, faithfulness and frame laws in their "
                 "VALUE forms. Fifteen census items move from weakened or owed to covered; "
-                "the census says which.",
+                "the census says which. 0.4.1 follows semantic-model@0.6.1 (two more "
+                "projection helpers); nothing else moves.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.6.0"),
+        PackageRef(name="semantic-model", version="0.6.1"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

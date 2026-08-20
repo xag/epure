@@ -234,3 +234,15 @@ def test_a_failed_call_that_wrote_is_a_refusal():
     tree.root.children = [spec.cloakroom(), tape]
     (why,) = refusal(tree, "visit", "model").diagnostics
     assert "the call 'cloakroom' failed and still wrote through ['hook.write']" in why
+
+
+def test_projection_helpers_read_a_log():
+    from epure.behavior import _count, _latest, _weekday
+    log = {"a": {"chore_id": "bins", "kind": "done", "day": "2026-08-04"},
+           "b": {"chore_id": "bins", "kind": "skipped", "day": "2026-08-05"},
+           "c": {"chore_id": "hoover", "kind": "done", "day": "2026-08-06"}}
+    assert _count(log, "chore_id", "bins") == 2
+    assert _count(log, "chore_id", "bins", "kind", "done") == 1
+    assert _latest(log, "day", "kind", "done") == "2026-08-06"
+    assert _latest(log, "day", "chore_id", "wash") is None
+    assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1
