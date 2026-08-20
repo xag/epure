@@ -717,14 +717,28 @@ class _Worlds:
                                          for u in c.payload.get("updates") or []}
                 self.guard_src[c.id] = str(c.payload.get("guard", ""))
         self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
+        # the doors that write each projected variable: a read before an act is a valid
+        # pre-world only if nothing passed through them between the read and the act
+        self.writes_of: dict[str, list[Door]] = {v: [] for v in self.projections}
+        for a in self.model.actions:
+            for e in a.effects:
+                if e.entity in self.writes_of:
+                    self.writes_of[e.entity].extend(e.via)
         self.notes: list[str] = []
         self.errors: list[str] = []
         self.worlds: list[_World] = []
         self._compute()
 
     def _read_before(self, proj: _Projection, at: tuple):
+        """The latest read of the variable before `at` — unless a write through one of the
+        variable's own doors came after it, in which case the read is stale and there is
+        no pre-world for this variable."""
         for pos, e in reversed(self.stream):
-            if pos < at and _through(e, proj.doors):
+            if pos >= at:
+                continue
+            if _through(e, self.writes_of.get(proj.var, [])):
+                return None
+            if _through(e, proj.doors):
                 return e
         return None
 
@@ -819,106 +833,57 @@ def _equal_on(a: dict[str, Any], b: dict[str, Any], vars: Iterable[str]) -> bool
 def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many (act, projected state-var) pairs under `path` disagree with the model.
 
-    For each top-level act bound to exactly one enabled-by-arguments action, and each
-    state-var with a projection: the pre-value is the latest read through its door BEFORE
-    the act; the post-value is the first read through its door AFTER the act and before the
-    next act writes anything through a door the model knows. With every pre-value the
-    action's updates read, the expected post-value is the update applied to the pre-values
-    (the model's own semantics, the prover's) — or the pre-value itself for a variable the
-    action does not update, which is the frame. A missing read is a note, never a count;
-    an act that binds no action, or two, is skipped and noted.
+    For each act bound to exactly one action, and each state-var with a projection: the
+    pre-value is the latest read through its door BEFORE the act with no write through the
+    variable's own doors after it; the post-value is the first read through its door AFTER
+    the act and before the next act writes anything through a door the model knows. With
+    every pre-value the action's updates read, the expected post-value is the update applied
+    to the pre-values (the model's own semantics, the prover's) — or the pre-value itself for
+    a variable the action does not update, which is the frame. A call answers for its spans'
+    updates as its own. A missing read is a note, never a count; an act that binds no action,
+    or two, is skipped and noted.
     """
-    node, model_node = _confront(tree, path, rel)
-    model = _Model(model_node)
-    projections = _projections(model_node)
-    variables, actions, _ = _automaton(model_node)
-    by_id = {a["id"]: a for a in actions}
-    acts, stream = _acts_and_stream(node, path, calls=True)
-    diagnostics: list[str] = []
-    notes: list[str] = []
+    W = _Worlds(tree, path, rel)
+    diagnostics: list[str] = list(W.errors)
+    notes: list[str] = list(W.notes)
     judged = 0
-    if not projections:
+    if not W.projections:
         notes.append(f"{path}: the model projects no state-var — nothing to agree on")
         return Conformance(check="conduct/agrees", violations=0, notes=notes)
-
-    def read_before(proj: _Projection, at: tuple) -> tuple[Any, Any] | None:
-        for pos, e in reversed(stream):
-            if pos < at and _through(e, proj.doors):
-                return pos, e
-        return None
-
-    def read_after(proj: _Projection, to: tuple, limit: tuple) -> dict | None:
-        for pos, e in stream:
-            if to < pos < limit and _through(e, proj.doors):
-                return e
-        return None
-
-    for i, act in enumerate(acts):
-        if act.span.payload.get("outcome") == "error":
+    for w in W.worlds:
+        if w.action is None:
             continue
-        bound = model.bound(act.span)
-        where = f"{act.path}: '{act.span.kind}'"
-        if len(bound) != 1:
-            notes.append(f"{where} binds {len(bound)} action(s) — not judged")
-            continue
-        action = by_id[bound[0].id]
-        # the world after this act ends where the next act (after it ENDS) first writes
-        limit = (len(acts) + 10 ** 9, float("inf"))
-        following = _after(acts, i)
-        if following:
-            nxt = following[0]
-            limit = nxt.at
-            for pos, e in nxt.events:
-                if _through(e, model.known):
-                    limit = pos
-                    break
-        pre: dict[str, Any] = {}
-        post: dict[str, Any] = {}
-        for var, proj in projections.items():
-            try:
-                before = read_before(proj, act.at)
-                if before is not None and (v := proj.value(before[1])) is not None:
-                    pre[var] = v
-                after = read_after(proj, act.to, limit)
-                if after is not None and (v := proj.value(after)) is not None:
-                    post[var] = v
-            except ValueError as e:
-                diagnostics.append(f"{where} ({action['id']}): {e}")
-        data = act.span.payload.get("data") or {}
-        binding = {a: _normalize(data[a]) for a in action["args"] if a in data}
-        updated = {var: expr for var, expr in action["updates"]}
-        # a call answers for its spans' writes: what they update is not the call's frame
-        enclosed = {var for inner in act.inner for a in model.bound(inner.span)
-                    for var, _ in by_id[a.id]["updates"]}
-        for var, proj in projections.items():
-            if var in enclosed and var not in updated:
-                continue
-            if var not in post:
-                notes.append(f"{where} ({action['id']}): no {proj.src!r} read of '{var}' "
+        where = f"{w.act.path}: '{w.kind}'"
+        updated = {var: expr for var, expr in w.action["updates"]}
+        for var, proj in W.projections.items():
+            if var in w.inner_updates and var not in updated:
+                continue  # a span inside this call moved it, and answers for it
+            if var not in w.post:
+                notes.append(f"{where} ({w.action['id']}): no {proj.src!r} read of '{var}' "
                              "after the act — unwitnessed")
                 continue
             if var in updated:
-                env = {**pre, **binding, **_LITERALS}
+                env = {**w.pre, **w.binding, **_LITERALS}
                 try:
                     expected = _normalize(updated[var](env))
                 except ValueError as e:
-                    notes.append(f"{where} ({action['id']}): '{var}' cannot be computed from "
-                                 f"the projected world — {e}")
+                    notes.append(f"{where} ({w.action['id']}): '{var}' cannot be computed "
+                                 f"from the projected world — {e}")
                     continue
                 judged += 1
-                if post[var] != expected:
+                if w.post[var] != expected:
                     diagnostics.append(
-                        f"{where} ({action['id']}) updates '{var}' to {expected!r} from the "
-                        f"projected world {pre}; the world shows {post[var]!r} after")
-            elif var in pre:
+                        f"{where} ({w.action['id']}) updates '{var}' to {expected!r} from the "
+                        f"projected world {w.pre}; the world shows {w.post[var]!r} after")
+            elif var in w.pre:
                 judged += 1
-                if post[var] != pre[var]:
+                if w.post[var] != w.pre[var]:
                     diagnostics.append(
-                        f"{where} ({action['id']}) does not update '{var}', and the world "
-                        f"shows it moved from {pre[var]!r} to {post[var]!r} — the frame, by "
-                        "value")
+                        f"{where} ({w.action['id']}) does not update '{var}', and the world "
+                        f"shows it moved from {w.pre[var]!r} to {w.post[var]!r} — the frame, "
+                        "by value")
             else:
-                notes.append(f"{where} ({action['id']}): '{var}' has no read before the act "
+                notes.append(f"{where} ({w.action['id']}): '{var}' has no read before the act "
                              "— its frame cannot be judged")
     return Conformance(check="conduct/agrees", violations=len(diagnostics),
                        diagnostics=diagnostics, notes=notes, judged=judged)

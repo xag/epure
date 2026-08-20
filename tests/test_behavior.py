@@ -186,7 +186,7 @@ def test_agrees_is_a_note_when_nothing_projects():
     tree = Quern()
     tree.root.children = [spec.turnstile(), spec.LAWFUL.model_copy(deep=True)]
     got = agrees(tree, "session", "model")
-    assert got.violations == 0 and "projects no state-var" in got.notes[0]
+    assert got.violations == 0 and any("projects no state-var" in n for n in got.notes)
 
 
 # --- the two-stretch natives: each refuter red under its own law, and the implications ---
