@@ -163,13 +163,13 @@ SEMANTIC_MODEL_SPEC = {
 
 
 # =========================================================================================
-# The conduct contracts (conduct@0.2.0, natives in `epure.behavior`): what each behavior
-# law answers, on the cloakroom — the published model that declares doors. The recorded
-# runs below are built THROUGH the importer (`epure.tape._scenario`) from literal call
-# records, so the positions the checks reason about are the ones a real tape would carry,
-# not ones a spec hand-typed to suit itself. Each family's refuting tape fails that family
-# alone: the lawful tape is green under all four tape-level checks, and every red tape
-# differs from it by exactly the one thing its law forbids.
+# The conduct contracts (conduct@, natives in `epure.behavior`): what each behavior law
+# answers, on the cloakroom — the published model that declares doors and projections. The
+# recorded runs below are built THROUGH the importer (`epure.tape._scenario`) from literal
+# call records, so the positions the checks reason about are the ones a real tape would
+# carry, not ones a spec hand-typed to suit itself. Each family's refuting tape fails that
+# family alone: the lawful tapes are green under every tape-level check, and every red tape
+# differs from a lawful one by exactly the one thing its law forbids.
 # =========================================================================================
 
 
@@ -187,26 +187,35 @@ def _sem(name: str, phase: str, sid: int, data: dict | None = None,
     return ev
 
 
+def _fx(fn: str, args: list | None = None, res: Any = None) -> dict[str, Any]:
+    return {"k": "fx", "fn": fn, "args": list(args or []), "kwargs": {}, "res": res}
+
+
 def _write(coat: str) -> dict[str, Any]:
-    return {"k": "fx", "fn": "hook.write", "args": [{"coat": coat}], "kwargs": {},
-            "res": None}
+    return _fx("hook.write", [{"coat": coat}])
 
 
 def _read(res: Any) -> dict[str, Any]:
-    return {"k": "fx", "fn": "hook.read", "args": [], "kwargs": {}, "res": res}
+    return _fx("hook.read", [], res)
 
 
-_REMOVE: dict[str, Any] = {"k": "fx", "fn": "hook.delete", "args": ["hook"], "kwargs": {},
-                           "res": None}
+def _tag_write(color: str) -> dict[str, Any]:
+    return _fx("tag.write", [{"color": color}])
 
 
-def _tick(n: int) -> dict[str, Any]:
-    """The ticket counter moves: the deposit's second write."""
-    return {"k": "fx", "fn": "counter.write", "args": [{"n": n}], "kwargs": {}, "res": None}
+def _tag_read(color: str | None) -> dict[str, Any]:
+    return _fx("tag.read", [], {"color": color} if color else {})
 
 
-def _count(n: int) -> dict[str, Any]:
-    return {"k": "fx", "fn": "counter.read", "args": [], "kwargs": {}, "res": {"n": n}}
+def _shelf_write(level: str) -> dict[str, Any]:
+    return _fx("shelf.write", [{"level": level}])
+
+
+def _shelf_read(level: str | None) -> dict[str, Any]:
+    return _fx("shelf.read", [], {"level": level} if level else {})
+
+
+_REMOVE: dict[str, Any] = _fx("hook.delete", ["hook"])
 
 
 def _act(name: str, data: dict, *events: dict, outcome: str = "ok") -> list[dict]:
@@ -223,40 +232,98 @@ def visit(*calls: list[dict]) -> Node:
         for i, events in enumerate(calls)])
 
 
-RED = {"coat": "red"}
+def world(coat: Any, tag: str | None, shelf: str | None) -> list[dict]:
+    """The three reads that project the whole world: hook, tag, shelf."""
+    return [_read({"coat": coat} if coat else None), _tag_read(tag), _shelf_read(shelf)]
 
-SHOWN = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})])
-LOST = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read(None)])
+
+RED = {"coat": "red"}
+EMPTY = world(None, None, None)
+DEPOSIT = _act("deposit", RED, _write("red"))
+TAG_RED = _act("tagging", {"color": "red"}, _tag_write("red"))
+TAG_BLUE = _act("tagging", {"color": "blue"}, _tag_write("blue"))
+SHELVE_HIGH = _act("shelving", {"level": "high"}, _shelf_write("high"))
+RECLAIM = _act("reclaim", {}, _REMOVE)
+
+# --- one act, by presence (effect, faithful, frame, refusal) ------------------------------
+
+SHOWN = visit([*DEPOSIT, _read({"coat": "red"})])
+LOST = visit([*DEPOSIT, _read(None)])
 NOOP = visit([*_act("deposit", RED), _read({"coat": "red"})])
-UNREAD = visit([*_act("deposit", RED, _write("red"), _tick(1))])
-SWAPPED = visit([*_act("deposit", RED, _write("blue"), _tick(1)), _read({"coat": "blue"})])
-RECLAIMED = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
-                  [*_act("reclaim", {}, _REMOVE), _read(None)])
-RESIDUE = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
-                [*_act("reclaim", {}, _REMOVE), _read({"coat": "red"})])
-OVERREACH = visit([*_act("deposit", RED, _write("red"), _tick(1)), _read({"coat": "red"})],
+UNREAD = visit([*DEPOSIT])
+SWAPPED = visit([*_act("deposit", RED, _write("blue")), _read({"coat": "blue"})])
+RECLAIMED = visit([*DEPOSIT, _read({"coat": "red"})], [*RECLAIM, _read(None)])
+RESIDUE = visit([*DEPOSIT, _read({"coat": "red"})], [*RECLAIM, _read({"coat": "red"})])
+OVERREACH = visit([*DEPOSIT, _read({"coat": "red"})],
                   [*_act("reclaim", {}, _REMOVE, _write("blue")), _read(None)])
-HALF_DONE = visit([*_act("deposit", RED, _write("red"), _tick(1), outcome="error"),
-                   _read(None)])
+HALF_DONE = visit([*_act("deposit", RED, _write("red"), outcome="error"), _read(None)])
 REFUSED_CLEAN = visit([*_act("deposit", RED, outcome="error"), _read(None)])
 
-# --- the model-based tapes: the world read before and after, projected ------------------
+# --- one act, by value (agrees) -----------------------------------------------------------
 #
-# Every one opens with the world read (hook empty, counter at 0), so the abstraction function
-# has a pre-world to apply the model's update to — Hughes's diagram needs both corners.
+# Every one opens with the world read, so the abstraction function has a pre-world to apply
+# the model's update to — Hughes's diagram needs both corners.
 
-_OPEN = [_read(None), _count(0)]
-AGREES = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
-                _read({"coat": "red"}), _count(1)])
-WORLD_LOST = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
-                    _read(None), _count(1)])
-WORLD_MISCOUNTED = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
-                          _read({"coat": "red"}), _count(2)])
-BYSTANDER_MOVED = visit([*_OPEN, *_act("deposit", RED, _write("red"), _tick(1)),
-                         _read({"coat": "red"}), _count(1)],
-                        [*_act("reclaim", {}, _REMOVE), _read(None), _count(2)])
-WORLD_UNOPENED = visit([*_act("deposit", RED, _write("red"), _tick(1)),
-                        _read({"coat": "red"}), _count(1)])
+AGREES = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                *TAG_RED, *world("red", "red", None)])
+WORLD_LOST = visit([*EMPTY, *DEPOSIT, *world(None, None, None)])
+TAG_WRONG = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                   *TAG_RED, *world("red", "blue", None)])
+BYSTANDER_MOVED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *TAG_RED, *world("red", "red", None),
+                         *SHELVE_HIGH, *world("red", "blue", "high")])
+WORLD_UNOPENED = visit([*DEPOSIT, *world("red", None, None)])
+
+# --- two stretches (twice, last-write, commute, undo, durable, same-story, constructible) ---
+
+TAGGED_TWICE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                      *TAG_RED, *world("red", "red", None),
+                      *TAG_RED, *world("red", "red", None)])
+TAGGED_TWICE_MOVED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                            *TAG_RED, *world("red", "red", None),
+                            *TAG_RED, *world("red", "blue", None)])
+DEPOSITED_TWICE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *DEPOSIT, *world("red", None, None)])
+
+RETAGGED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                  *TAG_RED, *world("red", "red", None),
+                  *TAG_BLUE, *world("red", "blue", None)])
+RETAGGED_FIRST_STUCK = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                              *TAG_RED, *world("red", "red", None),
+                              *TAG_BLUE, *world("red", "red", None)])
+
+_BOTH_WAYS_OPEN = [*EMPTY, *DEPOSIT, *world("red", None, None)]
+COMMUTES = visit([*_BOTH_WAYS_OPEN,
+                  *TAG_RED, *world("red", "red", None),
+                  *SHELVE_HIGH, *world("red", "red", "high"),
+                  *RECLAIM, *EMPTY, *DEPOSIT, *world("red", None, None),
+                  *SHELVE_HIGH, *world("red", None, "high"),
+                  *TAG_RED, *world("red", "red", "high")])
+ORDER_MATTERED = visit([*_BOTH_WAYS_OPEN,
+                        *TAG_RED, *world("red", "red", None),
+                        *SHELVE_HIGH, *world("red", "red", "high"),
+                        *RECLAIM, *EMPTY, *DEPOSIT, *world("red", None, None),
+                        *SHELVE_HIGH, *world("red", None, "high"),
+                        *TAG_RED, *world("red", "red", "low")])
+
+UNDONE = visit([*EMPTY, *DEPOSIT, *world("red", None, None), *RECLAIM, *EMPTY])
+UNDONE_WITH_RESIDUE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                             *RECLAIM, *world(None, "red", None)])
+
+LASTING = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                 *TAG_RED, *world("red", "red", None), *world("red", "red", None),
+                 *world("red", "red", None)])
+FADED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+               *TAG_RED, *world("red", "red", None), *world("red", "red", None),
+               *world("red", None, None)])
+
+SAME_STORY_TOLD = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *RECLAIM, *EMPTY, *DEPOSIT, *world("red", None, None)])
+DIFFERENT_STORY = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *RECLAIM, *EMPTY, *DEPOSIT, *world("red", "blue", None)])
+
+UNREACHABLE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                     *TAG_RED, *world(None, "red", None)])
 
 
 def c(contract: str, nodes: list[Node], args: list, because: str, **expect):
@@ -275,11 +342,10 @@ EFFECT = [
     c("effect", visited(LOST), ["visit", "model"], expect=1,
       because="the deposit wrote and the read after it returns nothing: the act refined "
               "perfectly and the world lost the write — the failure no model check can see"),
-    c("effect", visited(NOOP), ["visit", "model"], expect=2,
-      because="a deposit span with no hook.write and no counter.write under it: two "
-              "declared effects, neither materialized — verbs with nothing beneath them. "
-              "Licensing convicts it too; this convicts it as effects that never happened, "
-              "which is a different sentence"),
+    c("effect", visited(NOOP), ["visit", "model"], expect=1,
+      because="a deposit span with no hook.write under it: a verb with nothing beneath it. "
+              "Licensing convicts it too; this convicts it as an effect that never "
+              "materialized, which is a different sentence"),
     c("effect", visited(UNREAD), ["visit", "model"], expect=0,
       because="written and never read back: not shown, and not convicted — a law is refuted "
               "by a read that disagrees, and silence is reported as a note, never as a pass "
@@ -340,25 +406,106 @@ CHECKABLE = [
 
 AGREES_SPEC = [
     c("agrees", visited(AGREES), ["visit", "model"], expect=0,
-      because="hook empty and counter 0 before; the deposit's own updates say held 1, "
-              "tickets 1; the reads after project exactly that — Hoare's diagram commutes "
-              "on a tape"),
+      because="hook empty before; the deposit's own update says held 1, the tag's says "
+              "red; the reads after project exactly that — Hoare's diagram commutes on a tape"),
     c("agrees", visited(WORLD_LOST), ["visit", "model"], expect=1,
       because="the hook reads empty after the deposit: the model says held = 1 and the "
               "world shows 0 — the effect law in its VALUE form, not a presence"),
-    c("agrees", visited(WORLD_MISCOUNTED), ["visit", "model"], expect=1,
-      because="the counter reads 2 after one deposit from 0: the model's update is "
-              "tickets + 1 and the world disagrees — a wrong value, which no door could see"),
+    c("agrees", visited(TAG_WRONG), ["visit", "model"], expect=1,
+      because="tagged red, the ticket reads blue: the update is the argument and the world "
+              "disagrees — a wrong value, which no door could see"),
     c("agrees", visited(BYSTANDER_MOVED), ["visit", "model"], expect=1,
-      because="the reclaim does not update tickets, and the counter moved from 1 to 2 "
-              "across it: the frame law in its VALUE form — «a value is the same if it "
-              "wasn't changed», read back and compared"),
+      because="shelving does not update the tag, and the tag moved from red to blue across "
+              "it: the frame law in its VALUE form — «a value is the same if it wasn't "
+              "changed», read back and compared"),
     c("agrees", visited(WORLD_UNOPENED), ["visit", "model"], expect=0,
       because="no read before the act: the pre-world is unknown, so nothing is computed "
               "and nothing is convicted — noted, never counted"),
     c("agrees", judged(LAWFUL), ["session", "model"], expect=0,
       because="the turnstile projects nothing: a model without projections has nothing "
               "to agree on, and says so in a note rather than passing in silence"),
+]
+
+TWICE = [
+    c("twice", visited(TAGGED_TWICE), ["visit", "model"], expect=0,
+      because="tagged red twice: the guard admits the repeat (the coat is still on the "
+              "hook) and the world after twice is the world after once"),
+    c("twice", visited(TAGGED_TWICE_MOVED), ["visit", "model"], expect=1,
+      because="the same repeat, and the second time the ticket reads blue — twice was not "
+              "once, RFC 9110's idempotence broken by a read that disagrees"),
+    c("twice", visited(DEPOSITED_TWICE), ["visit", "model"], expect=0,
+      because="deposited twice: the guard refuses a second coat on an occupied hook, so "
+              "the repeat is a refusal and not this law's — the model says which acts are "
+              "idempotent, and a guard that refuses its own post-state exits the family"),
+]
+
+LAST_WRITE = [
+    c("last-write", visited(RETAGGED), ["visit", "model"], expect=0,
+      because="tagged red then blue: the tag is an overwrite, and the world shows blue"),
+    c("last-write", visited(RETAGGED_FIRST_STUCK), ["visit", "model"], expect=1,
+      because="tagged red then blue and the ticket still reads red: the first write won. "
+              "Hughes's InsertInsert on one key, refuted"),
+    c("last-write", visited(TAGGED_TWICE), ["visit", "model"], expect=0,
+      because="the same value twice is a last write that happens to equal the first; the "
+              "law holds trivially and is judged, not skipped"),
+]
+
+COMMUTE = [
+    c("commute", visited(COMMUTES), ["visit", "model"], expect=0,
+      because="tag then shelve, and later — from the same world, after a reclaim and a "
+              "fresh deposit — shelve then tag: both orders leave the coat red and high"),
+    c("commute", visited(ORDER_MATTERED), ["visit", "model"], expect=1,
+      because="the reverse order leaves the shelf low: two writes the model declares "
+              "independent turned out to interfere — InsertInsertWeak, refuted"),
+    c("commute", visited(AGREES), ["visit", "model"], expect=0,
+      because="one order only, no reverse on the tape: unwitnessed, noted, never counted"),
+]
+
+UNDO = [
+    c("undo", visited(UNDONE), ["visit", "model"], expect=0,
+      because="deposit then reclaim: the world after the reclaim is the world before the "
+              "deposit — no residue, no bystander taken"),
+    c("undo", visited(UNDONE_WITH_RESIDUE), ["visit", "model"], expect=1,
+      because="the hook is empty again but the ticket still reads red: the delete unmade "
+              "the coat and left the tag — residue, Hughes's DeleteInsert on one key"),
+    c("undo", visited(TAGGED_TWICE), ["visit", "model"], expect=0,
+      because="no delete on the tape: nothing to undo, nothing judged"),
+]
+
+DURABLE = [
+    c("durable", visited(LASTING), ["visit", "model"], expect=0,
+      because="tagged red and read three times after: red every time, with nothing in "
+              "between declaring it changed"),
+    c("durable", visited(FADED), ["visit", "model"], expect=1,
+      because="tagged red, read red, then read as nothing — the effect faded with no act "
+              "declaring it changed: a write that did not survive its writer"),
+    c("durable", visited(AGREES), ["visit", "model"], expect=0,
+      because="one read after each act: shown once, never re-read — unwitnessed beyond "
+              "the first read, noted"),
+]
+
+SAME_STORY = [
+    c("same-story", visited(SAME_STORY_TOLD), ["visit", "model"], expect=0,
+      because="the same deposit, twice, from the same empty world — after a reclaim in "
+              "between — shows the same world after"),
+    c("same-story", visited(DIFFERENT_STORY), ["visit", "model"], expect=1,
+      because="the second deposit from the same empty world shows a blue tag the first "
+              "did not: an undeclared input — something the model does not know decided it"),
+    c("same-story", visited(TAGGED_TWICE), ["visit", "model"], expect=0,
+      because="the two taggings start from different worlds (none, then red): not the same "
+              "state, so not this law's comparison"),
+]
+
+CONSTRUCTIBLE = [
+    c("constructible", visited(AGREES), ["visit", "model"], expect=0,
+      because="every world read off the tape — empty, a red coat, a red coat tagged red "
+              "— is a state the model reaches from init"),
+    c("constructible", visited(UNREACHABLE), ["visit", "model"], expect=1,
+      because="after the tagging the hook reads empty and the tag reads red: a world the "
+              "model cannot reach — no tag without a coat — which Hughes's "
+              "InsertComplete asks of every tree"),
+    c("constructible", visited(UNREAD), ["visit", "model"], expect=0,
+      because="no world read at all: nothing to place, nothing judged"),
 ]
 
 CONDUCT_SPEC = {
@@ -368,4 +515,11 @@ CONDUCT_SPEC = {
     "conduct/refusal": REFUSAL,
     "conduct/checkable": CHECKABLE,
     "conduct/agrees": AGREES_SPEC,
+    "conduct/twice": TWICE,
+    "conduct/last-write": LAST_WRITE,
+    "conduct/commute": COMMUTE,
+    "conduct/undo": UNDO,
+    "conduct/durable": DURABLE,
+    "conduct/same-story": SAME_STORY,
+    "conduct/constructible": CONSTRUCTIBLE,
 }

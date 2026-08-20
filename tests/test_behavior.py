@@ -1,11 +1,13 @@
-"""The conduct natives: each family's refuter fails its own law alone, and doors cut by name
-and by argument.
+"""The conduct natives: each family's refuter fails its own law, and doors cut by name and by
+argument.
 
 The demonstrations in `epure.spec` prove each native answers what its contract says; what
-they do not state is the cross-product — that the tape built to refute the frame law is green
-under effect, faithfulness and refusal. A refuter that trips two laws is two laws that cannot
-be told apart, and the whole point of a census of families is that they can. The matrix is
-the test.
+they do not state is the cross-product — which OTHER laws a refuting tape trips. For the
+presence laws the answer is none: a tape built to refute the frame is green under effect,
+faithfulness and refusal, and that is what keeps four families four. For the value laws the
+cross-product has implications that are true, not leaks — a repeat whose second read is wrong
+is also a value disagreement — and the matrix states them exactly, so a new overlap is a diff
+somebody reads.
 """
 
 from __future__ import annotations
@@ -16,7 +18,8 @@ import epure.prove  # noqa: F401
 from quern import Node, Quern, Rule, run_rules
 
 from epure import spec
-from epure.behavior import agrees, checkable, door, effect, faithful, frame, refusal
+from epure.behavior import (agrees, checkable, commute, constructible, door, durable, effect,
+                            faithful, frame, last_write, refusal, same_story, twice, undo)
 from epure.tape import _scenario
 
 CHECKS = {"effect": effect, "faithful": faithful, "frame": frame, "refusal": refusal}
@@ -49,7 +52,7 @@ def test_silence_is_a_note_not_a_verdict():
     tree.root.children = [spec.cloakroom(), spec.UNREAD.model_copy(deep=True)]
     got = effect(tree, "visit", "model")
     assert got.violations == 0
-    assert len(got.notes) == 2 and all("unwitnessed" in n for n in got.notes)
+    assert len(got.notes) == 1 and "unwitnessed" in got.notes[0]
 
 
 def test_the_diagnostic_names_the_act_and_the_law():
@@ -66,10 +69,12 @@ def test_the_natives_answer_in_the_rule_language():
              expr="solve('conduct/effect', self, 'model') == 0"),
         Rule(name="frame-holds", kind="session",
              expr="solve('conduct/frame', self, 'model') == 0"),
+        Rule(name="twice-is-once", kind="session",
+             expr="solve('conduct/twice', self, 'model') == 0"),
     ])
     tree.root.children = [spec.cloakroom(), spec.OVERREACH.model_copy(deep=True)]
     verdicts = {r.rule: r.ok for r in run_rules(tree)}
-    assert verdicts == {"effects-show": True, "frame-holds": False}
+    assert verdicts == {"effects-show": True, "frame-holds": False, "twice-is-once": True}
 
 
 # --- doors -----------------------------------------------------------------------------
@@ -125,11 +130,9 @@ def test_checkable_refuses_an_entity_that_is_no_state_var():
 def test_a_read_in_a_later_call_shows_an_effect_of_an_earlier_one():
     """One recording is one accumulating world: the hook is read back in the next call."""
     tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
-        _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
-                   "events": spec._act("deposit", spec.RED, spec._write("red"),
-                                       spec._tick(1))}),
+        _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {}, "events": list(spec.DEPOSIT)}),
         _scenario({"seq": 2, "fn": "cloakroom", "kwargs": {},
-                   "events": [spec._read({"coat": "red"}), spec._count(1)]}),
+                   "events": [spec._read({"coat": "red"})]}),
     ])
     tree = Quern()
     tree.root.children = [spec.cloakroom(), tape]
@@ -141,14 +144,12 @@ def test_a_read_before_the_act_shows_nothing():
     """Positions, not mere presence: the same read placed BEFORE the deposit is no witness."""
     tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
         _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
-                   "events": [spec._read({"coat": "red"}),
-                              *spec._act("deposit", spec.RED, spec._write("red"),
-                                         spec._tick(1))]}),
+                   "events": [spec._read({"coat": "red"}), *spec.DEPOSIT]}),
     ])
     tree = Quern()
     tree.root.children = [spec.cloakroom(), tape]
     got = effect(tree, "visit", "model")
-    assert got.violations == 0 and len(got.notes) == 2
+    assert got.violations == 0 and len(got.notes) == 1
 
 
 # --- the model-based native ------------------------------------------------------------
@@ -156,25 +157,24 @@ def test_a_read_before_the_act_shows_nothing():
 
 def test_agrees_names_the_variable_the_update_and_both_worlds():
     tree = Quern()
-    tree.root.children = [spec.cloakroom(), spec.WORLD_MISCOUNTED.model_copy(deep=True)]
+    tree.root.children = [spec.cloakroom(), spec.TAG_WRONG.model_copy(deep=True)]
     (why,) = agrees(tree, "visit", "model").diagnostics
-    assert "updates 'tickets' to 1 from the projected world {'held': 0, 'tickets': 0}" in why
-    assert "the world shows 2 after" in why
+    assert "updates 'tag' to 'red' from the projected world" in why
+    assert "the world shows 'blue' after" in why
 
 
 def test_agrees_holds_the_frame_by_value():
     tree = Quern()
     tree.root.children = [spec.cloakroom(), spec.BYSTANDER_MOVED.model_copy(deep=True)]
     (why,) = agrees(tree, "visit", "model").diagnostics
-    assert "does not update 'tickets'" in why and "moved from 1 to 2" in why
+    assert "does not update 'tag'" in why and "moved from 'red' to 'blue'" in why
 
 
 def test_agrees_refuses_a_projection_outside_the_domain():
     tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
         _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {},
-                   "events": [*spec._OPEN,
-                              *spec._act("deposit", spec.RED, spec._write("red"), spec._tick(1)),
-                              spec._read({"coat": "red"}), spec._count(9)]}),
+                   "events": [*spec.EMPTY, *spec.DEPOSIT, *spec.world("red", None, None),
+                              *spec.TAG_RED, *spec.world("red", "green", None)]}),
     ])
     tree = Quern()
     tree.root.children = [spec.cloakroom(), tape]
@@ -187,6 +187,75 @@ def test_agrees_is_a_note_when_nothing_projects():
     tree.root.children = [spec.turnstile(), spec.LAWFUL.model_copy(deep=True)]
     got = agrees(tree, "session", "model")
     assert got.violations == 0 and "projects no state-var" in got.notes[0]
+
+
+# --- the two-stretch natives: each refuter red under its own law, and the implications ---
+
+STRETCH = {"agrees": agrees, "twice": twice, "last-write": last_write, "commute": commute,
+           "undo": undo, "durable": durable, "same-story": same_story,
+           "constructible": constructible, "effect": effect}
+
+# tape -> the laws red on it. The first named is the law the tape was built to refute; the
+# rest are IMPLICATIONS, stated rather than hidden: a repeat whose second read is wrong is
+# also a value disagreement and an effect not shown; residue after an undo is also a world
+# the model cannot reach; a value that faded is also a bystander that moved.
+RED_UNDER = {
+    "TAGGED_TWICE": set(),
+    "TAGGED_TWICE_MOVED": {"twice", "last-write", "agrees", "effect"},
+    "DEPOSITED_TWICE": set(),
+    "RETAGGED": set(),
+    "RETAGGED_FIRST_STUCK": {"last-write", "agrees", "effect"},
+    "COMMUTES": set(),
+    "ORDER_MATTERED": {"commute", "agrees", "durable"},
+    "UNDONE": set(),
+    "UNDONE_WITH_RESIDUE": {"undo", "agrees", "constructible"},
+    "LASTING": set(),
+    "FADED": {"durable"},
+    "SAME_STORY_TOLD": set(),
+    "DIFFERENT_STORY": {"same-story", "agrees", "durable"},
+    "UNREACHABLE": {"constructible", "agrees", "durable"},
+}
+
+
+def test_every_stretch_refuter_is_red_under_its_own_law_and_exactly_the_implied_ones():
+    for name, expected in RED_UNDER.items():
+        tree = Quern()
+        tree.root.children = [spec.cloakroom(), getattr(spec, name).model_copy(deep=True)]
+        red = {law for law, fn in STRETCH.items() if fn(tree, "visit", "model").violations}
+        assert red == expected, f"{name}: red under {sorted(red)}, expected {sorted(expected)}"
+
+
+def test_a_stretch_law_judges_something_on_its_lawful_tape():
+    """A zero that judged nothing is silence; each lawful tape must be a verdict."""
+    for name, fn in (("TAGGED_TWICE", twice), ("RETAGGED", last_write), ("COMMUTES", commute),
+                     ("UNDONE", undo), ("LASTING", durable), ("SAME_STORY_TOLD", same_story),
+                     ("AGREES", constructible)):
+        tree = Quern()
+        tree.root.children = [spec.cloakroom(), getattr(spec, name).model_copy(deep=True)]
+        got = fn(tree, "visit", "model")
+        assert got.violations == 0 and got.judged >= 1, (name, got)
+
+
+def test_the_stretch_diagnostics_name_both_stretches():
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.ORDER_MATTERED.model_copy(deep=True)]
+    (why,) = commute(tree, "visit", "model").diagnostics
+    assert "'tagging' then 'shelving' leaves" in why and "in the other order leave" in why
+    tree.root.children = [spec.cloakroom(), spec.DIFFERENT_STORY.model_copy(deep=True)]
+    (why,) = same_story(tree, "visit", "model").diagnostics
+    assert "the same act from the same world at visit/call1/s0" in why
+
+
+def test_projection_helpers_read_a_log():
+    from epure.behavior import _count, _latest, _weekday
+    log = {"a": {"chore_id": "bins", "kind": "done", "day": "2026-08-04"},
+           "b": {"chore_id": "bins", "kind": "skipped", "day": "2026-08-05"},
+           "c": {"chore_id": "hoover", "kind": "done", "day": "2026-08-06"}}
+    assert _count(log, "chore_id", "bins") == 2
+    assert _count(log, "chore_id", "bins", "kind", "done") == 1
+    assert _latest(log, "day", "kind", "done") == "2026-08-06"
+    assert _latest(log, "day", "chore_id", "wash") is None
+    assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1 and _weekday(None) is None
 
 
 # --- the call is an act ----------------------------------------------------------------
@@ -212,8 +281,7 @@ def _cloakroom_with_the_call_declared() -> Node:
 
 def test_a_write_outside_every_span_answers_to_the_call():
     """The tool's own write — the one totality used to be the only check to see."""
-    stray = spec.visit([*spec._act("deposit", spec.RED, spec._write("red"), spec._tick(1)),
-                        spec._read({"coat": "red"}), spec._write("blue")])
+    stray = spec.visit([*spec.DEPOSIT, spec._read({"coat": "red"}), spec._write("blue")])
     tree = Quern()
     tree.root.children = [_cloakroom_with_the_call_declared(), stray]
     (why,) = frame(tree, "visit", "model").diagnostics
@@ -234,15 +302,3 @@ def test_a_failed_call_that_wrote_is_a_refusal():
     tree.root.children = [spec.cloakroom(), tape]
     (why,) = refusal(tree, "visit", "model").diagnostics
     assert "the call 'cloakroom' failed and still wrote through ['hook.write']" in why
-
-
-def test_projection_helpers_read_a_log():
-    from epure.behavior import _count, _latest, _weekday
-    log = {"a": {"chore_id": "bins", "kind": "done", "day": "2026-08-04"},
-           "b": {"chore_id": "bins", "kind": "skipped", "day": "2026-08-05"},
-           "c": {"chore_id": "hoover", "kind": "done", "day": "2026-08-06"}}
-    assert _count(log, "chore_id", "bins") == 2
-    assert _count(log, "chore_id", "bins", "kind", "done") == 1
-    assert _latest(log, "day", "kind", "done") == "2026-08-06"
-    assert _latest(log, "day", "chore_id", "wash") is None
-    assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1 and _weekday(None) is None

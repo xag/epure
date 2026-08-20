@@ -68,15 +68,21 @@ from typing import Any, Callable, Sequence
 
 from quern import Node, Quern
 
-from epure.behavior import agrees, effect, faithful, frame, refusal
+from epure.behavior import (agrees, commute, constructible, durable, effect, faithful, frame,
+                            last_write, refusal, same_story, twice, undo)
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
 _CHECKS: tuple[tuple[str, Callable], ...] = (
     ("licensed", licensed), ("total", total), ("refines", refines),
     ("effect", effect), ("faithful", faithful), ("frame", frame), ("refusal", refusal),
-    ("agrees", agrees))
-_CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees")
+    ("agrees", agrees), ("twice", twice), ("last-write", last_write), ("commute", commute),
+    ("undo", undo), ("durable", durable), ("same-story", same_story),
+    ("constructible", constructible))
+_CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
+            "commute", "undo", "durable", "same-story", "constructible")
+_STRETCH = ("agrees", "twice", "last-write", "commute", "undo", "durable", "same-story",
+            "constructible")
 
 
 @dataclass(frozen=True)
@@ -240,14 +246,16 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
             print(f"  {mark}{v.name:<28} licensed={lic:<4} total={tot}{room:<8} "
                   f"refines={ref}  ({v.bound} of {v.acts} acts bind an arg"
                   f"{' - VACUOUS, it refines by saying nothing' if v.vacuous else ''})")
-            # The laws on their own line: four counts, and the silences beside them.
-            laws = " ".join(f"{law}={v.checks[law][0]}"
-                            + (f"/{v.judged[law]}" if law in v.judged else "")
-                            for law in _CONDUCT)
-            quiet = ", ".join(f"{n} {law} read(s) never came" for law, n in v.notes.items())
+            # The laws on their own lines: presence, then value, each as violations/judged.
+            def line(laws):
+                return " ".join(f"{law}={v.checks[law][0]}"
+                                + (f"/{v.judged[law]}" if law in v.judged else "")
+                                for law in laws)
+            quiet = sum(v.notes.values())
             # Calls the model names are judged as acts themselves; the rest are counted.
-            print(f"      laws: {laws}   calls declared {v.declared}/{v.calls}"
-                  f"{f'   [{quiet}]' if quiet else ''}")
+            print(f"      laws: {line(_CONDUCT[:4])}   calls declared {v.declared}/{v.calls}")
+            print(f"      by value: {line(_STRETCH)}"
+                  f"{f'   [{quiet} read(s) never came]' if quiet else ''}")
             for check, _ in _CHECKS:
                 n, first = v.checks[check]
                 if n and first:
@@ -296,7 +304,7 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
                 "total": v.checks["total"][0],
                 "refines": v.checks["refines"][0],
                 "conduct": {law: v.checks[law][0] for law in _CONDUCT},
-                "judged": {law: v.judged.get(law, 0) for law in ("effect", "agrees")},
+                "judged": {law: v.judged.get(law, 0) for law in ("effect",) + _STRETCH},
                 "calls": v.calls,
                 "calls_declared": v.declared,
                 "red": v.red(),

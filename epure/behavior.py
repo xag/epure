@@ -49,6 +49,28 @@ Refinement is unchanged — the automaton moves by the domain acts, and a call b
 transition. A call the model does not name is counted, never judged: the suite reports
 declared calls over all calls, which is the coverage number.
 
+THE TWO-STRETCH LAWS compare worlds around two acts rather than one, all over the same
+projections (`_worlds` computes, once per tape, the projected world before and after every
+act):
+
+- **conduct/twice** — *twice-is-once*. Two adjacent acts of the same kind and data, bound to
+  one action whose guard still admits it in the world after the first: the world after the
+  second equals the world after the first. A guard that refuses the repeat exits the family
+  (that is refusal's law).
+- **conduct/last-write** — *last-write-wins*. Two adjacent acts on one entity whose update
+  reads the argument and not the entity (an overwrite): the value after the second is the
+  second's update applied to the world BEFORE THE FIRST.
+- **conduct/commute** — *independent-writes-commute*. A stretch A;B on disjoint entities, and
+  elsewhere on the tape the stretch B;A from an equal projected world: equal worlds after.
+- **conduct/undo** — *undo-restores*. A `creates` of E followed by a `deletes` of E: the world
+  after the delete equals the world before the create, on every projected variable.
+- **conduct/durable** — *shown-once-shown-until-touched*. Once a read after an act shows a
+  variable at v, every later read of it projects v until an act that updates it.
+- **conduct/same-story** — *same-state-same-story* and *equivalent-worlds-stay-equivalent*.
+  Two acts of the same kind and data from equal projected worlds leave equal projected worlds.
+- **conduct/constructible** — *every-world-is-constructible*. Every projected world read off
+  the tape agrees with some state the model can reach from init (the prover's own walk).
+
 What no native holds is on the census (`epure.census`), item by item, each owed to a debt
 in the ledger with its discharge — never a sentence.
 
@@ -76,12 +98,12 @@ from __future__ import annotations
 
 import json
 from fnmatch import fnmatch
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 from quern import Node, Quern, TreeStore, register_native
 
 from epure.conformance import _STRUCTURE, Conformance, _automaton, _confront, _named, _normalize
-from epure.prove import _ENV, _LITERALS, _compile, _domain
+from epure.prove import _ENV, _LITERALS, _compile, _domain, reachable
 
 EFFECTS = ("creates", "mutates", "deletes")
 
@@ -644,6 +666,143 @@ def checkable(tree: Quern | TreeStore, path: str) -> Conformance:
                        diagnostics=diagnostics)
 
 
+# --- the projected world around every act, computed once per tape -------------------------
+
+
+class _World:
+    """One act with the projected world before it and after it, and the single action it
+    binds (None when it binds none or several). `pre[var]`/`post[var]` are present only
+    where a read through the variable's door exists on that side and shows a value."""
+
+    def __init__(self, index: int, act: _Act, action: dict | None,
+                 pre: dict[str, Any], post: dict[str, Any], binding: dict[str, Any]):
+        self.index = index
+        self.act = act
+        self.action = action
+        self.pre = pre
+        self.post = post
+        self.binding = binding
+
+    @property
+    def kind(self) -> str:
+        return self.act.span.kind
+
+    @property
+    def data(self) -> dict[str, Any]:
+        return self.act.span.payload.get("data") or {}
+
+    def updates(self) -> set[str]:
+        return {var for var, _ in self.action["updates"]} if self.action else set()
+
+
+class _Worlds:
+    def __init__(self, tree, path: str, rel: str):
+        self.node, self.model_node = _confront(tree, path, rel)
+        self.model = _Model(self.model_node)
+        self.projections = _projections(self.model_node)
+        variables, actions, _ = _automaton(self.model_node)
+        self.variables = variables
+        self.by_id = {a["id"]: a for a in actions}
+        # the update exprs' SOURCE, for the overwrite test last-write needs
+        self.update_src: dict[str, dict[str, str]] = {}
+        for c in self.model_node.children:
+            if c.kind == "action":
+                self.update_src[c.id] = {u["var"]: u["expr"]
+                                         for u in c.payload.get("updates") or []}
+        self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
+        self.notes: list[str] = []
+        self.errors: list[str] = []
+        self.worlds: list[_World] = []
+        self._compute()
+
+    def _read_before(self, proj: _Projection, at: tuple):
+        for pos, e in reversed(self.stream):
+            if pos < at and _through(e, proj.doors):
+                return e
+        return None
+
+    def _read_after(self, proj: _Projection, to: tuple, limit: tuple):
+        for pos, e in self.stream:
+            if to < pos < limit and _through(e, proj.doors):
+                return e
+        return None
+
+    def limit_after(self, i: int) -> tuple:
+        """Where the world after act i ends: the next act (after it ENDS) first writes."""
+        following = _after(self.acts, i)
+        if not following:
+            return (len(self.acts) + 10 ** 9, float("inf"))
+        nxt = following[0]
+        for pos, e in nxt.events:
+            if _through(e, self.model.known):
+                return pos
+        return nxt.at
+
+    def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
+        return [e for pos, e in self.stream if lo < pos < hi and _through(e, proj.doors)]
+
+    def _compute(self) -> None:
+        for i, act in enumerate(self.acts):
+            if act.span.payload.get("outcome") == "error":
+                continue
+            bound = self.model.bound(act.span)
+            where = f"{act.path}: '{act.span.kind}'"
+            action = self.by_id[bound[0].id] if len(bound) == 1 else None
+            if action is None:
+                self.notes.append(f"{where} binds {len(bound)} action(s) — not judged")
+            limit = self.limit_after(i)
+            pre: dict[str, Any] = {}
+            post: dict[str, Any] = {}
+            for var, proj in self.projections.items():
+                try:
+                    before = self._read_before(proj, act.at)
+                    if before is not None and (v := proj.value(before)) is not None:
+                        pre[var] = v
+                    after = self._read_after(proj, act.to, limit)
+                    if after is not None and (v := proj.value(after)) is not None:
+                        post[var] = v
+                except ValueError as e:
+                    self.errors.append(f"{where}: {e}")
+            data = act.span.payload.get("data") or {}
+            binding = ({a: _normalize(data[a]) for a in action["args"] if a in data}
+                       if action else {})
+            self.worlds.append(_World(i, act, action, pre, post, binding))
+
+    def adjacent(self) -> list[tuple[_World, _World]]:
+        """Pairs (w1, w2) where w2 is the first bound act that begins after w1 ends — no
+        other bound act between them. Calls are skipped as stretch members: a call encloses
+        its spans, and a stretch is made of the acts that move the world."""
+        spans = [w for w in self.worlds if w.action is not None and not w.act.is_call]
+        out = []
+        for a, b in zip(spans, spans[1:]):
+            if b.act.at > a.act.to:
+                out.append((a, b))
+        return out
+
+    def apply(self, action: dict, world: dict[str, Any], binding: dict[str, Any]
+              ) -> dict[str, Any] | None:
+        """The action's own updates on a projected world — None if a variable it reads
+        is not projected there."""
+        env = {**world, **binding, **_LITERALS}
+        out = dict(world)
+        try:
+            for var, expr in action["updates"]:
+                out[var] = _normalize(expr(env))
+        except ValueError:
+            return None
+        return out
+
+
+def _same(a: dict[str, Any], b: dict[str, Any]) -> list[str]:
+    """The projected variables present in both worlds that disagree."""
+    return [v for v in a if v in b and a[v] != b[v]]
+
+
+def _equal_on(a: dict[str, Any], b: dict[str, Any], vars: Iterable[str]) -> bool:
+    vars = list(vars)
+    return all(v in a and v in b and a[v] == b[v] for v in vars)
+
+
 # --- conduct/agrees: the world, projected, agrees with the model's own updates -------------
 
 
@@ -750,6 +909,254 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                        diagnostics=diagnostics, notes=notes, judged=judged)
 
 
+# --- the two-stretch natives ----------------------------------------------------------------
+
+
+def _stretch_check(check: str, tree, path, rel, judge) -> Conformance:
+    """The common frame: compute the worlds, let `judge` fill diagnostics/notes, count."""
+    try:
+        W = _Worlds(tree, path, rel)
+    except ValueError:
+        raise
+    diagnostics: list[str] = list(W.errors)
+    notes: list[str] = list(W.notes)
+    if not W.projections:
+        notes.append(f"{path}: the model projects no state-var — nothing to compare")
+        return Conformance(check=check, violations=0, notes=notes)
+    judged = judge(W, diagnostics, notes)
+    return Conformance(check=check, violations=len(diagnostics), diagnostics=diagnostics,
+                       notes=notes, judged=judged)
+
+
+def twice(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """twice-is-once: two adjacent acts, same kind and data, one action, whose guard still
+    admits the repeat in the world after the first — the world after the second equals the
+    world after the first. A guard that refuses the repeat is refusal's law, not this one."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        for a, b in W.adjacent():
+            if a.kind != b.kind or a.data != b.data or a.action is not b.action:
+                continue
+            env = {**a.post, **a.binding, **_LITERALS}
+            try:
+                readmits = a.action["guard"](env)
+            except ValueError:
+                notes.append(f"{b.act.path}: the guard of '{a.action['id']}' cannot be "
+                             "read off the projected world — not judged")
+                continue
+            if not readmits:
+                continue
+            if not set(a.post) & set(b.post):
+                notes.append(f"{b.act.path}: a repeat of '{a.kind}' with no read after both "
+                             "— unwitnessed")
+                continue
+            judged += 1
+            moved = _same(a.post, b.post)
+            if moved:
+                diagnostics.append(
+                    f"{b.act.path}: '{b.kind}' repeated with the same inputs and the world "
+                    f"moved on {moved}: after once {a.post}, after twice {b.post}")
+        return judged
+    return _stretch_check("conduct/twice", tree, path, rel, judge)
+
+
+def last_write(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """last-write-wins: two adjacent acts whose actions update the same entity by an
+    OVERWRITE (the update reads arguments, not the entity): the entity after the second is
+    the second's update applied to the world before the first."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        for a, b in W.adjacent():
+            shared = a.updates() & b.updates() & set(W.projections)
+            for var in sorted(shared):
+                src = W.update_src.get(b.action["id"], {}).get(var, "")
+                if var in src.replace("'", " ").split() or f" {var} " in f" {src} ":
+                    continue  # reads itself: a counter, not an overwrite
+                if var not in b.post or not a.pre:
+                    notes.append(f"{b.act.path}: '{var}' written twice, the world before the "
+                                 "first or after the second unread — unwitnessed")
+                    continue
+                expected = W.apply(b.action, a.pre, b.binding)
+                if expected is None or var not in expected:
+                    notes.append(f"{b.act.path}: '{var}' after the second write cannot be "
+                                 "computed from the world before the first — not judged")
+                    continue
+                judged += 1
+                if b.post[var] != expected[var]:
+                    diagnostics.append(
+                        f"{b.act.path}: '{var}' written by '{a.kind}' then '{b.kind}'; the "
+                        f"last write says {expected[var]!r}, the world shows {b.post[var]!r}")
+        return judged
+    return _stretch_check("conduct/last-write", tree, path, rel, judge)
+
+
+def commute(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """independent-writes-commute: a stretch A;B whose actions update disjoint variables,
+    and elsewhere on the tape B;A from an equal projected world — equal worlds after. A
+    stretch with no reverse on the tape is noted, never counted."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        pairs = [(a, b) for a, b in W.adjacent()
+                 if a.updates() and b.updates() and not (a.updates() & b.updates())]
+        seen: set[tuple[int, int]] = set()
+        for a, b in pairs:
+            for c, d in pairs:
+                if (c.index, d.index) <= (a.index, b.index) or (c.index, d.index) in seen:
+                    continue
+                if not (c.kind == b.kind and c.data == b.data
+                        and d.kind == a.kind and d.data == a.data):
+                    continue
+                shared_pre = set(a.pre) & set(c.pre) & set(W.projections)
+                if not shared_pre or not _equal_on(a.pre, c.pre, shared_pre):
+                    continue
+                shared_post = set(b.post) & set(d.post)
+                if not shared_post:
+                    notes.append(f"{d.act.path}: the reverse of '{a.kind}';'{b.kind}' found, "
+                                 "but no read after both stretches — unwitnessed")
+                    continue
+                seen.add((c.index, d.index))
+                judged += 1
+                moved = _same(b.post, d.post)
+                if moved:
+                    diagnostics.append(
+                        f"{d.act.path}: '{a.kind}' then '{b.kind}' leaves {b.post}; the same "
+                        f"two from the same world in the other order leave {d.post} — they "
+                        f"disagree on {moved}")
+        if pairs and not judged and not any("reverse" in n for n in notes):
+            notes.append(f"{path}: {len(pairs)} independent stretch(es) and no reverse of any "
+                         "on the tape — unwitnessed")
+        return judged
+    return _stretch_check("conduct/commute", tree, path, rel, judge)
+
+
+def undo(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """undo-restores: a `creates` of E followed by a `deletes` of E — the world after the
+    delete equals the world before the create, on every projected variable read on both
+    sides."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        bound = {w.act.span.id: w for w in W.worlds}
+        for a, b in W.adjacent():
+            made = {e.entity for x in W.model.bound(a.act.span) for e in x.effects
+                    if e.kind == "creates"}
+            gone = {e.entity for x in W.model.bound(b.act.span) for e in x.effects
+                    if e.kind == "deletes"}
+            if not (made & gone):
+                continue
+            both = set(a.pre) & set(b.post)
+            if not both:
+                notes.append(f"{b.act.path}: '{a.kind}' then '{b.kind}' on "
+                             f"{sorted(made & gone)}, the world unread before or after — "
+                             "unwitnessed")
+                continue
+            judged += 1
+            residue = _same(a.pre, b.post)
+            if residue:
+                diagnostics.append(
+                    f"{b.act.path}: '{b.kind}' unmade '{a.kind}' and the world differs from "
+                    f"before it on {residue}: before {a.pre}, after {b.post} — residue")
+        return judged
+    return _stretch_check("conduct/undo", tree, path, rel, judge)
+
+
+def durable(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """shown-once-shown-until-touched: once the first read after an act shows a variable it
+    updated at v, every later read of it projects v until the next act that updates it."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        for w in W.worlds:
+            if w.action is None:
+                continue
+            for var in sorted(w.updates() & set(W.projections) & set(w.post)):
+                proj = W.projections[var]
+                # the horizon: the next act (after this one ends) whose action updates var
+                horizon = (len(W.acts) + 10 ** 9, float("inf"))
+                for later in W.worlds:
+                    if later.act.at > w.act.to and later.action and var in later.updates():
+                        horizon = later.act.at
+                        break
+                later_reads = W.reads_between(proj, w.act.to, horizon)[1:]
+                if not later_reads:
+                    continue
+                judged += 1
+                for r in later_reads:
+                    try:
+                        got = proj.value(r)
+                    except ValueError as e:
+                        diagnostics.append(f"{w.act.path}: {e}")
+                        break
+                    if got is not None and got != w.post[var]:
+                        diagnostics.append(
+                            f"{w.act.path}: '{w.kind}' left '{var}' at {w.post[var]!r}; a "
+                            f"later read shows {got!r} with no act declaring it changed")
+                        break
+        return judged
+    return _stretch_check("conduct/durable", tree, path, rel, judge)
+
+
+def same_story(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """same-state-same-story: two acts of the same kind and data, from projected worlds
+    equal on every projected variable, leave worlds equal on every variable read after
+    both. Equivalent worlds stay equivalent: the same comparison, since equivalence IS
+    projected equality."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        judged = 0
+        spans = [w for w in W.worlds if w.action is not None]
+        for i, a in enumerate(spans):
+            for b in spans[i + 1:]:
+                if a.kind != b.kind or a.data != b.data:
+                    continue
+                if set(a.pre) != set(W.projections) or set(b.pre) != set(W.projections):
+                    continue
+                if not _equal_on(a.pre, b.pre, W.projections):
+                    continue
+                both = set(a.post) & set(b.post)
+                if not both:
+                    notes.append(f"{b.act.path}: '{b.kind}' twice from one world, no read "
+                                 "after both — unwitnessed")
+                    continue
+                judged += 1
+                moved = _same(a.post, b.post)
+                if moved:
+                    diagnostics.append(
+                        f"{b.act.path}: '{b.kind}' with {b.data} from the world {b.pre} "
+                        f"left {b.post}; the same act from the same world at "
+                        f"{a.act.path} left {a.post} — an undeclared input on {moved}")
+        return judged
+    return _stretch_check("conduct/same-story", tree, path, rel, judge)
+
+
+def constructible(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """every-world-is-constructible: every projected world read off the tape — each act's
+    world before and after, on the variables read — agrees with some state the model
+    reaches from init. The prover's own walk, pointed at the tape's worlds."""
+    def judge(W: _Worlds, diagnostics, notes) -> int:
+        node_path = None
+        # the model's path in the tree: the link target of the slice
+        targets = W.node.links.get(rel, [])
+        node_path = targets[0]
+        order, states = reachable(tree, node_path)
+        idx = {v: order.index(v) for v in W.projections if v in order}
+        seen: set[tuple] = set()
+        judged = 0
+        for w in W.worlds:
+            for side, world in (("before", w.pre), ("after", w.post)):
+                vars_ = sorted(v for v in world if v in idx)
+                if not vars_:
+                    continue
+                key = tuple((v, world[v]) for v in vars_)
+                if key in seen:
+                    continue
+                seen.add(key)
+                judged += 1
+                if not any(all(st[idx[v]] == world[v] for v in vars_) for st in states):
+                    diagnostics.append(
+                        f"{w.act.path}: the world {side} '{w.kind}' reads {dict(key)}, "
+                        "which no sequence of the model's actions reaches from init")
+        return judged
+    return _stretch_check("conduct/constructible", tree, path, rel, judge)
+
+
 # --- the natives: counts behind solve() ---------------------------------------------------
 
 
@@ -777,6 +1184,10 @@ def agrees_count(tree, path, rel) -> float:
     return float(agrees(tree, path, rel).violations)
 
 
+def _count_of(fn):
+    return lambda tree, path, rel: float(fn(tree, path, rel).violations)
+
+
 from .spec import CONDUCT_SPEC  # noqa: E402
 
 register_native("conduct/effect", effect_count, CONDUCT_SPEC["conduct/effect"])
@@ -785,3 +1196,7 @@ register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"])
 register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"])
 register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"])
 register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])
+for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
+                   ("undo", undo), ("durable", durable), ("same-story", same_story),
+                   ("constructible", constructible)):
+    register_native(f"conduct/{_name}", _count_of(_fn), CONDUCT_SPEC[f"conduct/{_name}"])

@@ -347,11 +347,16 @@ EXAMPLES = [
                  payload={"type": "int", "domain": {"min": 0, "max": 1}, "init": 0,
                           "shown": {"door": "hook.read", "expr": "exists()"}},
                  name="the hook holds a coat iff a read of it returns one"),
-            Node(id="tickets", kind="state-var",
-                 payload={"type": "int", "domain": {"min": 0, "max": 3}, "init": 0,
-                          "shown": {"door": "counter.read", "expr": "at('n')"}},
-                 name="tickets issued so far: the counter document's n. A reclaim does not "
-                      "move it — which is what the value frame holds"),
+            Node(id="tag", kind="state-var",
+                 payload={"type": "enum", "domain": ["none", "red", "blue"], "init": "none",
+                          "shown": {"door": "tag.read", "expr": "at('color', 'none')"}},
+                 name="the colour written on the ticket: tagging again overwrites, so the "
+                      "last tag wins and tagging twice is tagging once"),
+            Node(id="shelf", kind="state-var",
+                 payload={"type": "enum", "domain": ["floor", "high", "low"], "init": "floor",
+                          "shown": {"door": "shelf.read", "expr": "at('level', 'floor')"}},
+                 name="where the coat sits: independent of the tag, so tagging and shelving "
+                      "commute"),
             Node(id="deposit", kind="event-kind",
                  payload={"args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
@@ -359,6 +364,20 @@ EXAMPLES = [
                           payload={"expr": "len(evidence('hook.write')) >= 1",
                                    "note": "the claiming span encloses a raw write "
                                            "to the hook's store"}),
+                 ]),
+            Node(id="tagging", kind="event-kind",
+                 payload={"args": {"color": {"type": "enum", "domain": ["red", "blue"]}}},
+                 children=[
+                     Node(id="tagging-license", kind="license",
+                          payload={"expr": "len(evidence('tag.write')) >= 1",
+                                   "note": "the ticket was written"}),
+                 ]),
+            Node(id="shelving", kind="event-kind",
+                 payload={"args": {"level": {"type": "enum", "domain": ["high", "low"]}}},
+                 children=[
+                     Node(id="shelving-license", kind="license",
+                          payload={"expr": "len(evidence('shelf.write')) >= 1",
+                                   "note": "the shelf register was written"}),
                  ]),
             Node(id="reclaim", kind="event-kind",
                  payload={"args": {}},
@@ -369,9 +388,8 @@ EXAMPLES = [
                                            "removal from the hook's store"}),
                  ]),
             Node(id="check-coat", kind="action",
-                 payload={"guard": "held == 0 and tickets < 3",
-                          "updates": [{"var": "held", "expr": "1"},
-                                      {"var": "tickets", "expr": "tickets + 1"}],
+                 payload={"guard": "held == 0",
+                          "updates": [{"var": "held", "expr": "1"}],
                           "args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
                      Node(id="check-coat-witness", kind="observation",
@@ -383,16 +401,43 @@ EXAMPLES = [
                                "the world must show it, and show it as deposited — "
                                "the hook.write carried the coat, and a hook.read "
                                "afterwards returns what it carried"),
-                     Node(id="check-coat-mutates", kind="mutates",
-                          payload={"entity": "tickets", "from": [],
-                                   "via": "counter.write", "shown_by": "counter.read"}),
                      Node(id="check-coat-touches", kind="touches",
-                          payload={"only": ["held", "tickets"],
-                                   "via": ["hook.write", "counter.write"]}),
+                          payload={"only": ["held"], "via": ["hook.write"]}),
+                 ]),
+            Node(id="tag-coat", kind="action",
+                 payload={"guard": "held == 1",
+                          "updates": [{"var": "tag", "expr": "color"}],
+                          "args": {"color": {"type": "enum", "domain": ["red", "blue"]}}},
+                 children=[
+                     Node(id="tag-coat-witness", kind="observation",
+                          payload={"event": "tagging"}),
+                     Node(id="tag-coat-mutates", kind="mutates",
+                          payload={"entity": "tag", "from": ["color"],
+                                   "via": "tag.write", "shown_by": "tag.read"},
+                          name="an overwrite: the update reads the argument and not "
+                               "the old tag, which is what lets the last write win and "
+                               "a repeat change nothing"),
+                     Node(id="tag-coat-touches", kind="touches",
+                          payload={"only": ["tag"], "via": ["tag.write"]}),
+                 ]),
+            Node(id="shelve-coat", kind="action",
+                 payload={"guard": "held == 1",
+                          "updates": [{"var": "shelf", "expr": "level"}],
+                          "args": {"level": {"type": "enum", "domain": ["high", "low"]}}},
+                 children=[
+                     Node(id="shelve-coat-witness", kind="observation",
+                          payload={"event": "shelving"}),
+                     Node(id="shelve-coat-mutates", kind="mutates",
+                          payload={"entity": "shelf", "from": ["level"],
+                                   "via": "shelf.write", "shown_by": "shelf.read"}),
+                     Node(id="shelve-coat-touches", kind="touches",
+                          payload={"only": ["shelf"], "via": ["shelf.write"]}),
                  ]),
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
-                          "updates": [{"var": "held", "expr": "0"}],
+                          "updates": [{"var": "held", "expr": "0"},
+                                      {"var": "tag", "expr": "'none'"},
+                                      {"var": "shelf", "expr": "'floor'"}],
                           "args": {}},
                  children=[
                      Node(id="reclaim-coat-witness", kind="observation",
@@ -402,14 +447,16 @@ EXAMPLES = [
                                    "via": "hook.delete", "shown_by": "hook.read"},
                           name="the ticket ceases: after this action, the world "
                                "must NOT show it — the effect law inverted, which "
-                               "is why deletion is its own kind"),
+                               "is why deletion is its own kind. The removal clears "
+                               "the tag and the shelf with it, which is what lets the "
+                               "undo restore the world before the deposit"),
                      Node(id="reclaim-coat-touches", kind="touches",
-                          payload={"only": ["held"], "via": ["hook.delete"]}),
+                          payload={"only": ["held", "tag", "shelf"], "via": ["hook.delete"]}),
                  ]),
-            Node(id="tickets-count-deposits", kind="invariant",
-                 payload={"expr": "tickets >= held",
-                          "note": "a coat on the hook was ticketed — the count never "
-                                  "lags the hook"}),
+            Node(id="no-tag-without-a-coat", kind="invariant",
+                 payload={"expr": "held == 1 or tag == 'none'",
+                          "note": "a ticket is written on a coat: the hook empty, the tag "
+                                  "is none"}),
             Node(id="never-two-coats", kind="invariant",
                  payload={"expr": "held <= 1",
                           "note": "the hook is single: a create over an occupied "
@@ -488,7 +535,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.6.1",
+    version="0.7.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -531,7 +578,12 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "bystander to hold still. 0.6.1 documents two more projection helpers — "
                 "`latest` and multi-pair `count` — and `weekday`'s `absent`: a log's last "
                 "completion day and its completion count are what a real model's stored "
-                "variables turned out to need.",
+                "variables turned out to need. 0.7.0: the cloakroom's ticket counter gives "
+                "way to a tag and a shelf — entities a repeat overwrites, an undo clears "
+                "and that sit independently of each other — so the two-stretch laws "
+                "(twice, last-write, commute, undo, durable, same-story, constructible) "
+                "have something on the example to demonstrate against. Vocabulary "
+                "unchanged.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

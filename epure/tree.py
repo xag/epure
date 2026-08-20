@@ -837,14 +837,20 @@ _CONDUCT_NATIVES = Node(
 _TWO_STRETCHES_DEBT = Node(
     id="four-families-compare-two-stretches",
     kind="debt",
-    name="twice-is-once, undo-restores, same-state-same-story and "
-         "shown-once-shown-until-touched compare two stretches of one tape; no native does",
+    name="twice-is-once, undo-restores, same-state-same-story, "
+         "shown-once-shown-until-touched, independent-writes-commute, last-write-wins, "
+         "equivalent-worlds-stay-equivalent and every-world-is-constructible compare two "
+         "stretches of one tape; no native did. Discharged 2026-08-20: seven natives over "
+         "the projected world around two acts",
     params={
+        # Grounded by the discharge: conduct@0.5.0 declares seven stretch-comparing
+        # contracts, each demonstrated on the cloakroom with a tape that refutes it and one
+        # that holds, the cross-matrix of implications asserted in tests/test_behavior.py.
         "stretch_comparing_natives": Quantity(
-            value=0, unit="contract", provenance="asserted", grounded=False,
-            source="the five natives each judge one act against the reads after it; none "
-                   "relates two acts, two pre-states, or a read long after to a read just "
-                   "after"),
+            value=7, unit="contract", provenance="verified", grounded=True,
+            source="conduct@0.5.0: conduct/twice, last-write, commute, undo, durable, "
+                   "same-story, constructible; 21 demonstrations beside the implementation; "
+                   "each lawful tape judged >= 1 pair (test_a_stretch_law_judges_something)"),
     },
     payload={
         "note":

@@ -307,9 +307,7 @@ CONDUCT_LAWS = [
         note="Not every action is idempotent and the model already says which: a guard that "
              "refuses its own post-state (the turnstile's insert-coin when unlocked) exits "
              "the family; a guard that re-admits enters it.",
-        owed="needs two consecutive acts with the same kind and data, the automaton's "
-             "verdict that the guard re-admits, and the world read back after each — a "
-             "comparison of two stretches, which no tape in the estate yet stages",
+        native="conduct/twice",
     ),
     _law(
         "refusal-changes-nothing",
@@ -339,9 +337,7 @@ CONDUCT_LAWS = [
         note="Read with k == k': deleting what was just inserted is deleting from the "
              "world before the insert — the undo restores, residue and bystanders included. "
              "0.1.0 carried this uncited; the paper states it in its appendix.",
-        owed="needs the world read back before the create and after the delete, compared "
-             "whole — conduct/effect holds the delete's own half (the entity is gone); "
-             "the residue and the bystanders want a snapshot comparison no door declares",
+        native="conduct/undo",
     ),
     _law(
         "same-state-same-story",
@@ -356,10 +352,7 @@ CONDUCT_LAWS = [
         note="The flight-recorder's whole premise, stated by the paper as a property: two "
              "equivalent worlds answer the same read. A difference names an undeclared "
              "input — a clock, a random draw, a global.",
-        owed="needs two stretches with identical abstract state and data, and a notion of "
-             "which differences in what was written are declared nondeterminism (a `now`, "
-             "a `rand`, an id drawn) — the flight-recorder's replay answers this per tape; "
-             "the cross-stretch form is not yet a native",
+        native="conduct/same-story",
     ),
     _law(
         "shown-once-shown-until-touched",
@@ -381,10 +374,7 @@ CONDUCT_LAWS = [
         meta={"expected:a-law-cites-a-source":
               "ACID durability is stated for transactions only; the general "
               "observable-effect form is unsourced. Source it or keep carrying it red."},
-        owed="conduct/effect stops at the first read that shows the effect; this law wants "
-             "every later read through the same door, until an act declaring the entity "
-             "intervenes — the horizon is computable now that positions travel, and the "
-             "check is the next native to write, not a stretch of this one",
+        native="conduct/durable",
     ),
     # --- the families 0.1.0 folded into nothing, read back from the sources ----------
     _law(
@@ -441,8 +431,7 @@ CONDUCT_LAWS = [
                            "§4.3"),
                    _hughes("prop DeleteDelete k k' t = delete k (delete k' t) ≏ "
                            "delete k' (delete k t)", "Appendix A")],
-        owed="four-families-compare-two-stretches: needs two stretches of one tape "
-             "compared, and a projection to compare them by",
+        native="conduct/commute",
     ),
     _law(
         "last-write-wins",
@@ -455,9 +444,7 @@ CONDUCT_LAWS = [
                            "≏ if k == k' then insert k v t else insert k' v' (insert k v t)",
                            "§4.3"),
                    _hughes("it no longer captures that \"the last insert wins\"", "§4.3")],
-        owed="four-families-compare-two-stretches: two acts on one entity, and the read "
-             "after both compared to what the second carried — the horizon machinery exists, "
-             "the native does not",
+        native="conduct/last-write",
     ),
     _law(
         "a-read-changes-nothing",
@@ -491,9 +478,7 @@ CONDUCT_LAWS = [
                            "that two expressions are equivalent; to use these conclusions in "
                            "further reasoning, we need to know that equivalence is preserved "
                            "by each operation", "§4.3")],
-        owed="four-families-compare-two-stretches: equivalence is projected equality, "
-             "which conduct/agrees now computes per act; what is missing is two stretches "
-             "with equal projected worlds before the same act, compared after",
+        native="conduct/same-story",
     ),
     _law(
         "every-world-is-constructible",
@@ -509,9 +494,7 @@ CONDUCT_LAWS = [
         note="The model side already exists for one direction — model/escapes asks whether "
              "home is reachable from every state; this asks whether every observed state is "
              "reachable from home.",
-        owed="four-families-compare-two-stretches: the projection exists; reachability of "
-             "a projected world from init is a walk the prover already does, pointed at the "
-             "tape's world instead of the model's — the native is not written",
+        native="conduct/constructible",
     ),
     _law(
         "a-merge-keeps-both-and-prefers-the-left",
@@ -648,6 +631,47 @@ CONDUCT_SOLVERS = [
         "witness — an effect naming no state-var, no `via`, or no `shown_by`; a `touches` "
         "naming an unknown state-var."),
     SolverDef(
+        name="conduct/twice", native=True,
+        description="(path, rel): count the adjacent repeats under `path` — same kind, same "
+        "data, one action whose guard still admits it in the projected world after the first "
+        "— after which the world differs from the world after the first. A guard that refuses "
+        "the repeat exits the family.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/last-write", native=True,
+        description="(path, rel): count the entities under `path` written by two adjacent "
+        "acts as overwrites (the update reads the argument, not the entity) whose value after "
+        "the second is not the second's update applied to the world before the first.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/commute", native=True,
+        description="(path, rel): count the stretch pairs under `path` — A;B on disjoint "
+        "variables and, elsewhere, B;A from an equal projected world — whose worlds after "
+        "differ. A stretch with no reverse on the tape is noted.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/undo", native=True,
+        description="(path, rel): count the create-then-delete pairs on one entity under "
+        "`path` after which the projected world differs from before the create — residue.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/durable", native=True,
+        description="(path, rel): count the (act, variable) pairs under `path` where a later "
+        "read, before any act that updates the variable, projects a value other than the one "
+        "the first read after the act showed.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/same-story", native=True,
+        description="(path, rel): count the pairs of acts under `path` with the same kind and "
+        "data from equal projected worlds whose projected worlds after differ — an undeclared "
+        "input. Equivalent worlds stay equivalent by the same count.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
+        name="conduct/constructible", native=True,
+        description="(path, rel): count the distinct projected worlds read off `path` that no "
+        "sequence of the model's actions reaches from init.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
         name="conduct/agrees", native=True,
         description="(path, rel): count the (act, projected state-var) pairs under `path` "
         "where the world disagrees with the model — the variable's value projected from the "
@@ -741,7 +765,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.4.2",
+    version="0.5.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -775,14 +799,19 @@ CONDUCT_PACKAGE = Package(
                 "the census says which. 0.4.1 follows semantic-model@0.6.1 (two more "
                 "projection helpers). 0.4.2: the frame law - this package's example - "
                 "carries its third sighting, from the first run with every tool call an "
-                "act; content only.",
+                "act; content only. 0.5.0 pays the two-stretch debt: conduct/twice, "
+                "last-write, commute, undo, durable, same-story and constructible compare "
+                "the projected world around two acts rather than one — idempotence, "
+                "overwrite, commutation, undo, durability, determinism and reachability, "
+                "each refuted on the cloakroom by a tape that fails it and each stated in "
+                "the sources' own formulas. Eighteen census items move to covered.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.6.1"),
+        PackageRef(name="semantic-model", version="0.7.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

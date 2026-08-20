@@ -284,6 +284,46 @@ def prove(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Proof:
         violations=[refuted[inv] for inv, _, _ in invariants if inv in refuted])
 
 
+def reachable(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP
+              ) -> tuple[list[str], set[tuple]]:
+    """Every reachable state of the model at `path`, as tuples over the variable order
+    returned beside them — the same walk `prove` makes, without the invariants. The
+    conduct natives ask it whether a world read off a tape is one the model can reach."""
+    _, variables, actions, _ = _load(tree, path)
+    order = [name for name, _, _ in variables]
+    domains = {name: dom for name, dom, _ in variables}
+    init = tuple(i for _, _, i in variables)
+    seen: set[tuple] = {init}
+    frontier = [init]
+    while frontier:
+        nxt: list[tuple] = []
+        for key in frontier:
+            state = dict(zip(order, key))
+            for action in actions:
+                for binding in action.bindings:
+                    env = {**state, **binding, **_LITERALS}
+                    if not action.guard(env):
+                        continue
+                    succ = dict(state)
+                    for var, expr in action.updates:
+                        value = expr(env)
+                        if isinstance(value, float) and value.is_integer():
+                            value = int(value)
+                        if value not in domains[var]:
+                            raise ValueError(f"action '{action.id}' drives '{var}' to "
+                                             f"{value!r}, outside its domain")
+                        succ[var] = value
+                    succ_key = tuple(succ[n] for n in order)
+                    if succ_key in seen:
+                        continue
+                    if len(seen) >= cap:
+                        raise ValueError(f"state space exceeds {cap} states")
+                    seen.add(succ_key)
+                    nxt.append(succ_key)
+        frontier = nxt
+    return order, seen
+
+
 def _model_sha256(node: Node) -> str:
     """The model's content identity — canonical serialization, not file bytes, for exactly
     the reason `package_digest` is: transport mangles bytes without changing meaning."""
