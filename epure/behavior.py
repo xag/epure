@@ -431,9 +431,15 @@ def _acts_and_stream(node: Node, path: str, calls: bool = False
             # the importer lifted it out of the raw window into a node, and a projection
             # reading the app's STATEMENT at a point (0.11.0, the derived view) must find it
             # where it was said - name and data, nothing the raw event did not carry
-            stream.append((act.at, {
-                "k": "sem", "name": c.kind, "data": c.payload.get("data") or {},
-                "phase": "point" if act.at == act.to else "begin"}))
+            def said(n: Node) -> None:
+                at = (ci, n.payload.get("at", -1))
+                to = n.payload.get("to")
+                stream.append((at, {
+                    "k": "sem", "name": n.kind, "data": n.payload.get("data") or {},
+                    "phase": "point" if to is None or to == at[1] else "begin"}))
+                for d in n.children:
+                    said(d)
+            said(c)
         if calls and s.kind == "scenario":
             whole = Node(id=s.id, kind=s.name or "", payload={
                 "data": s.payload.get("data") or {}, "outcome": s.payload.get("outcome"),

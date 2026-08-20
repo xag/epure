@@ -69,8 +69,8 @@ from typing import Any, Callable, Sequence
 from quern import Node, Quern
 
 from epure.behavior import (agrees, commute, conditional, constructible, declared, durable,
-                            effect, faithful, frame, last_write, merge, refusal, same_story,
-                            stamped, twice, undo)
+                            effect, eventually, faithful, frame, last_write, merge, refusal,
+                            same_story, stamped, twice, undo)
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
@@ -80,12 +80,12 @@ _CHECKS: tuple[tuple[str, Callable], ...] = (
     ("agrees", agrees), ("twice", twice), ("last-write", last_write), ("commute", commute),
     ("undo", undo), ("durable", durable), ("same-story", same_story),
     ("constructible", constructible), ("merge", merge), ("stamped", stamped),
-    ("conditional", conditional))
+    ("conditional", conditional), ("eventually", eventually))
 _CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
             "commute", "undo", "durable", "same-story", "constructible", "merge", "stamped",
-            "conditional")
+            "conditional", "eventually")
 _STRETCH = ("agrees", "twice", "last-write", "commute", "undo", "durable", "same-story",
-            "constructible", "merge", "stamped", "conditional")
+            "constructible", "merge", "stamped", "conditional", "eventually")
 
 
 @dataclass(frozen=True)

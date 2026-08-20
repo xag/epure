@@ -77,7 +77,7 @@ def _verdict(tmp_path, *, bound: int, total: int = 0, budget: dict | None = None
                 **{law: (laws.get(law, 0), "") for law in
                    ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
                     "commute", "undo", "durable", "same-story", "constructible", "merge",
-                    "stamped", "conditional")}}
+                    "stamped", "conditional", "eventually")}}
     return v
 
 
