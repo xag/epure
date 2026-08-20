@@ -717,13 +717,19 @@ class _Worlds:
                                          for u in c.payload.get("updates") or []}
                 self.guard_src[c.id] = str(c.payload.get("guard", ""))
         self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
-        # the doors that write each projected variable: a read before an act is a valid
-        # pre-world only if nothing passed through them between the read and the act
+        # the doors that write each projected variable: every door of every action that
+        # UPDATES it (its effects' via and its touches.via). A read is a valid world before
+        # an act only if nothing passed through them between the read and the act, and a
+        # valid world after only if nothing passed through them between the act and the read.
         self.writes_of: dict[str, list[Door]] = {v: [] for v in self.projections}
         for a in self.model.actions:
+            moved = {var for var, _ in self.by_id[a.id]["updates"]} if a.id in self.by_id else set()
             for e in a.effects:
-                if e.entity in self.writes_of:
-                    self.writes_of[e.entity].extend(e.via)
+                moved.add(e.entity)
+            ds = list(a.touches_via) + [d for e in a.effects for d in e.via]
+            for var in moved:
+                if var in self.writes_of:
+                    self.writes_of[var].extend(ds)
         self.notes: list[str] = []
         self.errors: list[str] = []
         self.worlds: list[_World] = []
@@ -745,22 +751,18 @@ class _Worlds:
                 return e
         return None
 
-    def _read_after(self, proj: _Projection, to: tuple, limit: tuple):
+    def _read_after(self, proj: _Projection, to: tuple):
+        """The first read of the variable after `to` — unless a write through one of the
+        variable's own doors comes first, in which case the world after this act was never
+        read for this variable."""
         for pos, e in self.stream:
-            if to < pos < limit and _through(e, proj.doors):
+            if pos <= to:
+                continue
+            if _through(e, self.writes_of.get(proj.var, [])):
+                return None
+            if _through(e, proj.doors):
                 return e
         return None
-
-    def limit_after(self, i: int) -> tuple:
-        """Where the world after act i ends: the next act (after it ENDS) first writes."""
-        following = _after(self.acts, i)
-        if not following:
-            return (len(self.acts) + 10 ** 9, float("inf"))
-        nxt = following[0]
-        for pos, e in nxt.events:
-            if _through(e, self.model.known):
-                return pos
-        return nxt.at
 
     def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
         return [e for pos, e in self.stream if lo < pos < hi and _through(e, proj.doors)]
@@ -774,7 +776,6 @@ class _Worlds:
             action = self.by_id[bound[0].id] if len(bound) == 1 else None
             if action is None:
                 self.notes.append(f"{where} binds {len(bound)} action(s) — not judged")
-            limit = self.limit_after(i)
             pre: dict[str, Any] = {}
             post: dict[str, Any] = {}
             for var, proj in self.projections.items():
@@ -782,7 +783,7 @@ class _Worlds:
                     before = self._read_before(proj, act.at)
                     if before is not None and (v := proj.value(before)) is not None:
                         pre[var] = v
-                    after = self._read_after(proj, act.to, limit)
+                    after = self._read_after(proj, act.to)
                     if after is not None and (v := proj.value(after)) is not None:
                         post[var] = v
                 except ValueError as e:
@@ -1059,6 +1060,12 @@ def durable(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                         horizon = later.act.at
                         break
                 later_reads = W.reads_between(proj, w.act.to, horizon)[1:]
+                # ...and stop at the first write through the variable's own doors as well
+                cut = next((pos for pos, e in W.stream
+                            if pos > w.act.to and _through(e, W.writes_of.get(var, []))), None)
+                if cut is not None:
+                    later_reads = [r for r in later_reads
+                                   if next(p for p, e in W.stream if e is r) < cut]
                 if not later_reads:
                     continue
                 judged += 1
