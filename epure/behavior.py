@@ -692,7 +692,12 @@ class _World:
         return self.act.span.payload.get("data") or {}
 
     def updates(self) -> set[str]:
-        return {var for var, _ in self.action["updates"]} if self.action else set()
+        """The variables this act moves: its own action's updates and, for a call, those
+        of every span it encloses — a call answers for its spans' writes as its own."""
+        out = {var for var, _ in self.action["updates"]} if self.action else set()
+        return out | self.inner_updates
+
+    inner_updates: set[str] = set()
 
 
 class _Worlds:
@@ -705,10 +710,12 @@ class _Worlds:
         self.by_id = {a["id"]: a for a in actions}
         # the update exprs' SOURCE, for the overwrite test last-write needs
         self.update_src: dict[str, dict[str, str]] = {}
+        self.guard_src: dict[str, str] = {}
         for c in self.model_node.children:
             if c.kind == "action":
                 self.update_src[c.id] = {u["var"]: u["expr"]
                                          for u in c.payload.get("updates") or []}
+                self.guard_src[c.id] = str(c.payload.get("guard", ""))
         self.acts, self.stream = _acts_and_stream(self.node, path, calls=True)
         self.notes: list[str] = []
         self.errors: list[str] = []
@@ -766,7 +773,10 @@ class _Worlds:
             data = act.span.payload.get("data") or {}
             binding = ({a: _normalize(data[a]) for a in action["args"] if a in data}
                        if action else {})
-            self.worlds.append(_World(i, act, action, pre, post, binding))
+            w = _World(i, act, action, pre, post, binding)
+            w.inner_updates = {var for inner in act.inner for a in self.model.bound(inner.span)
+                               for var, _ in self.by_id[a.id]["updates"]}
+            self.worlds.append(w)
 
     def adjacent(self) -> list[tuple[_World, _World]]:
         """Pairs (w1, w2) where w2 is the first bound act that begins after w1 ends — no
@@ -877,7 +887,12 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         data = act.span.payload.get("data") or {}
         binding = {a: _normalize(data[a]) for a in action["args"] if a in data}
         updated = {var: expr for var, expr in action["updates"]}
+        # a call answers for its spans' writes: what they update is not the call's frame
+        enclosed = {var for inner in act.inner for a in model.bound(inner.span)
+                    for var, _ in by_id[a.id]["updates"]}
         for var, proj in projections.items():
+            if var in enclosed and var not in updated:
+                continue
             if var not in post:
                 notes.append(f"{where} ({action['id']}): no {proj.src!r} read of '{var}' "
                              "after the act — unwitnessed")
@@ -1106,9 +1121,15 @@ def same_story(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             for b in spans[i + 1:]:
                 if a.kind != b.kind or a.data != b.data:
                     continue
-                if set(a.pre) != set(W.projections) or set(b.pre) != set(W.projections):
+                common = set(a.pre) & set(b.pre)
+                # the state the act depends on must be known on both sides: every projected
+                # variable its guard or updates name
+                src = " ".join([W.update_src.get(a.action["id"], {}).get(v, "")
+                                for v in a.updates()] + [W.guard_src.get(a.action["id"], "")])
+                needed = {v for v in W.projections if v in src.replace("'", " ").split()}
+                if not common or not needed <= common:
                     continue
-                if not _equal_on(a.pre, b.pre, W.projections):
+                if not _equal_on(a.pre, b.pre, common):
                     continue
                 both = set(a.post) & set(b.post)
                 if not both:
