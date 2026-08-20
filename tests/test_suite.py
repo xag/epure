@@ -66,14 +66,24 @@ def _suite(root: Path, *, gated: bool = False, budget: dict | None = None,
         receipt=(root / "receipt.json") if receipt else None)
 
 
-def _verdict(tmp_path, *, bound: int, total: int = 0, budget: dict | None = None) -> Verdict:
+def _verdict(tmp_path, *, bound: int, total: int = 0, budget: dict | None = None,
+             **laws: int) -> Verdict:
     """A judged tape's answers, without a model. The gate is a function of the class and the
-    three numbers, and the rules below are about the gate."""
+    seven numbers, and the rules below are about the gate."""
     v = Verdict(tmp_path / "rides" / "t.jsonl", "ride",
                 _suite(tmp_path, gated=True, budget=budget))
     v.bound, v.acts = bound, max(bound, 1)
-    v.checks = {"licensed": (0, ""), "total": (total, ""), "refines": (0, "")}
+    v.checks = {"licensed": (0, ""), "total": (total, ""), "refines": (0, ""),
+                **{law: (laws.get(law, 0), "") for law in
+                   ("effect", "faithful", "frame", "refusal")}}
     return v
+
+
+def test_a_conduct_red_gates_a_refining_class(tmp_path):
+    """The laws ride refinement's gate: a tape built to be answerable answers for its conduct."""
+    assert _verdict(tmp_path, bound=3, budget={"t": 0}).red() == []
+    assert _verdict(tmp_path, bound=3, budget={"t": 0}, frame=1).red() == ["conduct/frame"]
+    assert _verdict(tmp_path, bound=3, budget={"t": 0}, effect=2, refusal=1).red() ==         ["conduct/effect", "conduct/refusal"]
 
 
 def test_a_lawful_ride_is_green_for_an_app_the_harness_has_never_seen(tmp_path):

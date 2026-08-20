@@ -1,9 +1,17 @@
 """The conformance driver: confront an app's tapes with its model, and say red or green.
 
-`epure.conformance` answers three questions about ONE slice — licensed, total, refines. This is
-the harness around them: walk an app's tape directories, judge each tape, print one screen, and
-leave a digest-bearing receipt a ledger gate can ground on. It is the part every adopter needs
-and none of them should write twice.
+`epure.conformance` answers three questions about ONE slice — licensed, total, refines — and
+`epure.behavior` four more: effect, faithful, frame, refusal, the conduct laws held against what
+the act actually wrote and read back. This is the harness around all seven: walk an app's tape
+directories, judge each tape, print one screen, and leave a digest-bearing receipt a ledger gate
+can ground on. It is the part every adopter needs and none of them should write twice.
+
+THE CONDUCT CHECKS ride the same gate as refinement: a class held to refinement is held to the
+laws, because both are claims about a tape built to be answerable. A model that declares no
+doors answers 0 to all four, vacuously — `conduct/checkable` on the model is what says so, and
+it is the adopter's model test to run it, not this harness's per-tape business. A conduct note
+(a read that never came) is printed, never counted: a green resting on silence is visible as
+such.
 
 It was written twice already — once, in chores, as `tools/conformance.py`. That file was 351
 lines of which the app-shaped part was five constants: the model, its package name, the tape
@@ -59,11 +67,14 @@ from typing import Any, Callable, Sequence
 
 from quern import Node, Quern
 
+from epure.behavior import effect, faithful, frame, refusal
 from epure.conformance import licensed, refines, total
 from epure.tape import import_scenario
 
 _CHECKS: tuple[tuple[str, Callable], ...] = (
-    ("licensed", licensed), ("total", total), ("refines", refines))
+    ("licensed", licensed), ("total", total), ("refines", refines),
+    ("effect", effect), ("faithful", faithful), ("frame", frame), ("refusal", refusal))
+_CONDUCT = ("effect", "faithful", "frame", "refusal")
 
 
 @dataclass(frozen=True)
@@ -116,6 +127,7 @@ class Verdict:
         self.acts = 0
         self.bound = 0
         self.checks: dict[str, tuple[int, str]] = {}
+        self.notes: dict[str, int] = {}
         self.error = ""
 
     @property
@@ -146,6 +158,10 @@ class Verdict:
                 bad.append("no totality budget (add one, with a reason)")
             elif self.checks["total"][0] > budget:
                 bad.append(f"totality ratchet ({self.checks['total'][0]} > {budget})")
+            # The laws: what the act declared it does, the world shows; nothing else moved.
+            for law in _CONDUCT:
+                if self.checks[law][0]:
+                    bad.append(f"conduct/{law}")
         return bad
 
 
@@ -185,6 +201,8 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
             # with the tape name the report already prints in the margin.
             first = first[len(tape.stem) + 1:] if first.startswith(tape.stem + "/") else first
             v.checks[name] = (got.violations, first)
+            if got.notes:
+                v.notes[name] = len(got.notes)
         except Exception as e:                       # a broken link, a model that is not a model
             v.error = f"{type(e).__name__}: {e}"
             v.checks[name] = (-1, v.error)
@@ -198,8 +216,8 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
         rows = [v for v in verdicts if v.kind == kind]
         if not rows:
             continue
-        held = cls.held or ("licensed + refines + a totality ratchet" if cls.refines_gated
-                            else "licensed only")
+        held = cls.held or ("licensed + refines + a totality ratchet + the conduct laws"
+                            if cls.refines_gated else "licensed only")
         print(f"\n{kind}s ({len(rows)}) - held to: {held}")
         print("-" * 78)
         for v in sorted(rows, key=lambda r: r.name):
@@ -212,6 +230,10 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
             print(f"  {mark}{v.name:<28} licensed={lic:<4} total={tot}{room:<8} "
                   f"refines={ref}  ({v.bound} of {v.acts} acts bind an arg"
                   f"{' - VACUOUS, it refines by saying nothing' if v.vacuous else ''})")
+            # The laws on their own line: four counts, and the silences beside them.
+            laws = " ".join(f"{law}={v.checks[law][0]}" for law in _CONDUCT)
+            quiet = ", ".join(f"{n} {law} read(s) never came" for law, n in v.notes.items())
+            print(f"      laws: {laws}{f'   [{quiet}]' if quiet else ''}")
             for check, _ in _CHECKS:
                 n, first = v.checks[check]
                 if n and first:
@@ -259,6 +281,7 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
                 "licensed": v.checks["licensed"][0],
                 "total": v.checks["total"][0],
                 "refines": v.checks["refines"][0],
+                "conduct": {law: v.checks[law][0] for law in _CONDUCT},
                 "red": v.red(),
             }
             for v in sorted(verdicts, key=lambda r: (r.kind, r.name))
@@ -324,4 +347,6 @@ def main(suite: Suite, argv: Sequence[str]) -> int:
     print()
     print("A refinement red is never ambiguous: either the model is wrong (fix it, re-prove it)")
     print("or the code diverged (the diagnostic names the first illegal step). Decide which.")
+    print("A conduct red names the act and the law: the world did not show what the act declared,")
+    print("or something moved the act never claimed. Either the door is wrong or the code is.")
     return 1
