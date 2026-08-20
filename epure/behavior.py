@@ -534,11 +534,11 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many effects under `path` wrote something that disagrees with the inputs their
     `from` names: each named argument's value, as the span testified it, must appear in
     what the `via` write carried. An effect with an empty `from`, or with no write inside
-    the act, is not this check's to judge — and neither is one whose entity PROJECTS and
-    whose update reads every named input (assignee := member): there conduct/agrees holds
-    faithfulness by value, which knows that the model's `none` is the store's null where
-    containment cannot. An update that ignores the input (held := 1, whatever the coat)
-    leaves the containment form as the only reader of the input."""
+    the act, is not this check's to judge. An input the entity's update READS into a
+    projected entity (assignee := member) is held by value by conduct/agrees, which knows
+    that the model's `none` is the store's null where containment cannot; the inputs it
+    does not read (the chore that selects the act, a coat that `held := 1` ignores) are
+    held here, by containment."""
     node, model_node = _confront(tree, path, rel)
     model = _Model(model_node)
     projected = set(_projections(model_node))
@@ -555,13 +555,15 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 continue
             src = update_src.get(eff.action, {}).get(eff.entity, "")
             words = set(src.replace("'", " ").replace("(", " ").replace(")", " ").split())
-            if eff.entity in projected and set(eff.inputs) <= words:
-                continue  # held by value, by conduct/agrees
+            # an input the update reads into a projected entity is held by value by agrees;
+            # the others (an input that selects the act, a coat the update ignores) by
+            # containment here
+            by_value = words if eff.entity in projected else set()
             carried = [v for _, e in act.events if _through(e, eff.via) for v in _carried(e)]
             if not carried:
                 continue
-            missing = [a for a in eff.inputs
-                       if a in data and not any(_within(v, data[a]) for v in carried)]
+            missing = [a for a in eff.inputs if a not in by_value
+                       and a in data and not any(_within(v, data[a]) for v in carried)]
             if missing:
                 diagnostics.append(
                     f"{act.path}: '{act.span.kind}' ({eff.action}) declares {eff.kind} "
