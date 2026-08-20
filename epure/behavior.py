@@ -447,6 +447,7 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     notes: list[str] = []
+    judged = 0
 
     for i, act in enumerate(acts):
         if act.span.payload.get("outcome") == "error":
@@ -473,6 +474,7 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     notes.append(f"{where}: no {eff.shown_spec!r} read after the act — "
                                  "unwitnessed, not shown")
                     continue
+                judged += 1
                 if not any(_within(r.get("res"), v) for r in reads for v in carried):
                     diagnostics.append(
                         f"{where}: {len(reads)} read(s) through {eff.shown_spec!r} after "
@@ -487,6 +489,7 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     notes.append(f"{where}: no {eff.shown_spec!r} read after the act — "
                                  "unwitnessed, not shown absent")
                     continue
+                judged += 1
                 for r in reads:
                     res = r.get("res")
                     if (any(_within(res, v) for v in targets)
@@ -496,7 +499,7 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                             "the entity — the removal did not remove")
                         break
     return Conformance(check="conduct/effect", violations=len(diagnostics),
-                       diagnostics=diagnostics, notes=notes)
+                       diagnostics=diagnostics, notes=notes, judged=judged)
 
 
 # --- conduct/faithful: what was made from the inputs agrees with the inputs ---------------
@@ -661,6 +664,7 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     notes: list[str] = []
+    judged = 0
     if not projections:
         notes.append(f"{path}: the model projects no state-var — nothing to agree on")
         return Conformance(check="conduct/agrees", violations=0, notes=notes)
@@ -724,11 +728,13 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     notes.append(f"{where} ({action['id']}): '{var}' cannot be computed from "
                                  f"the projected world — {e}")
                     continue
+                judged += 1
                 if post[var] != expected:
                     diagnostics.append(
                         f"{where} ({action['id']}) updates '{var}' to {expected!r} from the "
                         f"projected world {pre}; the world shows {post[var]!r} after")
             elif var in pre:
+                judged += 1
                 if post[var] != pre[var]:
                     diagnostics.append(
                         f"{where} ({action['id']}) does not update '{var}', and the world "
@@ -738,7 +744,7 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 notes.append(f"{where} ({action['id']}): '{var}' has no read before the act "
                              "— its frame cannot be judged")
     return Conformance(check="conduct/agrees", violations=len(diagnostics),
-                       diagnostics=diagnostics, notes=notes)
+                       diagnostics=diagnostics, notes=notes, judged=judged)
 
 
 # --- the natives: counts behind solve() ---------------------------------------------------

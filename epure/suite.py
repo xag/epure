@@ -132,6 +132,7 @@ class Verdict:
         self.declared = 0   # ...whose tool the model names, so the call itself is judged
         self.checks: dict[str, tuple[int, str]] = {}
         self.notes: dict[str, int] = {}
+        self.judged: dict[str, int] = {}
         self.error = ""
 
     @property
@@ -210,6 +211,8 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
             v.checks[name] = (got.violations, first)
             if got.notes:
                 v.notes[name] = len(got.notes)
+            if got.judged:
+                v.judged[name] = got.judged
         except Exception as e:                       # a broken link, a model that is not a model
             v.error = f"{type(e).__name__}: {e}"
             v.checks[name] = (-1, v.error)
@@ -238,7 +241,9 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
                   f"refines={ref}  ({v.bound} of {v.acts} acts bind an arg"
                   f"{' - VACUOUS, it refines by saying nothing' if v.vacuous else ''})")
             # The laws on their own line: four counts, and the silences beside them.
-            laws = " ".join(f"{law}={v.checks[law][0]}" for law in _CONDUCT)
+            laws = " ".join(f"{law}={v.checks[law][0]}"
+                            + (f"/{v.judged[law]}" if law in v.judged else "")
+                            for law in _CONDUCT)
             quiet = ", ".join(f"{n} {law} read(s) never came" for law, n in v.notes.items())
             # Calls the model names are judged as acts themselves; the rest are counted.
             print(f"      laws: {laws}   calls declared {v.declared}/{v.calls}"
@@ -291,6 +296,7 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
                 "total": v.checks["total"][0],
                 "refines": v.checks["refines"][0],
                 "conduct": {law: v.checks[law][0] for law in _CONDUCT},
+                "judged": {law: v.judged.get(law, 0) for law in ("effect", "agrees")},
                 "calls": v.calls,
                 "calls_declared": v.declared,
                 "red": v.red(),

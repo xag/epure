@@ -64,6 +64,9 @@ class Conformance(BaseModel):
     #: What the check could not decide and says so: a conduct law whose witnessing read
     #: never came. Not violations — a green resting on silence, made visible as such.
     notes: list[str] = Field(default_factory=list)
+    #: How many (act, claim) pairs the check actually decided — so a zero can be read:
+    #: 0 of 0 is silence, 0 of 40 is a verdict.
+    judged: int = 0
 
 
 # --- the convention: one slice, one model ---------------------------------------------
