@@ -311,6 +311,17 @@ REFUSED_CLEAN = visit([*_act("deposit", RED, outcome="error"), _read(None)])
 AGREES = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
                 *TAG_RED, *world("red", "red", None)])
 WORLD_LOST = visit([*EMPTY, *DEPOSIT, *world(None, None, None)])
+
+
+def _sign(occupied: bool) -> dict[str, Any]:
+    """The attendant states the sign: a point whose data is the view's value (0.11.0)."""
+    return _sem("sign-shown", "point", 9, {"occupied": occupied})
+
+
+SIGN_STATED = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None), _sign(True)])
+SIGN_WRONG = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None), _sign(False)])
+SIGN_STALE = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None),
+                    *TAG_RED, *world("red", "red", None), _sign(True)])
 TAG_WRONG = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
                    *TAG_RED, *world("red", "blue", None)])
 BYSTANDER_MOVED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
@@ -531,6 +542,18 @@ AGREES_SPEC = [
     c("agrees", visited(WORLD_UNOPENED), ["visit", "model"], expect=0,
       because="no read before the act: the pre-world is unknown, so nothing is computed "
               "and nothing is convicted — noted, never counted"),
+    c("agrees", visited(SIGN_STATED), ["visit", "model"], expect=0,
+      because="the derived view (0.11.0): nothing stores the OCCUPIED sign, the attendant "
+              "states it at a point, and its projection reads the statement - off before "
+              "the deposit, on after, as the model's update says"),
+    c("agrees", visited(SIGN_WRONG), ["visit", "model"], expect=1,
+      because="the sign still says vacant after the deposit: the model says lit, the app's "
+              "own statement says not - the view's arithmetic held to the model's, which no "
+              "reimplementation of it in a projection could have caught"),
+    c("agrees", visited(SIGN_STALE), ["visit", "model"], expect=0,
+      because="the sign read before the deposit is no pre-world for the tagging after it: "
+              "`derived_from` makes the hook's writers the sign's, so the stale statement is "
+              "discarded instead of convicting a tag that never touched the sign"),
     c("agrees", judged(LAWFUL), ["session", "model"], expect=0,
       because="the turnstile projects nothing: a model without projections has nothing "
               "to agree on, and says so in a note rather than passing in silence"),

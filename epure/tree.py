@@ -40,6 +40,7 @@ def build() -> Quern:
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
+                           _DERIVED_DECISION,
                            _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, _DOOR_CENSUS_DEBT,
                            census(),
                            *CONDUCT_LAWS]
@@ -267,7 +268,7 @@ _TEMPORAL_DEBT = Node(
         # model/promised and held on tapes by conduct/eventually.
         "predicate_kinds": Quantity(
             value=2, unit="kind", provenance="verified", grounded=True,
-            source="semantic-model@0.10.0: invariant (safety) and promise (liveness: when -> "
+            source="semantic-model@0.10.0+: invariant (safety) and promise (liveness: when -> "
                    "eventually then, unless released, within a horizon); the cloakroom "
                    "promises a checked coat is reclaimed and a reclaim that demands a tag is "
                    "refuted as a trap (epure.spec PROMISED)"),
@@ -889,6 +890,61 @@ _TWO_STRETCHES_DEBT = Node(
 )
 
 
+_DERIVED_DECISION = Node(
+    id="a-view-projects-from-the-apps-statement",
+    kind="decision",
+    name="A state-var the app recomputes (a view: a rhythm's pending flag) projects from the "
+         "testimony point where the app STATES the value, and names the stored variables it "
+         "derives from so its writers are theirs - never from an expression that recomputes "
+         "it out of several reads",
+    payload={
+        "rationale":
+            "Hughes' caveat on the abstraction function: a projection that reimplements the "
+            "operation tests nothing, because the model's arithmetic and the projection's "
+            "are the same arithmetic written twice and agree by construction. The app "
+            "already computes the view - the board is the rhythm's decision rendered - so "
+            "the honest read is that decision as data at a point (`fr.note('board-shown', "
+            "due=[...])`), and the law becomes: the model's arithmetic agrees with the "
+            "app's. Staleness is the second half: a view changes without any write of its "
+            "own, whenever a variable it depends on is written, so `derived_from` names "
+            "those and the native takes their writers as the view's. The testimony node "
+            "re-enters the stream at its own mark for the door to find it - the importer "
+            "had lifted it into the tree and out of the raw window.",
+        "consequence":
+            "semantic-model@0.11.0: `shown.derived_from`, a door's `where` reaching the "
+            "event's own fields (`name` of a point), a projection reading a point's data as "
+            "`res`; the cloakroom's OCCUPIED sign as the example and three agrees "
+            "demonstrations (stated, wrong, stale). conduct@0.9.0 reads it. The value laws "
+            "and conduct/eventually now reach the views a rhythm derives; what the app must "
+            "add is one note per surface where it states a view.",
+    },
+    params={
+        "demonstrations": Quantity(value=3, unit="demonstration", provenance="verified",
+                                   grounded=True,
+                                   source="epure.spec AGREES_SPEC: SIGN_STATED 0, SIGN_WRONG "
+                                          "1, SIGN_STALE 0 under conduct/agrees, "
+                                          "semantic-model@0.11.0 digest cf6e19e8"),
+    },
+    children=[
+        Node(id="alt-expr-over-several-reads", kind="alternative",
+             name="A projection over several named reads, its expr recomputing the view "
+                  "(`today - hoover_last >= 2`)",
+             payload={"why":
+                      "Exactly the reimplementation the paper warns against: the model's "
+                      "guard and the projection's expr would be the same formula, and a "
+                      "rhythm bug shared by both (the app's, the model's, the projection's "
+                      "all written from the same reading) would be green three times."}),
+        Node(id="alt-leave-views-unprojected", kind="alternative",
+             name="Keep views unprojected and held by presence, as the census counts them",
+             payload={"why":
+                      "Then every promise over a pending flag judges 0/0 on every tape "
+                      "(chores-model@0.17.0 measured it) and liveness stays a model-only "
+                      "property; the vocabulary's asymptote is reached by adding the word, "
+                      "not by declaring the gap permanent."}),
+    ],
+)
+
+
 _CENSUS_DECISION = Node(
     id="the-census-is-read-from-the-sources",
     kind="decision",
@@ -951,8 +1007,9 @@ _PROJECTION_DEBT = Node(
             source="chores-model@0.13.0 (digest 68ad0f00): today, hoover_last, bins_done, "
                    "hoover_assignee, bins_assignee carry `shown`; tools.conformance judged "
                    "539 pairs under conduct/agrees across 17 tapes, 0 disagreeing (2026-08-20). "
-                   "The six view variables (pending flags, wash_day, wash_by_hand) project "
-                   "nothing and are held by presence"),
+                   "The view variables (pending flags, wash_day, wash_by_hand) projected "
+                   "nothing then; semantic-model@0.11.0's derived view (2026-08-21, "
+                   "decision a-view-projects-from-the-apps-statement) is how they do"),
     },
     payload={
         "note":

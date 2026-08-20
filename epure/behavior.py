@@ -121,7 +121,10 @@ def _arg(event: dict[str, Any], key: str) -> Any:
     args = event.get("args") or []
     if key.isdigit() and int(key) < len(args):
         return args[int(key)]
-    return None
+    # the event's own fields last: `name` of a semantic point, `op` of a store exchange -
+    # what lets a door admit the app's stated decision (`{"event": "sem", "where":
+    # {"name": "board-shown"}}`) and not only its stored reads
+    return event.get(key)
 
 
 def _render(value: Any) -> str:
@@ -133,7 +136,8 @@ def _render(value: Any) -> str:
 def door(spec: Any) -> Door:
     """One door as a predicate over raw events: a name pattern, optionally narrowed by
     argument patterns. `{"event": "app.storage.put_field", "where": {"field": "done.*"}}`
-    admits a field write to the completions map and nothing else."""
+    admits a field write to the completions map and nothing else; `{"event": "sem",
+    "where": {"name": "board-shown"}}` admits the app's own statement at a point."""
     if isinstance(spec, str):
         pattern, where = spec, {}
     elif isinstance(spec, dict):
@@ -294,13 +298,20 @@ class _Projection:
             raise ValueError(f"state-var '{var}': a projection names a door and an expr")
         self.expr = _compile(self.src, f"projection of '{var}'")
         self.domain = domain
+        # a DERIVED view (0.11.0): the stored variables this one is a function of. Its
+        # writers are theirs - a read of it is stale once any of them was written - and its
+        # door is typically the point where the app states the value it computed, read as
+        # `res` from the point's data. Hughes' warning is why the shape is this and not an
+        # expr over several reads: a projection that reimplements the operation tests
+        # nothing; one that reads the app's decision holds the model to the app.
+        self.derived_from: list[str] = [str(v) for v in (spec.get("derived_from") or [])]
 
     def value(self, event: dict[str, Any]) -> Any:
         """The variable's value as this read shows it — or None when the read shows nothing
         for it (the path is absent, the date is missing): not a disagreement, an unwitnessed
         act, and the caller treats it as no read. A validator has no domain: its value is
         opaque."""
-        res = event.get("res")
+        res = event["res"] if "res" in event else event.get("data")
         out = _normalize(self.expr({"res": res, **_LITERALS}, _projection_env(res)))
         if out is None or self.domain is None:
             return out
@@ -416,6 +427,13 @@ def _acts_and_stream(node: Node, path: str, calls: bool = False
             act = _Act(ci, f"{sp}/{c.id}", c)
             inner.append(act)
             stream.extend(act.events)
+            # the testimony itself re-enters the stream as one `sem` entry at its own mark:
+            # the importer lifted it out of the raw window into a node, and a projection
+            # reading the app's STATEMENT at a point (0.11.0, the derived view) must find it
+            # where it was said - name and data, nothing the raw event did not carry
+            stream.append((act.at, {
+                "k": "sem", "name": c.kind, "data": c.payload.get("data") or {},
+                "phase": "point" if act.at == act.to else "begin"}))
         if calls and s.kind == "scenario":
             whole = Node(id=s.id, kind=s.name or "", payload={
                 "data": s.payload.get("data") or {}, "outcome": s.payload.get("outcome"),
@@ -761,15 +779,25 @@ class _Worlds:
         # the action's boundary also admits. A read is a valid world before an act only if
         # nothing passed through them between the read and the act, and a valid world after
         # only if nothing passed through them between the act and the read.
-        self.writes_of: dict[str, list[Door]] = {v: [] for v in self.projections}
+        writes_all: dict[str, list[Door]] = {}
         for a in self.model.actions:
             moved = {var for var, _ in self.by_id[a.id]["updates"]} if a.id in self.by_id else set()
             for e in a.effects:
                 moved.add(e.entity)
             ds = [d for e in a.effects for d in e.via] or list(a.touches_via)
             for var in moved:
-                if var in self.writes_of:
-                    self.writes_of[var].extend(ds)
+                writes_all.setdefault(var, []).extend(ds)
+        # ...and a derived view is written whenever anything it derives from is: the
+        # closure over `derived_from`, so a view of a view inherits the whole chain
+        derived = {v: p.derived_from for v, p in self.projections.items()}
+
+        def writers(var: str, seen: frozenset = frozenset()) -> list[Door]:
+            out = list(writes_all.get(var, []))
+            for d in derived.get(var, []):
+                if d not in seen:
+                    out.extend(writers(d, seen | {var}))
+            return out
+        self.writes_of: dict[str, list[Door]] = {v: writers(v) for v in self.projections}
         self.notes: list[str] = []
         self.errors: list[str] = []
         self.worlds: list[_World] = []

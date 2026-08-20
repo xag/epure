@@ -29,8 +29,13 @@ def test_the_pin_is_this_content():
 
 
 def test_the_package_still_demonstrates_itself(tmp_path):
-    # requires=[] and no solvers, so no library and no blobs are needed: the whole gate
-    # is the rules against their own examples and counter-examples.
+    # requires=[], so no library is needed; the natives the package declares must be in
+    # this process, and the file must bring them itself - a test that passed only because
+    # a sibling module imported them first is order-dependent, and was.
+    import epure.behavior  # noqa: F401
+    import epure.conformance  # noqa: F401
+    import epure.prove  # noqa: F401
+    import epure.reach  # noqa: F401
     log = validate_package(SEMANTIC_MODEL_PACKAGE, tmp_path)
     assert any("3 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log

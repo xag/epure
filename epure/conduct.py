@@ -843,7 +843,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.8.0",
+    version="0.9.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -894,14 +894,17 @@ CONDUCT_PACKAGE = Package(
                 "function the recorder knows to being some action's door. 0.8.0: liveness - "
                 "conduct/eventually over semantic-model@0.10.0's `promise`, with "
                 "model/promised on the model side; Lamport's other half, the census's "
-                "third source, covered.",
+                "third source, covered. 0.9.0: the natives read semantic-model@0.11.0's "
+                "DERIVED view - a state-var the app recomputes, projected from the point "
+                "where the app states it - so the value laws and the promises reach the "
+                "views a rhythm derives; no new law, the same laws seeing more.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.10.0"),
+        PackageRef(name="semantic-model", version="0.11.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

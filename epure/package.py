@@ -1,4 +1,4 @@
-"""semantic-model@0.10.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.11.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -93,9 +93,15 @@ VOCABULARY = [
         "arithmetic helpers. This is Hoare's abstraction function, toList in "
         "Hughes: with it, `conduct/agrees` holds the world to the model's own updates after "
         "every act — project the reads before, apply the action, compare with the reads "
-        "after — and the effect and frame laws gain their VALUE forms. A variable that is a "
-        "view the app recomputes (a pending flag derived by a rhythm) has no cheap "
-        "projection and says so by carrying none; the census counts it.",
+        "after — and the effect and frame laws gain their VALUE forms. Since 0.11.0 a "
+        "variable that is a VIEW the app recomputes (a pending flag derived by a rhythm) "
+        "projects too, as a DERIVED view: its door is the point where the app states the "
+        "value it computed (`{\"event\": \"sem\", \"where\": {\"name\": ...}}`, the "
+        "point's data bound as `res`) and `derived_from` names the stored variables it is "
+        "a function of, so a read of it is stale once any of them was written. Hughes' "
+        "warning decides the shape: a projection that reimplements the operation tests "
+        "nothing, while one that reads the app's own decision holds the model's arithmetic "
+        "to the app's. A view that carries no projection is still counted by the census.",
     ),
     KindDef(
         kind="event-kind",
@@ -416,6 +422,14 @@ EXAMPLES = [
                           "shown": {"door": "shelf.read", "expr": "at('level', 'floor')"}},
                  name="where the coat sits: independent of the tag, so tagging and shelving "
                       "commute"),
+            Node(id="lit", kind="state-var",
+                 payload={"type": "bool", "init": False,
+                          "shown": {"door": {"event": "sem", "where": {"name": "sign-shown"}},
+                                    "expr": "at('occupied')", "derived_from": ["held"]}},
+                 name="the OCCUPIED sign on the door: a view the attendant recomputes from "
+                      "the hook and states at the `sign-shown` point - nothing stores it, so "
+                      "its projection reads the statement, and it is stale once the hook was "
+                      "written (0.11.0, the derived view)"),
             # the register's version stamp: every write of the register bumps it, nothing
             # else does, and a conditional retag is handed the stamp it expects
             Node(id="cloakroom-boundary", kind="boundary",
@@ -434,6 +448,17 @@ EXAMPLES = [
                           payload={"expr": "len(evidence('hook.write')) >= 1",
                                    "note": "the claiming span encloses a raw write "
                                            "to the hook's store"}),
+                 ]),
+            Node(id="sign-shown", kind="event-kind",
+                 payload={"args": {}},
+                 children=[
+                     Node(id="sign-shown-license", kind="license",
+                          payload={"expr": "true",
+                                   "note": "the attendant's statement of the sign: a point "
+                                           "that claims nothing about the store, so no "
+                                           "evidence licenses it - the law that holds it is "
+                                           "conduct/agrees, through the derived view `lit` "
+                                           "that reads its data"}),
                  ]),
             Node(id="tagging", kind="event-kind",
                  payload={"args": {"color": {"type": "enum", "domain": ["red", "blue"]}}},
@@ -478,7 +503,8 @@ EXAMPLES = [
                  ]),
             Node(id="check-coat", kind="action",
                  payload={"guard": "held == 0",
-                          "updates": [{"var": "held", "expr": "1"}],
+                          "updates": [{"var": "held", "expr": "1"},
+                                      {"var": "lit", "expr": "true"}],
                           "args": {"coat": {"type": "enum", "domain": ["red", "blue"]}}},
                  children=[
                      Node(id="check-coat-witness", kind="observation",
@@ -491,7 +517,8 @@ EXAMPLES = [
                                "the hook.write carried the coat, and a hook.read "
                                "afterwards returns what it carried"),
                      Node(id="check-coat-touches", kind="touches",
-                          payload={"only": ["held"], "via": ["hook.write", "register.write"]}),
+                          payload={"only": ["held", "lit"],
+                                   "via": ["hook.write", "register.write"]}),
                  ]),
             Node(id="tag-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -566,6 +593,7 @@ EXAMPLES = [
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
                           "updates": [{"var": "held", "expr": "0"},
+                                      {"var": "lit", "expr": "false"},
                                       {"var": "tag", "expr": "'none'"},
                                       {"var": "shelf", "expr": "'floor'"}],
                           "args": {}},
@@ -581,7 +609,7 @@ EXAMPLES = [
                                "the tag and the shelf with it, which is what lets the "
                                "undo restore the world before the deposit"),
                      Node(id="reclaim-coat-touches", kind="touches",
-                          payload={"only": ["held", "tag", "shelf"],
+                          payload={"only": ["held", "lit", "tag", "shelf"],
                                    "via": ["hook.delete", "register.write"]}),
                  ]),
             Node(id="a-coat-is-reclaimed", kind="promise",
@@ -678,7 +706,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.10.0",
+    version="0.11.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -739,7 +767,10 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "other half, the ledger's oldest debt: `when` a state holds, `then` another "
                 "is reached, `unless` released, `within` a horizon; model/promised refutes "
                 "the trap on the model, conduct/eventually the broken promise on a tape. The "
-                "cloakroom promises a checked coat is reclaimed within three acts.",
+                "cloakroom promises a checked coat is reclaimed within three acts. 0.11.0 adds the "
+                "DERIVED view: a state-var the app recomputes projects from the point where "
+                "the app states it (`derived_from` names what it is a function of, so the "
+                "read goes stale with their writes) - the cloakroom's OCCUPIED sign.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,
