@@ -728,6 +728,9 @@ class _Worlds:
         self.errors: list[str] = []
         self.worlds: list[_World] = []
         self._compute()
+        # the variables this tape can show at all: "the same world" means equal on these
+        self.shown: set[str] = {v for v, proj in self.projections.items()
+                                if any(_through(e, proj.doors) for _, e in self.stream)}
 
     def _read_before(self, proj: _Projection, at: tuple):
         """The latest read of the variable before `at` — unless a write through one of the
@@ -1086,15 +1089,10 @@ def same_story(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             for b in spans[i + 1:]:
                 if a.kind != b.kind or a.data != b.data:
                     continue
-                common = set(a.pre) & set(b.pre)
-                # the state the act depends on must be known on both sides: every projected
-                # variable its guard or updates name
-                src = " ".join([W.update_src.get(a.action["id"], {}).get(v, "")
-                                for v in a.updates()] + [W.guard_src.get(a.action["id"], "")])
-                needed = {v for v in W.projections if v in src.replace("'", " ").split()}
-                if not common or not needed <= common:
+                # "the same state": known and equal on every variable this tape can show
+                if not W.shown or not (W.shown <= set(a.pre) and W.shown <= set(b.pre)):
                     continue
-                if not _equal_on(a.pre, b.pre, common):
+                if not _equal_on(a.pre, b.pre, W.shown):
                     continue
                 both = set(a.post) & set(b.post)
                 if not both:
