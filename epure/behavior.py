@@ -534,9 +534,16 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many effects under `path` wrote something that disagrees with the inputs their
     `from` names: each named argument's value, as the span testified it, must appear in
     what the `via` write carried. An effect with an empty `from`, or with no write inside
-    the act, is not this check's to judge."""
+    the act, is not this check's to judge — and neither is one whose entity PROJECTS and
+    whose update reads every named input (assignee := member): there conduct/agrees holds
+    faithfulness by value, which knows that the model's `none` is the store's null where
+    containment cannot. An update that ignores the input (held := 1, whatever the coat)
+    leaves the containment form as the only reader of the input."""
     node, model_node = _confront(tree, path, rel)
     model = _Model(model_node)
+    projected = set(_projections(model_node))
+    update_src = {c.id: {u["var"]: str(u["expr"]) for u in c.payload.get("updates") or []}
+                  for c in model_node.children if c.kind == "action"}
     acts, _ = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     for act in acts:
@@ -546,6 +553,10 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         for eff in _effects_of(model, act):
             if eff.kind == "deletes" or not eff.inputs or not eff.via:
                 continue
+            src = update_src.get(eff.action, {}).get(eff.entity, "")
+            words = set(src.replace("'", " ").replace("(", " ").replace(")", " ").split())
+            if eff.entity in projected and set(eff.inputs) <= words:
+                continue  # held by value, by conduct/agrees
             carried = [v for _, e in act.events if _through(e, eff.via) for v in _carried(e)]
             if not carried:
                 continue
