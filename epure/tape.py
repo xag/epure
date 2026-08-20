@@ -114,7 +114,11 @@ def _scenario(record: dict[str, Any]) -> Node:
         kind="scenario",
         name=record.get("fn") or "",
         payload={"seq": record.get("seq"), "ts": record.get("ts"),
-                 "ms": record.get("ms"), "events": tree["events"], "pos": tree["pos"]},
+                 "ms": record.get("ms"), "events": tree["events"], "pos": tree["pos"],
+                 # the call as an act: its inputs, its outcome, its whole window — so the
+                 # conduct natives can bind the tool itself to a declaration
+                 "data": record.get("kwargs") or {}, "outcome": tree["outcome"],
+                 "at": -1, "to": tree["to"]},
         children=[_span(child, i) for i, child in enumerate(tree["children"])],
     )
 

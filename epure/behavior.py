@@ -37,6 +37,18 @@ projections and is the one Hughes ranks first:
   entity's projected value after must be what the update computed — the effect law in its
   value form.
 
+THE CALL IS AN ACT. flight-recorder instruments every tool call completely — its name, its
+inputs, every boundary event — so a call is testimony too: its kind is the tool's name, its
+data the kwargs, its window the whole call. A model that declares an event-kind named for a
+tool (witnessed by an action, usually a no-op with a `touches` boundary) binds the call the
+way it binds a span, and the frame and refusal laws then hold the tool's OWN writes — the
+ones outside any domain span, which totality used to be the only check to count. The
+boundary of a call admits its own doors plus those of every act it encloses: a write inside
+a domain span answers to that span's declaration, a write outside answers to the tool's.
+Refinement is unchanged — the automaton moves by the domain acts, and a call binds no
+transition. A call the model does not name is counted, never judged: the suite reports
+declared calls over all calls, which is the coverage number.
+
 What no native holds is on the census (`epure.census`), item by item, each owed to a debt
 in the ledger with its discharge — never a sentence.
 
@@ -316,12 +328,15 @@ class _Model:
 
 
 class _Act:
-    """One top-level span, placed in the session's stream."""
+    """One top-level span — or one whole call — placed in the session's stream."""
 
-    def __init__(self, call: int, path: str, span: Node):
+    def __init__(self, call: int, path: str, span: Node, is_call: bool = False):
         self.call = call
         self.path = path
         self.span = span
+        self.is_call = is_call
+        self.inner: list[_Act] = []   # a call's top-level span acts
+        self.own: list[tuple[tuple[int, int], dict[str, Any]]] = []  # a call's unenclosed events
         self.at = (call, span.payload.get("at", -1))
         self.to = (call, span.payload.get("to") if span.payload.get("to") is not None
                    else float("inf"))
@@ -335,8 +350,11 @@ class _Act:
             self._collect(c)
 
 
-def _acts_and_stream(node: Node, path: str) -> tuple[list[_Act], list[tuple[tuple[int, int], dict]]]:
-    """The top-level acts in order, and every raw event in the slice with its place."""
+def _acts_and_stream(node: Node, path: str, calls: bool = False
+                     ) -> tuple[list[_Act], list[tuple[tuple[int, int], dict]]]:
+    """The top-level acts in order, and every raw event in the slice with its place. With
+    `calls`, each scenario is an act too — kind: the tool's name, data: its kwargs, window:
+    the whole call, events: all of them — placed before the spans it encloses."""
     scenarios = ([(f"{path}/{c.id}", c) for c in node.children]
                  if node.kind == "session" else [(path, node)])
     acts: list[_Act] = []
@@ -344,18 +362,38 @@ def _acts_and_stream(node: Node, path: str) -> tuple[list[_Act], list[tuple[tupl
     for ci, (sp, s) in enumerate(scenarios):
         for pos, e in zip(s.payload.get("pos") or [], s.payload.get("events") or []):
             stream.append(((ci, pos), e))
+        inner = []
         for c in s.children:
             act = _Act(ci, f"{sp}/{c.id}", c)
-            acts.append(act)
+            inner.append(act)
             stream.extend(act.events)
+        if calls and s.kind == "scenario":
+            whole = Node(id=s.id, kind=s.name or "", payload={
+                "data": s.payload.get("data") or {}, "outcome": s.payload.get("outcome"),
+                "events": [], "pos": [], "at": -1, "to": s.payload.get("to")})
+            call = _Act(ci, sp, whole, is_call=True)
+            call.own = [((ci, pos), e) for pos, e in
+                        zip(s.payload.get("pos") or [], s.payload.get("events") or [])]
+            call.events = list(call.own)
+            for a in inner:
+                call.events.extend(a.events)
+            call.events.sort(key=lambda t: t[0])
+            call.inner = inner
+            acts.append(call)
+        acts.extend(inner)
     stream.sort(key=lambda t: t[0])
     return acts, stream
+
+
+def _after(acts: list[_Act], i: int) -> list[_Act]:
+    """The acts that begin after this one ENDS — a call's own spans are inside it, not after."""
+    return [a for a in acts[i + 1:] if a.at > acts[i].to]
 
 
 def _horizon(acts: list[_Act], model: _Model, i: int, entity: str) -> tuple[int, float]:
     """Where this act stops answering for `entity`: the start of the next act that declares
     an effect on it, or the end of the tape."""
-    for later in acts[i + 1:]:
+    for later in _after(acts, i):
         if any(e.entity == entity for a in model.bound(later.span) for e in a.effects):
             return later.at
     return (len(acts) + 10 ** 9, float("inf"))
@@ -385,7 +423,7 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """
     node, model_node = _confront(tree, path, rel)
     model = _Model(model_node)
-    acts, stream = _acts_and_stream(node, path)
+    acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     notes: list[str] = []
 
@@ -450,7 +488,7 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     the act, is not this check's to judge."""
     node, model_node = _confront(tree, path, rel)
     model = _Model(model_node)
-    acts, _ = _acts_and_stream(node, path)
+    acts, _ = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     for act in acts:
         if act.span.payload.get("outcome") == "error":
@@ -484,15 +522,21 @@ def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     whose actions declare no `touches` is outside the law — the trigger is the declaration."""
     node, model_node = _confront(tree, path, rel)
     model = _Model(model_node)
-    acts, _ = _acts_and_stream(node, path)
+    acts, _ = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
+
+    def admitted(bound: list[_Action]) -> list[Door]:
+        return [d for a in bound for d in a.touches_via] + \
+               [d for a in bound for e in a.effects for d in e.via]
+
     for act in acts:
         bound = model.bound(act.span)
         if not any(a.touches is not None for a in bound):
             continue
-        allowed = [d for a in bound for d in a.touches_via] + \
-                  [d for a in bound for e in a.effects for d in e.via]
-        for _, e in act.events:
+        allowed = admitted(bound)
+        # a call answers for the writes no span encloses; a write inside a domain span
+        # answers to that span's own declaration
+        for _, e in (act.own if act.is_call else act.events):
             if _through(e, model.known) and not _through(e, allowed):
                 diagnostics.append(
                     f"{act.path}: '{act.span.kind}' ({', '.join(a.id for a in bound)}) "
@@ -521,11 +565,12 @@ def refusal(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         return out
 
     def walk(p: str, n: Node) -> None:
-        if n.kind not in _STRUCTURE and n.payload.get("outcome") == "error":
+        if n.payload.get("outcome") == "error":
             wrote = writes_under(n)
+            what = f"the call '{n.name}'" if n.kind in _STRUCTURE else f"'{n.kind}'"
             if wrote:
                 diagnostics.append(
-                    f"{p}: '{n.kind}' failed and still wrote through {sorted(set(wrote))} "
+                    f"{p}: {what} failed and still wrote through {sorted(set(wrote))} "
                     "— a refusal that half-did the thing")
             return
         for c in n.children:
@@ -592,7 +637,7 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     projections = _projections(model_node)
     variables, actions, _ = _automaton(model_node)
     by_id = {a["id"]: a for a in actions}
-    acts, stream = _acts_and_stream(node, path)
+    acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     notes: list[str] = []
     if not projections:
@@ -620,16 +665,16 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             notes.append(f"{where} binds {len(bound)} action(s) — not judged")
             continue
         action = by_id[bound[0].id]
-        # the world after this act ends where the next act first writes
+        # the world after this act ends where the next act (after it ENDS) first writes
         limit = (len(acts) + 10 ** 9, float("inf"))
-        if i + 1 < len(acts):
-            nxt = acts[i + 1]
+        following = _after(acts, i)
+        if following:
+            nxt = following[0]
             limit = nxt.at
             for pos, e in nxt.events:
                 if _through(e, model.known):
                     limit = pos
                     break
-            limit = max(limit, nxt.at) if limit != nxt.at else limit
         pre: dict[str, Any] = {}
         post: dict[str, Any] = {}
         for var, proj in projections.items():

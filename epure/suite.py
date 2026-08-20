@@ -128,6 +128,8 @@ class Verdict:
         self.suite = suite
         self.acts = 0
         self.bound = 0
+        self.calls = 0      # tool calls on the tape
+        self.declared = 0   # ...whose tool the model names, so the call itself is judged
         self.checks: dict[str, tuple[int, str]] = {}
         self.notes: dict[str, int] = {}
         self.error = ""
@@ -190,10 +192,13 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
             bound += (1 if c.kind in bound_kinds else 0) + b
         return acts, bound
 
+    kinds = {c.id for c in suite.model.children if c.kind == "event-kind"}
     for call in session.children:
         a, b = tally(call)
         v.acts += a
         v.bound += b
+        v.calls += 1
+        v.declared += 1 if call.name in kinds else 0
 
     for name, check in _CHECKS:
         try:
@@ -235,7 +240,9 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
             # The laws on their own line: four counts, and the silences beside them.
             laws = " ".join(f"{law}={v.checks[law][0]}" for law in _CONDUCT)
             quiet = ", ".join(f"{n} {law} read(s) never came" for law, n in v.notes.items())
-            print(f"      laws: {laws}{f'   [{quiet}]' if quiet else ''}")
+            # Calls the model names are judged as acts themselves; the rest are counted.
+            print(f"      laws: {laws}   calls declared {v.declared}/{v.calls}"
+                  f"{f'   [{quiet}]' if quiet else ''}")
             for check, _ in _CHECKS:
                 n, first = v.checks[check]
                 if n and first:
@@ -284,6 +291,8 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
                 "total": v.checks["total"][0],
                 "refines": v.checks["refines"][0],
                 "conduct": {law: v.checks[law][0] for law in _CONDUCT},
+                "calls": v.calls,
+                "calls_declared": v.declared,
                 "red": v.red(),
             }
             for v in sorted(verdicts, key=lambda r: (r.kind, r.name))

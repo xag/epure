@@ -187,3 +187,50 @@ def test_agrees_is_a_note_when_nothing_projects():
     tree.root.children = [spec.turnstile(), spec.LAWFUL.model_copy(deep=True)]
     got = agrees(tree, "session", "model")
     assert got.violations == 0 and "projects no state-var" in got.notes[0]
+
+
+# --- the call is an act ----------------------------------------------------------------
+
+
+def _cloakroom_with_the_call_declared() -> Node:
+    """The tool the tapes record is `cloakroom`; the model names it, binds it to a no-op
+    action with an empty boundary: the call itself writes nothing outside its acts."""
+    model = spec.cloakroom()
+    model.children += [
+        Node(id="cloakroom", kind="event-kind", payload={"args": {}},
+             children=[Node(id="cloakroom-license", kind="license",
+                            payload={"expr": "len(evidence('*')) >= 0",
+                                     "note": "the call record is its own evidence"})]),
+        Node(id="visit-cloakroom", kind="action", payload={"updates": [], "args": {}},
+             children=[Node(id="visit-cloakroom-witness", kind="observation",
+                            payload={"event": "cloakroom"}),
+                       Node(id="visit-cloakroom-touches", kind="touches",
+                            payload={"only": [], "via": []})]),
+    ]
+    return model
+
+
+def test_a_write_outside_every_span_answers_to_the_call():
+    """The tool's own write — the one totality used to be the only check to see."""
+    stray = spec.visit([*spec._act("deposit", spec.RED, spec._write("red"), spec._tick(1)),
+                        spec._read({"coat": "red"}), spec._write("blue")])
+    tree = Quern()
+    tree.root.children = [_cloakroom_with_the_call_declared(), stray]
+    (why,) = frame(tree, "visit", "model").diagnostics
+    assert why.startswith("visit/call1: 'cloakroom' (visit-cloakroom) writes through 'hook.write'")
+
+
+def test_a_write_inside_a_declared_span_is_that_spans_not_the_calls():
+    tree = Quern()
+    tree.root.children = [_cloakroom_with_the_call_declared(), spec.SHOWN.model_copy(deep=True)]
+    assert frame(tree, "visit", "model").violations == 0
+
+
+def test_a_failed_call_that_wrote_is_a_refusal():
+    tape = Node(id="visit", kind="session", links={"model": ["cloakroom"]}, children=[
+        _scenario({"seq": 1, "fn": "cloakroom", "kwargs": {}, "error": "boom",
+                   "events": [spec._write("red")]})])
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), tape]
+    (why,) = refusal(tree, "visit", "model").diagnostics
+    assert "the call 'cloakroom' failed and still wrote through ['hook.write']" in why
