@@ -36,7 +36,7 @@ def build() -> Quern:
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
-                           _ATTRIBUTION_HYPOTHESIS, _TEMPORAL_DEBT,
+                           _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
@@ -1255,6 +1255,106 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                     "The counter stays and becomes the honest number in every status: reds "
                     "met, reds the tool named. The program's right edge is then stated "
                     "where it is, not where it was hoped to be.",
+            },
+        ),
+    ],
+)
+
+
+_DRAFT_HYPOTHESIS = Node(
+    id="the-tapes-draft-the-arithmetic",
+    kind="hypothesis",
+    name="A model's updates and guards can be drafted from its tapes - the simplest expression "
+         "of a small grammar every projected sample satisfies - and a person confirms intent "
+         "rather than writing arithmetic",
+    payload={
+        "held_because":
+            "The frame of a model is generated already: effects, doors and boundaries come "
+            "off the tapes (epure.survey). What a person still writes is the arithmetic - "
+            "what each action does to each variable, and when it may happen - and that is "
+            "the part the tapes witness most directly: conduct/agrees already projects the "
+            "world before and after every bound act to hold the hand-written update against "
+            "it. The same samples, read the other way, propose the update: the frame, a "
+            "constant, an argument, another variable, an increment, a saturating increment, "
+            "simplest first (epure.draft, 2026-08-21). The bet is that most of a real model's "
+            "updates are the simplest expression its tapes admit, and that the remainder - "
+            "the human's share - is a short list of named kinds: a bound no run reached, a "
+            "variable not projected around the act, a path no tape took. Guards are the "
+            "other half of the bet and the weaker one by construction: a guard is what is "
+            "REFUSED, and a tape with no refusal of an act holds no world where its guard was "
+            "false, so positives alone draft at most the necessary booleans. The draft is "
+            "measured, never installed: each proposal is held EQUIVALENT to the hand-written "
+            "expression over the whole finite domain (the prover's domains, the grammar's own "
+            "evaluator), not merely on the samples that made it, so a constant that fits two "
+            "samples of the same day is counted as different from the argument the person "
+            "meant. Two consumers make the number a measurement and not a fit.",
+        "consequence_if_wrong":
+            "The person keeps writing the arithmetic, as today, and the draft is a checklist "
+            "of what the tapes do and do not determine - still worth having, since every "
+            "'unwitnessed' is a missing read around an act and every 'different' names the "
+            "case the tapes never took. Nothing built on the model depends on how it was "
+            "written; the proof and the natives judge the model that exists.",
+    },
+    params={
+        # Computed by `python -m epure.draft` over each consumer's committed tapes and its
+        # pinned model, never typed. Updates: the hand-written (action, variable) pairs;
+        # equivalent: the draft agrees over the whole domain.
+        "updates_by_hand": Quantity(
+            value=29, unit="update", provenance="verified", grounded=True,
+            source="2026-08-21, the first measurement: chores-model@0.20.0 over its 20 tapes "
+                   "(147 bound acts) declares 25 updates, health-model@0.1.0 over its one "
+                   "flight (11 bound acts) declares 4"),
+        "updates_drafted_equivalent": Quantity(
+            value=8, unit="update", provenance="verified", grounded=True,
+            source="the same run: chores 5 of 25 (wash_pending := false, wash_day := 0 - 1, "
+                   "hoover_pending := false, hoover_assignee := member, bins_assignee := "
+                   "member), health 3 of 4 (curated := true, curated := false, poll_day := "
+                   "day). The remainder, named: 12 UNWITNESSED - no sample shows the variable "
+                   "on both sides of the act (the completion acts never read the wake index, "
+                   "so `today` is not in their world; the call-level actions declare nothing); "
+                   "1 UNRESOLVED - done-hoover's hoover_last := today, the same missing read; "
+                   "8 DIFFERENT - the tick's four view updates, where no tape moved the view "
+                   "across a tick the way the arithmetic says (the draft says frame, or the "
+                   "constant the samples show); done-bins' min(bins_done + 1, 7), where no "
+                   "run reached the bound (the draft says bins_done + 1); done-wash's "
+                   "wash_by_hand := false, where no placed wash was ever settled on a tape "
+                   "(the draft says frame); health's pick_day := day, where the flight "
+                   "publishes picks on one day only (the draft says the constant 1). Every "
+                   "'different' is a case the tapes never took, and the draft says which"),
+        "guards_by_hand": Quantity(
+            value=16, unit="guard", provenance="verified", grounded=True,
+            source="the same run: chores 13, health 3"),
+        "guards_drafted_equivalent": Quantity(
+            value=1, unit="guard", provenance="verified", grounded=True,
+            source="the same run: health's show-home, whose hand guard is `true`. Refused "
+                   "bound acts on all 21 tapes: 0 - no tape holds a world where any guard "
+                   "was false, so the positive-only draft (the booleans that never varied) "
+                   "overfits every real guard with the flags that happened to hold: "
+                   "`wash_pending` is drafted as `wash_pending and not wash_by_hand and not "
+                   "hoover_pending and bins_pending`. A guard is drafted from refusals or "
+                   "not at all; this is the number that says so"),
+    },
+    children=[
+        Node(
+            id="the-tapes-underdetermine-the-arithmetic",
+            kind="falsification",
+            name="Once every act reads its world on both sides and the flights take the "
+                 "bounding paths, fewer than half the updates draft equivalent",
+            payload={
+                "claim":
+                    "The 'unwitnessed' and 'different' remainders each name a missing read "
+                    "or a path no tape took. Close them - project the clock around the "
+                    "completion acts, fly a week that reaches the quota's bound, settle a "
+                    "placed wash, publish picks on two days - and re-run epure.draft. If the "
+                    "equivalent share stays under one half of the updates a person wrote, "
+                    "the tapes do not determine the arithmetic and the draft is a checklist, "
+                    "not a generator. Guards are measured separately: with no refusal on any "
+                    "tape they are not a test of this claim until a flight refuses something.",
+                "cadence": "per consumer release, from `python -m epure.draft`",
+                "discharge_route":
+                    "The draft stays as the measurement of what the tapes determine, printed "
+                    "in every status beside the attribution ratio; the person writes the "
+                    "arithmetic and the natives hold it, as today.",
             },
         ),
     ],
