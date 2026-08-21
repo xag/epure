@@ -272,12 +272,20 @@ def _latest(xs: Any, field: str, *filters: Any) -> Any:
     return max(values) if values else None
 
 
-def _weekday(iso: Any, absent: Any = None) -> Any:
-    """`weekday(iso[, absent])`: 0 = Monday; `absent` when there is no date to read."""
-    if iso is None:
+def _weekday(when: Any, absent: Any = None) -> Any:
+    """`weekday(when[, absent])`: 0 = Monday; `absent` when there is no date to read. `when`
+    is an ISO date or datetime, or an epoch in MILLISECONDS (a number, or a string of digits
+    - a store that keeps timestamps as strings hands them back so), read in UTC: the second
+    real store kept its dates as `Date.now()` and not as text (0.12.1)."""
+    if when is None or when == "":
         return absent
-    from datetime import date
-    return float(date.fromisoformat(str(iso)[:10]).weekday())
+    from datetime import date, datetime, timezone
+    text = str(when).strip()
+    if isinstance(when, bool):
+        return absent
+    if isinstance(when, (int, float)) or text.lstrip("-").isdigit():
+        return float(datetime.fromtimestamp(float(text) / 1000.0, tz=timezone.utc).weekday())
+    return float(date.fromisoformat(text[:10]).weekday())
 
 
 def _projection_env(res: Any) -> dict[str, Any]:

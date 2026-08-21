@@ -850,7 +850,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.11.1",
+    version="0.11.2",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -913,14 +913,15 @@ CONDUCT_PACKAGE = Package(
                 "hypothesis, never a verdict trusted on its own. 0.11.1: a fifth fact, from "
                 "the first measurement - an act between this one and the read its world-after "
                 "came from: a missing declaration hides a writer and the red lands on the "
-                "neighbour, so the rule names the act between.",
+                "neighbour, so the rule names the act between. 0.11.2 follows semantic-model@0.12.1 "
+                "(weekday over an epoch in milliseconds).",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.12.0"),
+        PackageRef(name="semantic-model", version="0.12.1"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

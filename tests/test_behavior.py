@@ -288,6 +288,11 @@ def test_projection_helpers_read_a_log():
     assert _latest(log, "day", "kind", "done") == "2026-08-06"
     assert _latest(log, "day", "chore_id", "wash") is None
     assert _weekday("2026-08-04") == 1.0 and _weekday(None, -1) == -1 and _weekday(None) is None
+    # an epoch in milliseconds, as a number or as the string a store hands back: 2026-08-04
+    # 08:00 UTC is a Tuesday, and 23:30 UTC the same day still is - the day is read in UTC
+    assert _weekday(1785830400000) == 1.0 and _weekday("1785830400000") == 1.0
+    assert _weekday(1785830400000 + 15.5 * 3600 * 1000) == 1.0
+    assert _weekday("", -1) == -1
 
 
 # --- the call is an act ----------------------------------------------------------------

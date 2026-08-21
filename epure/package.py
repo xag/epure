@@ -1,4 +1,4 @@
-"""semantic-model@0.12.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.12.1 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -89,7 +89,8 @@ VOCABULARY = [
         "`exists()` (1 if res is not null/false/empty, else 0), `count(xs, key, value, "
         "...)` (members of a map or list matching every key/value pair), `latest(xs, "
         "field, key, value, ...)` (the greatest `field` among matching members, or null), "
-        "`weekday(iso, absent?)` (0 = Monday; `absent` when there is no date), and the "
+        "`weekday(when, absent?)` (0 = Monday; `when` an ISO date or an epoch in milliseconds, "
+        "read in UTC; `absent` when there is no date), and the "
         "arithmetic helpers. This is Hoare's abstraction function, toList in "
         "Hughes: with it, `conduct/agrees` holds the world to the model's own updates after "
         "every act — project the reads before, apply the action, compare with the reads "
@@ -708,7 +709,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.12.0",
+    version="0.12.1",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -775,7 +776,9 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "read goes stale with their writes) - the cloakroom's OCCUPIED sign. 0.12.0: a "
                 "derived view is not a change a validator stands for - the stamp is the stored "
                 "representation's version and a view moves with the clock, nothing written - "
-                "stated on the validator kind; and the vocabulary's prose names no client.",
+                "stated on the validator kind; and the vocabulary's prose names no client. 0.12.1: "
+                "`weekday` reads an epoch in milliseconds as well as an ISO date - the second "
+                "real store kept its dates as numbers.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,
