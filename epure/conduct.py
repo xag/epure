@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.14.0",
+    version="0.14.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -970,8 +970,10 @@ CONDUCT_PACKAGE = Package(
                 "clock variable (semantic-model@0.14.0), two days where no clock is declared; "
                 "and a derived view that moved across an act that wrote through a door the "
                 "model knows names model (the drawing misses what that write does), harness "
-                "only when nothing was written - the set-today fault had gone to harness "
-                "on the old fact.",
+                "only when nothing was written. 0.14.1: the act-between fact is asked first - a "
+                "neighbour with a door between the act and the read makes the read the "
+                "neighbour's world, whatever else is true; the set-today fault had gone to "
+                "harness on the branches below it.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

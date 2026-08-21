@@ -1287,6 +1287,15 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
              f"{'written through its door' if wrote else 'no write through its doors'}, "
              f"{'clock moved between' if clock else 'clock still between'}"
              + (f", {between[0].action['id']} between" if between else ""))
+    # first: an act with a door between this one and the read its world-after came from
+    # makes that read THAT act's world, whatever else is true of this one (0.14.1: the
+    # calibration set's set-today fault had gone to harness on the branches below, which
+    # read the neighbour's move as this act's)
+    if between:
+        who = between[0].action["id"]
+        return "model", (f"[{facts}] the world-after was read past '{who}', which declares no "
+                         f"move of '{var}' - so its doors are not counted as writers and the "
+                         "read was taken as this act's; the drawing omits that act's update")
     if not declared and not wrote:
         if not derived:
             return "harness", (f"[{facts}] a stored variable moved between two reads with no "
@@ -1310,11 +1319,6 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     if declared and not wrote:
         return "app", (f"[{facts}] the drawing declares the move and the program wrote "
                        "nothing through any door that carries it")
-    if between:
-        who = between[0].action["id"]
-        return "model", (f"[{facts}] the world-after was read past '{who}', which declares no "
-                         f"move of '{var}' - so its doors are not counted as writers and the "
-                         "read was taken as this act's; the drawing omits that act's update")
     if derived and clock:
         return "harness", (f"[{facts}] the view was stated under a clock that moved between "
                            "the write and the statement; the write and the declaration agree, "
