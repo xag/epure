@@ -163,10 +163,17 @@ def draft_update(var: str, dom: list[Any], samples: list[tuple[dict, dict, dict]
 
 
 def draft_update_where(var: str, dom: list[Any], samples: list[tuple[dict, dict, dict]],
-                       args: list[str], vars: list[str]
+                       args: list[str], vars: list[str],
+                       names: dict[str, list[Any]] | None = None
                        ) -> tuple[str | None, str, list[tuple[int, str]]]:
     """draft_update, plus the rows (index into `samples`, unread operand) a partial draft
-    could not be judged on - empty for a settled verdict."""
+    could not be judged on - empty for a settled verdict. With `names` (the domains of the
+    variables and arguments) the grammar reaches further when the simple forms fail: a
+    boolean is drafted as the simplest PREDICATE over the world before that is true exactly
+    where the sample after is (status 'predicate'); an int as a CONDITIONAL between two simple
+    expressions, `e2 + (P) * (e1 - e2)`, the hand's own form (status 'conditional') - the
+    richer grammar of 0.13.2, written for the rows the first grammar left unresolved (a
+    rhythm's pending flag, a calendar's day), after those rows existed and not before."""
     rows = [(i, pre, b, post[var]) for i, (pre, b, post) in enumerate(samples) if var in post]
     if not rows:
         return None, "unwitnessed", []
@@ -215,6 +222,9 @@ def draft_update_where(var: str, dom: list[Any], samples: list[tuple[dict, dict,
                 candidates.append(("saturating", f"min({var} + {k}, {hi})",
                                    lambda pre, b: None if var in pre else var,
                                    lambda pre, b, post, k=k: post == min(pre[var] + k, hi)))
+    # the richer grammar, tried only when every simple form has failed (below)
+    richer = _richer(var, rows, args, vars, names) if names else None
+
     # The first candidate no row refutes decides - settled when every row could judge it,
     # partial otherwise. A later candidate every row CAN judge does not outrank it: when no
     # sample shows the value before the act, "the constant 0" and "the frame" are the same
@@ -236,7 +246,55 @@ def draft_update_where(var: str, dom: list[Any], samples: list[tuple[dict, dict,
                 return expr, "partial", [(i, var) for i, _, _, _ in rows]
             return expr, status, []
         return expr, "partial", missing
+    if richer is not None:
+        return richer[0], richer[1], []
     return None, "unresolved", []
+
+
+def _richer(var: str, rows: list[tuple[int, dict, dict, Any]], args: list[str],
+            vars: list[str], names: dict[str, list[Any]]) -> tuple[str, str] | None:
+    """The predicate and conditional forms, over rows that show every name they read."""
+    worlds = [{**pre, **b} for _, pre, b, _ in rows]
+    posts = [post for _, _, _, post in rows]
+    if all(isinstance(v, bool) for v in posts):
+        taken = [w for w, v in zip(worlds, posts) if v]
+        denied = [w for w, v in zip(worlds, posts) if not v]
+        pred = _separating(taken, denied, names)
+        return (pred, "predicate") if pred else None
+    if not all(isinstance(v, (int, float)) for v in posts):
+        return None
+    ints = [n for n, dom in names.items()
+            if all(isinstance(d, (int, float)) and not isinstance(d, bool) for d in dom)]
+    simple: list[tuple[str, Callable[[dict], Any]]] = []
+    simple.append((var, lambda w: w.get(var)))
+    for n in ints:
+        if n != var:
+            simple.append((n, lambda w, n=n: w.get(n)))
+    for n in ints:
+        simple.append((f"{n} + 1", lambda w, n=n: None if w.get(n) is None else w[n] + 1))
+    for c in sorted({v for v in posts}):
+        simple.append((_lit(c), lambda w, c=c: c))
+    for (s2, f2), (s1, f1) in itertools.permutations(simple, 2):
+        v1 = [f1(w) for w in worlds]
+        v2 = [f2(w) for w in worlds]
+        if any(v is None for v in v1 + v2):
+            continue
+        taken, denied = [], []
+        ok = True
+        for w, post, a, b in zip(worlds, posts, v1, v2):
+            if post == a and post != b:
+                taken.append(w)
+            elif post == b and post != a:
+                denied.append(w)
+            elif post != a and post != b:
+                ok = False
+                break
+        if not ok or not taken or not denied:
+            continue
+        pred = _separating(taken, denied, names)
+        if pred:
+            return f"{s2} + ({pred}) * ({s1} - {s2})", "conditional"
+    return None
 
 
 def draft_guard(pres: list[dict], variables: dict[str, list[Any]],
@@ -270,50 +328,74 @@ def draft_guard(pres: list[dict], variables: dict[str, list[Any]],
 
 def _atoms(names: dict[str, list[Any]]) -> list[tuple[str, Callable[[dict], bool | None]]]:
     """Every atomic predicate of the grammar over the names, with its evaluator; an
-    evaluator answers None where the world does not show the name."""
+    evaluator answers None where the world does not show a name it reads. Booleans as
+    themselves and negated; enums and ints against each value of their domain (==, !=, and
+    for ints < and >=); and for each pair of int names the difference against a small
+    constant (`a - b >= c`, `a - b < c`, c in 0..3) - the cadence's "two days since",
+    which no single-variable atom can say (0.13.2)."""
     out: list[tuple[str, Callable[[dict], bool | None]]] = []
+    ints: list[str] = []
     for n, dom in names.items():
         if all(isinstance(d, bool) for d in dom):
             out.append((n, lambda w, n=n: w.get(n) if n in w else None))
             out.append((f"not {n}", lambda w, n=n: (not w[n]) if n in w else None))
             continue
         numeric = all(isinstance(d, (int, float)) for d in dom)
+        if numeric:
+            ints.append(n)
         for c in dom:
             out.append((f"{n} == {_lit(c)}", lambda w, n=n, c=c: (w[n] == c) if n in w else None))
             out.append((f"{n} != {_lit(c)}", lambda w, n=n, c=c: (w[n] != c) if n in w else None))
             if numeric:
                 out.append((f"{n} < {_lit(c)}", lambda w, n=n, c=c: (w[n] < c) if n in w else None))
                 out.append((f"{n} >= {_lit(c)}", lambda w, n=n, c=c: (w[n] >= c) if n in w else None))
+    for a in ints:
+        for b in ints:
+            if a == b:
+                continue
+            for c in (0, 1, 2, 3):
+                out.append((f"{a} - {b} >= {c}",
+                            lambda w, a=a, b=b, c=c: (w[a] - w[b] >= c) if a in w and b in w else None))
+                out.append((f"{a} - {b} < {c}",
+                            lambda w, a=a, b=b, c=c: (w[a] - w[b] < c) if a in w and b in w else None))
     return out
+
+
+def _separating(taken: list[dict], denied: list[dict], names: dict[str, list[Any]]) -> str:
+    """The simplest predicate of the grammar true on every taken world and false on every
+    denied one: one atom, then a conjunction of two, then a disjunction of two, then of
+    three; '' when nothing separates them. An atom some world cannot decide is left out -
+    a predicate must be decided on every world it is proposed over."""
+    if not taken or not denied:
+        return ""
+    cols: list[tuple[str, list[bool], list[bool]]] = []
+    for src, f in _atoms(names):
+        pv = [f(w) for w in taken]
+        nv = [f(w) for w in denied]
+        if any(v is None for v in pv) or any(v is None for v in nv):
+            continue
+        if all(pv) and not any(nv):
+            return src
+        cols.append((src, pv, nv))
+    # a conjunction needs atoms true on every taken world; a disjunction, atoms false on
+    # every denied one - the rest cannot take part, which keeps the search small
+    conj = [c for c in cols if all(c[1])]
+    for (s1, p1, n1), (s2, p2, n2) in itertools.combinations(conj, 2):
+        if not any(a and b for a, b in zip(n1, n2)):
+            return f"{s1} and {s2}"
+    disj = [c for c in cols if not any(c[2])]
+    for (s1, p1, n1), (s2, p2, n2) in itertools.combinations(disj, 2):
+        if all(a or b for a, b in zip(p1, p2)):
+            return f"{s1} or {s2}"
+    for (s1, p1, _), (s2, p2, _), (s3, p3, _) in itertools.combinations(disj, 3):
+        if all(a or b or c for a, b, c in zip(p1, p2, p3)):
+            return f"{s1} or {s2} or {s3}"
+    return ""
 
 
 def _guard_from_negatives(taken: list[dict], denied: list[dict], names: dict[str, list[Any]]
                           ) -> str:
-    """The simplest predicate true on every taken world and false on every denied one; ''
-    when none of the grammar separates them. A world that does not show a name the
-    predicate reads neither confirms nor refutes it - but a predicate must be decided on at
-    least one world of each side to count as separating anything."""
-    atoms = _atoms(names)
-
-    def separates(fs: list[Callable[[dict], bool | None]]) -> bool:
-        def val(w: dict) -> bool | None:
-            vs = [f(w) for f in fs]
-            if any(v is None for v in vs):
-                return None
-            return all(vs)
-        t = [val(w) for w in taken]
-        d = [val(w) for w in denied]
-        if any(v is False for v in t) or any(v is True for v in d):
-            return False
-        return any(v is True for v in t) and any(v is False for v in d)
-
-    for src, f in atoms:
-        if separates([f]):
-            return src
-    for (s1, f1), (s2, f2) in itertools.combinations(atoms, 2):
-        if separates([f1, f2]):
-            return f"{s1} and {s2}"
-    return ""
+    return _separating(taken, denied, names)
 
 
 # --- equivalence over the finite domain -----------------------------------------------------
@@ -386,7 +468,7 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
         empty = samples.empty.get(c.id, [])
         for var in projected:
             expr, status, unsettled = draft_update_where(var, variables[var], rows, list(args),
-                                                         list(variables))
+                                                         list(variables), names)
             if var in hand:
                 tally["updates"] += 1
                 if status in ("unwitnessed", "partial"):
@@ -408,7 +490,8 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                 row["updates"][var] = entry
                 if verdict in ("different", "partial", "unresolved"):
                     report["proposals"].append(_propose(c.id, var, hand[var], expr, verdict,
-                                                        entry.get("unsettled"), rows, args))
+                                                        entry.get("unsettled"), rows, args,
+                                                        names))
             else:
                 tally["frames"] += 1
                 verdict = ("unwitnessed" if status == "unwitnessed"
@@ -453,7 +536,8 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
 
 def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
              unsettled: list[dict] | None, rows: list[tuple[dict, dict, dict]],
-             args: dict[str, list[Any]]) -> dict[str, Any]:
+             args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None
+             ) -> dict[str, Any]:
     """The observation that separates the draft from the hand, for one row of the
     measurement: for a partial draft, the act that was taken with an operand unread (read it
     around that act next time); for a different draft, a point near the sampled worlds
@@ -477,7 +561,7 @@ def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
         out["unsettled"] = unsettled
     elif verdict == "different" and draft is not None:
         out["experiment"] = f"take {action} where `{draft}` and `{hand}` differ"
-        out["separating"] = _separating_point(draft, hand, rows, args)
+        out["separating"] = _separating_point(draft, hand, rows, args, names)
     elif verdict == "different":
         out["experiment"] = (f"the tapes say frame; take {action} in a world where `{hand}` "
                              "moves the variable")
@@ -488,22 +572,52 @@ def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
 
 
 def _separating_point(draft: str, hand: str, rows: list[tuple[dict, dict, dict]],
-                      args: dict[str, list[Any]]) -> dict[str, Any] | None:
-    """A point near the sampled worlds where the two expressions disagree: each pre-world
-    the tapes held, with the arguments swept over their domains - so the experiment named
-    is one act away from a flight that exists."""
+                      args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None
+                      ) -> dict[str, Any] | None:
+    """A point where the two expressions disagree, as near as the grammar can find to a
+    world the tapes held: first the sampled pre-worlds with the arguments swept over their
+    domains; failing that - a draft that fits every sample differs from the hand only
+    elsewhere - the whole finite domain of the names either mentions, the disagreement
+    fewest variables away from some sampled world. The experiment named is then one
+    change to a flight that exists."""
     fa, fb = _compile(draft, "draft"), _compile(hand, "hand")
+
+    def disagree(env: dict) -> tuple[Any, Any] | None:
+        try:
+            x, y = _normalize(fa({**_LITERALS, **env})), _normalize(fb({**_LITERALS, **env}))
+        except Exception:
+            return None
+        return None if x == y else (x, y)
+
     for pre, _, _ in rows:
         for combo in (itertools.product(*[args[a] for a in args]) if args else [()]):
             binding = dict(zip(args, combo))
-            env = {**_LITERALS, **pre, **binding}
-            try:
-                x, y = _normalize(fa(env)), _normalize(fb(env))
-            except Exception:
-                continue
-            if x != y:
-                return {"pre": pre, "binding": binding, "draft_says": x, "hand_says": y}
-    return None
+            if (d := disagree({**pre, **binding})) is not None:
+                return {"pre": pre, "binding": binding, "draft_says": d[0], "hand_says": d[1]}
+    if not names:
+        return None
+    free = sorted(set(_mentions(draft, names)) | set(_mentions(hand, names)))
+    doms = [names[n] for n in free]
+    total = 1
+    for d in doms:
+        total *= len(d)
+    if total <= GRID_CAP:
+        points = itertools.product(*doms)
+    else:
+        rng = random.Random(0)
+        points = ([rng.choice(d) for d in doms] for _ in range(GRID_CAP))
+    best: dict[str, Any] | None = None
+    for pt in points:
+        env = dict(zip(free, pt))
+        if (d := disagree(env)) is None:
+            continue
+        dist = min((sum(1 for n in free if n in pre and pre[n] != env[n]) for pre, _, _ in rows),
+                   default=len(free))
+        if best is None or dist < best["away"]:
+            best = {"pre": {n: env[n] for n in free if n not in args}, "binding":
+                    {n: env[n] for n in free if n in args}, "draft_says": d[0],
+                    "hand_says": d[1], "away": dist}
+    return best
 
 
 def render(report: dict[str, Any]) -> str:
@@ -549,7 +663,8 @@ def render_proposals(report: dict[str, Any]) -> str:
         out.append(f"     -> {p['experiment']}")
         if p.get("separating"):
             sp = p["separating"]
-            out.append(f"        at pre={sp['pre']} binding={sp['binding']}: "
+            away = f" ({sp['away']} variable(s) from a sampled world)" if "away" in sp else ""
+            out.append(f"        at pre={sp['pre']} binding={sp['binding']}{away}: "
                        f"draft says {sp['draft_says']!r}, hand says {sp['hand_says']!r}")
     return "\n".join(out)
 

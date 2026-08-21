@@ -105,3 +105,28 @@ def test_a_guard_is_drafted_from_refusals():
     assert draft_guard(taken, variables, refused=denied) == "pending and who != 'none'"
     # no refusal: positives only, and the measurement says so
     assert draft_guard(taken, variables) == "pending"
+
+
+def test_the_richer_grammar_drafts_a_predicate_and_a_conditional():
+    from epure.draft import draft_update_where
+    names = {"n": list(range(8)), "p": [False, True], "d": list(range(-1, 7))}
+    # a flag that is exactly "the counter is still zero": predicate, found after the simple
+    # forms fail (the posts vary, no argument or variable carries them)
+    rows = [({"n": 0, "p": True, "d": 0}, {}, {"p": True}), ({"n": 1, "p": True, "d": 1}, {}, {"p": False}),
+            ({"n": 0, "p": False, "d": 2}, {}, {"p": True})]
+    assert draft_update_where("p", [False, True], rows, [], ["n", "p", "d"], names)[:2] == \
+        ("n == 0", "predicate")
+    # a day that jumps to tomorrow on two weekdays and stays otherwise: the conditional, in
+    # the hand's own form
+    rows = [({"d": -1, "n": 0}, {}, {"d": 1}), ({"d": 1, "n": 1}, {}, {"d": 1}),
+            ({"d": 1, "n": 2}, {}, {"d": 1}), ({"d": 1, "n": 3}, {}, {"d": 4}),
+            ({"d": 4, "n": 4}, {}, {"d": 4})]
+    expr, status, _ = draft_update_where("d", list(range(-1, 7)), rows, [], ["n", "d"], names)
+    assert status == "conditional" and expr.startswith("d + (") and expr.endswith(") * (n + 1 - d)")
+    # the simplest predicate the rows admit, which need not be the one a person meant: what
+    # the draft owes is every sample, and --propose names where it parts from the hand
+    from epure.prove import _compile, _LITERALS
+    f = _compile(expr, "draft")
+    assert all(f({**_LITERALS, **pre}) == post["d"] for pre, _, post in rows)
+    # without the domains, the richer grammar is not tried
+    assert draft_update_where("d", list(range(-1, 7)), rows, [], ["n", "d"])[1] == "unresolved"

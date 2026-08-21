@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.13.1",
+    version="0.13.2",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -960,7 +960,10 @@ CONDUCT_PACKAGE = Package(
                 "fact, an act between, counts only an act with a door - a read-act declaring "
                 "`via: []` cannot hide a writer; with a clock read between every act and its "
                 "world-after, the rule had named model past the clock read, twice, right by "
-                "accident (counted).",
+                "accident (counted). 0.13.2: the two-stretch laws (twice, last-write, commute, "
+                "undo, durable, same-story) name a culprit through the same facts, on the act "
+                "and variable each red is about - one name per red, unnamed where the facts "
+                "cannot separate the drawing from the program.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

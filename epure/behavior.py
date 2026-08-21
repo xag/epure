@@ -96,6 +96,8 @@ model/* family. Importing this module registers the five natives and nothing els
 
 from __future__ import annotations
 
+import inspect
+
 import json
 from fnmatch import fnmatch
 from typing import Any, Callable, Iterable
@@ -1365,26 +1367,50 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
 
 
 def _stretch_check(check: str, tree, path, rel, judge) -> Conformance:
-    """The common frame: compute the worlds, let `judge` fill diagnostics/notes, count."""
+    """The common frame: compute the worlds, let `judge` fill diagnostics/notes, count.
+
+    A judge that takes a fourth argument is handed `convict(sentence, world, var)`: the
+    sentence goes on the diagnostics with a culprit named by the agrees facts (conduct@0.13.2)
+    - the two-stretch laws compare a world after an act to what another stretch says it
+    should be, and who is wrong about that act's move of that variable is the same question
+    agrees asks of one act: derived or stored, declared or not, written through its door,
+    the clock moved, an act with a door between. A judge that appends to `diagnostics`
+    directly names nobody, and the culprit list stays in step with `unnamed`."""
     try:
         W = _Worlds(tree, path, rel)
     except ValueError:
         raise
     diagnostics: list[str] = list(W.errors)
+    culprits: list[str] = ["unnamed"] * len(W.errors)
     notes: list[str] = list(W.notes)
     if not W.projections:
         notes.append(f"{path}: the model projects no state-var — nothing to compare")
         return Conformance(check=check, violations=0, notes=notes)
-    judged = judge(W, diagnostics, notes)
-    return Conformance(check=check, violations=len(diagnostics), diagnostics=diagnostics,
-                       notes=notes, judged=judged)
+
+    class _Diagnostics(list):
+        def append(self, sentence: str) -> None:   # a bare append names nobody
+            super().append(sentence)
+            culprits.append("unnamed")
+
+    def convict(sentence: str, w: _World, var: str) -> None:
+        who, why = _culprit(W, w, var, var in w.updates())
+        list.append(diagnostics, f"{sentence} — culprit: {who} {why}")
+        culprits.append(who)
+
+    diagnostics = _Diagnostics(diagnostics)
+    if len(inspect.signature(judge).parameters) >= 4:
+        judged = judge(W, diagnostics, notes, convict)
+    else:
+        judged = judge(W, diagnostics, notes)
+    return Conformance(check=check, violations=len(diagnostics), diagnostics=list(diagnostics),
+                       notes=notes, judged=judged, culprits=culprits)
 
 
 def twice(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """twice-is-once: two adjacent acts, same kind and data, one action, whose guard still
     admits the repeat in the world after the first — the world after the second equals the
     world after the first. A guard that refuses the repeat is refusal's law, not this one."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         for a, b in W.adjacent():
             if a.kind != b.kind or a.data != b.data or a.action is not b.action:
@@ -1405,9 +1431,9 @@ def twice(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             judged += 1
             moved = _same(a.post, b.post)
             if moved:
-                diagnostics.append(
+                convict(
                     f"{b.act.path}: '{b.kind}' repeated with the same inputs and the world "
-                    f"moved on {moved}: after once {a.post}, after twice {b.post}")
+                    f"moved on {moved}: after once {a.post}, after twice {b.post}", b, moved[0])
         return judged
     return _stretch_check("conduct/twice", tree, path, rel, judge)
 
@@ -1416,7 +1442,7 @@ def last_write(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """last-write-wins: two adjacent acts whose actions update the same entity by an
     OVERWRITE (the update reads arguments, not the entity): the entity after the second is
     the second's update applied to the world before the first."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         for a, b in W.adjacent():
             shared = a.updates() & b.updates() & set(W.projections)
@@ -1435,9 +1461,10 @@ def last_write(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     continue
                 judged += 1
                 if b.post[var] != expected[var]:
-                    diagnostics.append(
+                    convict(
                         f"{b.act.path}: '{var}' written by '{a.kind}' then '{b.kind}'; the "
-                        f"last write says {expected[var]!r}, the world shows {b.post[var]!r}")
+                        f"last write says {expected[var]!r}, the world shows {b.post[var]!r}",
+                        b, var)
         return judged
     return _stretch_check("conduct/last-write", tree, path, rel, judge)
 
@@ -1446,7 +1473,7 @@ def commute(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """independent-writes-commute: a stretch A;B whose actions update disjoint variables,
     and elsewhere on the tape B;A from an equal projected world — equal worlds after. A
     stretch with no reverse on the tape is noted, never counted."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         pairs = [(a, b) for a, b in W.adjacent()
                  if a.updates() and b.updates() and not (a.updates() & b.updates())]
@@ -1470,10 +1497,10 @@ def commute(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 judged += 1
                 moved = _same(b.post, d.post)
                 if moved:
-                    diagnostics.append(
+                    convict(
                         f"{d.act.path}: '{a.kind}' then '{b.kind}' leaves {b.post}; the same "
                         f"two from the same world in the other order leave {d.post} — they "
-                        f"disagree on {moved}")
+                        f"disagree on {moved}", d, moved[0])
         if pairs and not judged and not any("reverse" in n for n in notes):
             notes.append(f"{path}: {len(pairs)} independent stretch(es) and no reverse of any "
                          "on the tape — unwitnessed")
@@ -1485,7 +1512,7 @@ def undo(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """undo-restores: a `creates` of E followed by a `deletes` of E — the world after the
     delete equals the world before the create, on every projected variable read on both
     sides."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         bound = {w.act.span.id: w for w in W.worlds}
         for a, b in W.adjacent():
@@ -1504,9 +1531,10 @@ def undo(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             judged += 1
             residue = _same(a.pre, b.post)
             if residue:
-                diagnostics.append(
+                convict(
                     f"{b.act.path}: '{b.kind}' unmade '{a.kind}' and the world differs from "
-                    f"before it on {residue}: before {a.pre}, after {b.post} — residue")
+                    f"before it on {residue}: before {a.pre}, after {b.post} — residue",
+                    b, residue[0])
         return judged
     return _stretch_check("conduct/undo", tree, path, rel, judge)
 
@@ -1514,7 +1542,7 @@ def undo(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
 def durable(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """shown-once-shown-until-touched: once the first read after an act shows a variable it
     updated at v, every later read of it projects v until the next act that updates it."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         for w in W.worlds:
             if w.action is None:
@@ -1544,9 +1572,10 @@ def durable(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                         diagnostics.append(f"{w.act.path}: {e}")
                         break
                     if got is not None and got != w.post[var]:
-                        diagnostics.append(
+                        convict(
                             f"{w.act.path}: '{w.kind}' left '{var}' at {w.post[var]!r}; a "
-                            f"later read shows {got!r} with no act declaring it changed")
+                            f"later read shows {got!r} with no act declaring it changed",
+                            w, var)
                         break
         return judged
     return _stretch_check("conduct/durable", tree, path, rel, judge)
@@ -1557,7 +1586,7 @@ def same_story(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     equal on every projected variable, leave worlds equal on every variable read after
     both. Equivalent worlds stay equivalent: the same comparison, since equivalence IS
     projected equality."""
-    def judge(W: _Worlds, diagnostics, notes) -> int:
+    def judge(W: _Worlds, diagnostics, notes, convict) -> int:
         judged = 0
         spans = [w for w in W.worlds if w.action is not None]
         for i, a in enumerate(spans):
@@ -1577,10 +1606,11 @@ def same_story(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 judged += 1
                 moved = _same(a.post, b.post)
                 if moved:
-                    diagnostics.append(
+                    convict(
                         f"{b.act.path}: '{b.kind}' with {b.data} from the world {b.pre} "
                         f"left {b.post}; the same act from the same world at "
-                        f"{a.act.path} left {a.post} — an undeclared input on {moved}")
+                        f"{a.act.path} left {a.post} — an undeclared input on {moved}",
+                        b, moved[0])
         return judged
     return _stretch_check("conduct/same-story", tree, path, rel, judge)
 

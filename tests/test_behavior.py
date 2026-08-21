@@ -425,3 +425,18 @@ def test_a_dict_door_is_matched_against_the_boundary_by_its_event():
     assert _door_names({"event": "kv.hset", "where": {"0": "x:*"}}) == ["kv.hset"]
     assert _door_names(["a.write", {"event": "b.write"}]) == ["a.write", "b.write"]
     assert _door_names("hook.write") == ["hook.write"]
+
+
+def test_every_two_stretch_red_names_a_culprit_in_step():
+    """conduct@0.13.2: the two-stretch laws convict through the agrees facts, one culprit per
+    diagnostic, `unnamed` said out loud where the facts cannot separate the drawing from the
+    program - never a red with nobody beside it."""
+    from epure.behavior import CULPRITS
+    for name, laws in RED_UNDER.items():
+        for law in laws - {"agrees", "effect", "constructible"}:
+            tree = Quern()
+            tree.root.children = [spec.cloakroom(), getattr(spec, name).model_copy(deep=True)]
+            got = STRETCH[law](tree, "visit", "model")
+            assert len(got.culprits) == got.violations, (name, law, got.culprits)
+            for who, d in zip(got.culprits, got.diagnostics):
+                assert who in CULPRITS and f"culprit: {who} [" in d, (name, law, d)
