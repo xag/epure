@@ -200,6 +200,13 @@ CONDUCT_RULES = [
 HUGHES = ("John Hughes — How to Specify It! A Guide to Writing Properties of Pure Functions "
           "(Chalmers, 2020)")
 HUGHES_URL = "https://research.chalmers.se/publication/517894/file/517894_Fulltext.pdf"
+LAMPORT_2000 = "Leslie Lamport — Fairness and Hyperfairness (Distributed Computing 13, 2, 2000)"
+LAMPORT_2000_URL = "https://lamport.azurewebsites.net/pubs/lamport-fairness.pdf"
+LAMPORT_WF = ("Formula WF(A), called weak fairness on A, asserts that if A eventually becomes "
+              "enabled forever, then infinitely many A steps must occur.")
+LAMPORT_SF = ("Formula SF(A), called strong fairness on A, asserts that if A is infinitely "
+              "often enabled — even though it may also be infinitely often disabled — then "
+              "infinitely many A steps must occur.")
 HUGHES_POSTCONDITION = ("after calling insert, then we should be able to find the key just "
                         "inserted, and any previously inserted keys with unchanged values")
 RFC9110 = "IETF RFC 9110, HTTP Semantics — §9.2.2 Idempotent Methods"
@@ -624,20 +631,21 @@ CONDUCT_LAWS = [
         "an-enabled-act-is-eventually-taken",
         "An act the model keeps enabled is eventually taken — weak fairness, without which "
         "no promise can be proved kept, only possible",
-        _uncited(),
+        _cited("Lamport 2000, Fairness and Hyperfairness, §3 Fairness for Action Systems"),
         falsifier="A tape on which an action's guard holds from some act onward, past the "
                   "horizon a fairness annotation names, and the action never fires.",
         triggers=["a model declares a fairness annotation on an action — a kind "
                   "semantic-model does not have yet"],
+        citations=[(LAMPORT_2000 + ", §3", LAMPORT_2000_URL, LAMPORT_WF),
+                   (LAMPORT_2000 + ", §3", LAMPORT_2000_URL, LAMPORT_SF)],
         note="model/promised proves a promise POSSIBLE from every state that makes it; "
              "proving it KEPT needs fairness — the assumption that the scheduler does not "
              "starve an enabled act forever. The ledger's fairness-is-inexpressible debt, "
-             "and the census's one owed item. Lamport states weak and strong fairness in "
-             "Fairness and Hyperfairness (2000); the sentence could not be verified today and "
-             "the law is carried uncited until it is.",
-        meta={"expected:a-law-cites-a-source":
-              "Lamport 2000 states weak and strong fairness; the verbatim sentence could not "
-              "be fetched and checked today. Source it from the paper's text, then cite."},
+             "and the census's one owed item. Cited from the paper's own text (0.12.2): "
+             "WF(A) = <>[](Enabled A) => []<>A, SF(A) = []<>(Enabled A) => []<>A. The law "
+             "as stated here is the weak form — `keeps enabled` is Lamport's `eventually "
+             "becomes enabled forever` — and a tape, being finite, can refute it only "
+             "against a horizon an annotation names, which is what the debt owes.",
         owed="fairness-is-inexpressible: no kind annotates an action as fair; model/promised "
              "answers possibility only",
     ),
@@ -865,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.12.1",
+    version="0.12.2",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -938,7 +946,10 @@ CONDUCT_PACKAGE = Package(
                 "the first consumer's re-induced frame faults, had named app six times where "
                 "the drawing was wrong; it now names model on a write about the act's own "
                 "subject or through a door every act of the action uses, and unnamed "
-                "otherwise.",
+                "otherwise. 0.12.2: the fairness law cites Lamport 2000 verbatim - the "
+                "one law the catalogue had carried uncited for want of the sentence; it "
+                "stays owed, since no kind annotates an action as fair, but it is no longer "
+                "unsourced.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

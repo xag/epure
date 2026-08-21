@@ -20,8 +20,8 @@ from epure.conduct import CONDUCT_LAWS, CONDUCT_PACKAGE
 
 _ROOT = Path(__file__).resolve().parents[1]
 
-UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable",
-             "an-enabled-act-is-eventually-taken"}
+UNSOURCED = {"shown-once-shown-until-touched", "the-effect-is-checkable"}
+# (conduct@0.12.2 cited the fairness law from Lamport 2000, §3; it stays OWED, not unsourced)
 
 # The laws no native holds yet — each owed to a debt the ledger carries.
 OWED = {"an-enabled-act-is-eventually-taken"}   # fairness: the census's one owed item
