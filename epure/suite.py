@@ -146,6 +146,10 @@ class Verdict:
         self.checks: dict[str, tuple[int, str]] = {}
         self.notes: dict[str, int] = {}
         self.judged: dict[str, int] = {}
+        # who each red names, per check that attributes: {"agrees": {"harness": 2}} - the
+        # tool's word on the violation, counted so a session can hold it against what was
+        # established (epure.attribution)
+        self.culprits: dict[str, dict[str, int]] = {}
         self.error = ""
 
     @property
@@ -233,6 +237,11 @@ def judge(suite: Suite, tape: Path, kind: str) -> Verdict:
                 v.notes[name] = len(got.notes)
             if got.judged:
                 v.judged[name] = got.judged
+            if got.culprits:
+                tally: dict[str, int] = {}
+                for who in got.culprits:
+                    tally[who] = tally.get(who, 0) + 1
+                v.culprits[name] = tally
         except Exception as e:                       # a broken link, a model that is not a model
             v.error = f"{type(e).__name__}: {e}"
             v.checks[name] = (-1, v.error)
@@ -284,6 +293,10 @@ def report(suite: Suite, verdicts: list[Verdict]) -> None:
                 n, first = v.checks[check]
                 if n and first:
                     print(f"         {check}: {_ascii(first)[:150]}")
+                    if check in v.culprits:
+                        named = ", ".join(f"{who} {k}" for who, k in
+                                          sorted(v.culprits[check].items()))
+                        print(f"         {check} names: {named}")
 
 
 def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = None) -> None:
@@ -333,6 +346,7 @@ def write_receipt(suite: Suite, verdicts: list[Verdict], path: Path | None = Non
                 "judged": {law: v.judged.get(law, 0) for law in ("effect",) + _STRETCH},
                 "calls": v.calls,
                 "calls_declared": v.declared,
+                "culprits": v.culprits,
                 "red": v.red(),
             }
             for v in sorted(verdicts, key=lambda r: (r.kind, r.name))

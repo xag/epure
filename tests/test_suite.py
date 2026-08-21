@@ -150,6 +150,8 @@ def test_the_receipt_names_each_tape_by_digest_and_the_model_by_its_pin(tmp_path
     assert got["model"] == "turnstile@1.0.0", "the version is the pin, never typed"
     assert "timestamp" not in got, "a field that changes every run teaches people to skip it"
     assert got["tapes"][0]["sha256"] == hashlib.sha256(tape.read_bytes()).hexdigest()
+    # the tool's word on each red, per attributing check - empty where nothing is red
+    assert got["tapes"][0]["culprits"] == {}
 
     # Edit the evidence and the receipt stops describing it — the property a gate leans on.
     tape.write_bytes(tape.read_bytes() + b"\n")
