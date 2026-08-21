@@ -519,7 +519,7 @@ _FAIRNESS_DEBT = Node(
             "backend lands, a liveness claim proven WITHOUT fairness assumptions is "
             "usually vacuously false, and whoever builds it must find this waiting.",
         "the_day_has_come":
-            "2026-08-23: it has arrived and the annotation did not ship with it. "
+            "2026-08-22: it has arrived and the annotation did not ship with it. "
             "[[temporal-predicates-are-inexpressible]] discharged on 2026-08-21 - `promise`, "
             "model/promised and conduct/eventually - and the discharge condition below asked "
             "for fairness beside the first liveness predicate. A promise is now held in two "
@@ -1332,7 +1332,7 @@ _BETWEEN_LOOKS_ONE_WAY = Node(
     params={
         "rows_misnamed": Quantity(
             value=4, unit="red", provenance="verified", grounded=True,
-            source="python -m tools.induce in the first consumer, 2026-08-23: the set-today "
+            source="python -m tools.induce in the first consumer, 2026-08-22: the set-today "
                    "fault reads model 5 / harness 4 of 9 - the five whose window holds the "
                    "mover, and the four that follow it. The nine are one disagreement "
                    "(wash_day -1 -> 1) seen from five successive acts and their calls, "
@@ -1458,7 +1458,7 @@ _REACHABLE_GRID = Node(
         "reachable_share": Quantity(
             value=6.8, unit="percent", provenance="verified", grounded=True,
             source="chores-model@0.24.0: 35280 states reachable of the 516096 in the product "
-                   "of the declared domains (epure.prove.reachable_from_node, 2026-08-23). "
+                   "of the declared domains (epure.prove.reachable_from_node, 2026-08-21). "
                    "The grid the draft used before was fourteen times too big, and the "
                    "surplus was not neutral - it is where --propose was sending people"),
         "rows_moved": Quantity(
@@ -1556,7 +1556,7 @@ _DRAFT_HYPOTHESIS = Node(
                    "health-model@0.1.0), with different arithmetic behind five of them"),
         "updates_drafted_equivalent": Quantity(
             value=25, unit="update", provenance="verified", grounded=True,
-            source="2026-08-23: 25 of 29 - chores 21 of 25, health 4 of 4 - after the GRID "
+            source="2026-08-22: 25 of 29 - chores 21 of 25, health 4 of 4 - after the GRID "
                    "was narrowed to where the world can be "
                    "([[equivalence-is-judged-where-the-world-can-be]]): the tick's "
                    "wash_pending, whose separating world was a pending wash with no day, is "
@@ -1576,7 +1576,7 @@ _DRAFT_HYPOTHESIS = Node(
                    "corrections, two acts witnessed; 0 partial, 0 unresolved, 0 unwitnessed). "
                    "Five different remained: the tick's wash_pending (the separating world was "
                    "one the model cannot reach - the generator did not know reachability, "
-                   "which is what the next day fixed), two "
+                   "which the reachable grid then fixed), two "
                    "placed-wash paths no tape takes, skip-bins' two from one sample. Earlier the "
                    "same day, the second measurement, three moves apart so each is its own "
                    "number. THE HARNESS: chores' flights read the clock and the board after "
