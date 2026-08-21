@@ -730,6 +730,10 @@ class _World:
         self.pre = pre
         self.post = post
         self.binding = binding
+        # where each side was read: the position of the read that gave pre[var]/post[var],
+        # so a diagnosis can ask what sat between the two worlds
+        self.pre_at: dict[str, tuple] = {}
+        self.post_at: dict[str, tuple] = {}
 
     @property
     def kind(self) -> str:
@@ -822,7 +826,7 @@ class _Worlds:
             if _through(e, self.writes_of.get(proj.var, [])):
                 return None
             if _through(e, proj.doors):
-                return e
+                return pos, e
         return None
 
     def _stamps(self, act: _Act) -> tuple[Any, Any]:
@@ -865,7 +869,7 @@ class _Worlds:
             if _through(e, self.writes_of.get(proj.var, [])):
                 return None
             if _through(e, proj.doors):
-                return e
+                return pos, e
         return None
 
     def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
@@ -882,20 +886,23 @@ class _Worlds:
                 self.notes.append(f"{where} binds {len(bound)} action(s) — not judged")
             pre: dict[str, Any] = {}
             post: dict[str, Any] = {}
+            pre_at: dict[str, tuple] = {}
+            post_at: dict[str, tuple] = {}
             for var, proj in self.projections.items():
                 try:
                     before = self._read_before(proj, act.at)
-                    if before is not None and (v := proj.value(before)) is not None:
-                        pre[var] = v
+                    if before is not None and (v := proj.value(before[1])) is not None:
+                        pre[var], pre_at[var] = v, before[0]
                     after = self._read_after(proj, act.to)
-                    if after is not None and (v := proj.value(after)) is not None:
-                        post[var] = v
+                    if after is not None and (v := proj.value(after[1])) is not None:
+                        post[var], post_at[var] = v, after[0]
                 except ValueError as e:
                     self.errors.append(f"{where}: {e}")
             data = act.span.payload.get("data") or {}
             binding = ({a: _normalize(data[a]) for a in action["args"] if a in data}
                        if action else {})
             w = _World(i, act, action, pre, post, binding)
+            w.pre_at, w.post_at = pre_at, post_at
             w.inner_updates = {var for inner in act.inner for a in self.model.bound(inner.span)
                                for var, _ in self.by_id[a.id]["updates"]}
             w.stamp_before, w.stamp_after = self._stamps(act)
@@ -939,6 +946,68 @@ def _equal_on(a: dict[str, Any], b: dict[str, Any], vars: Iterable[str]) -> bool
 # --- conduct/agrees: the world, projected, agrees with the model's own updates -------------
 
 
+def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None) -> bool:
+    """Whether the clock was consulted strictly between two places on the tape — a `now`
+    event, the recorder's own kind for a clock read. With no pre-read, the window opens at
+    the tape's start."""
+    lo = lo if lo is not None else (-1, -1)
+    hi = hi if hi is not None else (10 ** 9, float("inf"))
+    return any(lo < pos < hi and e.get("k") == "now" for pos, e in W.stream)
+
+
+CULPRITS = ("model", "app", "harness", "unnamed")
+
+
+def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]:
+    """Who is wrong, named from four facts the native already holds about the (act, var)
+    pair — never from a reader opening the tape. The rule is the ledger hypothesis
+    `a-red-is-attributed-by-a-rule-not-a-reader`, and it is measured, not trusted: a
+    session counts the reds it named right against the reds met (`epure.attribution`).
+
+      derived   the variable is a view (`derived_from`), stated by the app, not stored
+      declared  the bound action declares an update of it
+      wrote     the act's own events passed through a door the model says moves it
+      clock     the clock was read between the pre-world and the post-world
+
+    One culprit per row, and the rows the facts cannot separate say `unnamed` out loud
+    rather than guess: one writer and two arithmetics — the drawing's and the program's —
+    is a disagreement the tape holds no third witness to; the human's intent decides it.
+    """
+    proj = W.projections[var]
+    derived = bool(proj.derived_from)
+    wrote = any(_through(e, W.writes_of.get(var, [])) for _, e in w.act.events)
+    clock = _clock_between(W, w.pre_at.get(var), w.post_at.get(var))
+    facts = (f"{'derived' if derived else 'stored'}, "
+             f"{'declared' if declared else 'undeclared'}, "
+             f"{'written through its door' if wrote else 'no write through its doors'}, "
+             f"{'clock read between' if clock else 'no clock between'}")
+    if not declared and not wrote:
+        if not derived:
+            return "harness", (f"[{facts}] a stored variable moved between two reads with no "
+                               "declared update and no write through any door the model says "
+                               "moves it: something the recorder did not see wrote the store")
+        if clock:
+            return "model", (f"[{facts}] the view is recomputed under a clock read between the "
+                             "two worlds and the act declares no move of it: the drawing "
+                             "misses the update the clock implies")
+        return "harness", (f"[{facts}] the view moved with no write to what it derives from "
+                           "and no clock between the two statements: the statement came from "
+                           "something not on the tape")
+    if not declared and wrote:
+        return "model", (f"[{facts}] the act wrote through a door the drawing itself says "
+                         "moves this variable, and declares no update of it: the drawing "
+                         "omits the update")
+    if declared and not wrote:
+        return "app", (f"[{facts}] the drawing declares the move and the program wrote "
+                       "nothing through any door that carries it")
+    if derived and clock:
+        return "harness", (f"[{facts}] the view was stated under a clock read between the "
+                           "write and the statement; the write and the declaration agree, "
+                           "and the clock is the harness's to set")
+    return "unnamed", (f"[{facts}] one writer, two arithmetics - the drawing's and the "
+                       "program's - and the tape holds no third witness")
+
+
 def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many (act, projected state-var) pairs under `path` disagree with the model.
 
@@ -954,11 +1023,18 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """
     W = _Worlds(tree, path, rel)
     diagnostics: list[str] = list(W.errors)
+    # one culprit per diagnostic, in step: an error the projection raised has none to name
+    culprits: list[str] = ["unnamed"] * len(W.errors)
     notes: list[str] = list(W.notes)
     judged = 0
     if not W.projections:
         notes.append(f"{path}: the model projects no state-var — nothing to agree on")
         return Conformance(check="conduct/agrees", violations=0, notes=notes)
+
+    def convict(sentence: str, w: _World, var: str, declared: bool) -> None:
+        who, why = _culprit(W, w, var, declared)
+        diagnostics.append(f"{sentence} — culprit: {who} {why}")
+        culprits.append(who)
     for w in W.worlds:
         if w.action is None:
             continue
@@ -981,21 +1057,23 @@ def agrees(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     continue
                 judged += 1
                 if w.post[var] != expected:
-                    diagnostics.append(
+                    convict(
                         f"{where} ({w.action['id']}) updates '{var}' to {expected!r} from the "
-                        f"projected world {w.pre}; the world shows {w.post[var]!r} after")
+                        f"projected world {w.pre}; the world shows {w.post[var]!r} after",
+                        w, var, True)
             elif var in w.pre:
                 judged += 1
                 if w.post[var] != w.pre[var]:
-                    diagnostics.append(
+                    convict(
                         f"{where} ({w.action['id']}) does not update '{var}', and the world "
                         f"shows it moved from {w.pre[var]!r} to {w.post[var]!r} — the frame, "
-                        "by value")
+                        "by value",
+                        w, var, False)
             else:
                 notes.append(f"{where} ({w.action['id']}): '{var}' has no read before the act "
                              "— its frame cannot be judged")
     return Conformance(check="conduct/agrees", violations=len(diagnostics),
-                       diagnostics=diagnostics, notes=notes, judged=judged)
+                       diagnostics=diagnostics, notes=notes, judged=judged, culprits=culprits)
 
 
 # --- the two-stretch natives ----------------------------------------------------------------

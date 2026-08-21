@@ -415,7 +415,11 @@ CONDUCT_LAWS = [
              "(semantic-model@0.6.0, `shown`), and conduct/agrees holds the two sides equal "
              "after every act: project the reads before, apply the update, compare with the "
              "reads after. It subsumes the value forms of the effect, faithfulness and "
-             "frame laws, for every variable that projects.",
+             "frame laws, for every variable that projects. Each red names a culprit - "
+             "model, app, harness, or unnamed - from four facts the native holds (derived "
+             "or stored, declared or not, written through its door or not, a clock read "
+             "between the two worlds); the rule is a measured hypothesis, counted by "
+             "`epure.attribution` over the diagnosis claims, never trusted.",
         native="conduct/agrees",
     ),
     _law(
@@ -846,7 +850,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.10.0",
+    version="0.11.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -903,7 +907,10 @@ CONDUCT_PACKAGE = Package(
                 "views a rhythm derives; no new law, the same laws seeing more. 0.10.0: conduct/stamped "
                 "does not count a derived view as a change - the first real run convicted a "
                 "day's tick for moving the views without bumping a stored document's stamp, "
-                "which the RFC does not ask - and the catalogue's prose names no client.",
+                "which the RFC does not ask - and the catalogue's prose names no client. 0.11.0: "
+                "each red under conduct/agrees names a culprit - model, app, harness, or "
+                "unnamed - from four facts the native holds; the attribution is a measured "
+                "hypothesis, never a verdict trusted on its own.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

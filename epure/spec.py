@@ -329,6 +329,31 @@ BYSTANDER_MOVED = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
                          *SHELVE_HIGH, *world("red", "blue", "high")])
 WORLD_UNOPENED = visit([*DEPOSIT, *world("red", None, None)])
 
+# --- the culprit, named by the rule (the attribution hypothesis) ---------------------------
+#
+# Each red under agrees carries who the native names from four facts it holds - derived or
+# stored, declared or not, written through its door or not, a clock read between the two
+# worlds or not. One tape per row the cloakroom can witness; the rows it cannot separate
+# say `unnamed`, and TAG_WRONG / SIGN_WRONG above are those.
+
+_NOW: dict[str, Any] = {"k": "now", "v": "t"}
+
+# the drawing declares the move, the program wrote nothing through any door that carries it
+TAG_UNWRITTEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                       *_act("tagging", {"color": "red"}), *world("red", None, None)])
+# the deposit also wrote the ticket - through tag.write, a door the drawing says moves the
+# tag - and check-coat declares no update of the tag
+DEPOSIT_TAGGED_TOO = visit([*EMPTY, *_act("deposit", RED, _write("red"), _tag_write("blue")),
+                            *world("red", "blue", None)])
+# SIGN_WRONG with the clock consulted between the write and the statement
+SIGN_UNDER_THE_CLOCK = visit([*EMPTY, _sign(False), *DEPOSIT, _NOW, *world("red", None, None),
+                              _sign(False)])
+# the sign went dark across shelving, which wrote nothing the sign derives from, under a
+# clock read: a view the clock moves that no act declares
+SIGN_DARK_AT_CLOSING = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None),
+                              _sign(True), *SHELVE_HIGH, _NOW, *world("red", None, "high"),
+                              _sign(False)])
+
 # --- two stretches (twice, last-write, commute, undo, durable, same-story, constructible) ---
 
 TAGGED_TWICE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
@@ -557,6 +582,30 @@ AGREES_SPEC = [
     c("agrees", judged(LAWFUL), ["session", "model"], expect=0,
       because="the turnstile projects nothing: a model without projections has nothing "
               "to agree on, and says so in a note rather than passing in silence"),
+    # the culprit rows: each red names who the native holds responsible, from its own facts
+    c("agrees", visited(TAG_UNWRITTEN), ["visit", "model"], expect=1,
+      because="culprit app: the drawing declares tag := color and the tagging span wrote "
+              "nothing through tag.write - the program did not do what the drawing says"),
+    c("agrees", visited(DEPOSIT_TAGGED_TOO), ["visit", "model"], expect=1,
+      because="culprit model: the deposit wrote through tag.write, a door the drawing itself "
+              "says moves the tag, and check-coat declares no update of it - the drawing "
+              "omits the update"),
+    c("agrees", visited(SIGN_UNDER_THE_CLOCK), ["visit", "model"], expect=1,
+      because="culprit harness: the sign was stated under a clock read between the hook's "
+              "write and the statement; write and declaration agree, and the clock is the "
+              "harness's to set"),
+    c("agrees", visited(SIGN_DARK_AT_CLOSING), ["visit", "model"], expect=1,
+      because="culprit model: the sign moved across shelving, which wrote nothing the sign "
+              "derives from, with the clock read in between - the view is a function of the "
+              "clock and no act declares the move"),
+    c("agrees", visited(BYSTANDER_MOVED), ["visit", "model"], expect=1,
+      because="culprit harness: the tag moved across shelving with no declared update and "
+              "no write through any door the drawing says moves it - something the recorder "
+              "did not see wrote the store"),
+    c("agrees", visited(TAG_WRONG), ["visit", "model"], expect=1,
+      because="culprit unnamed: the ticket was written and the drawing declares the write; "
+              "the two arithmetics disagree and the tape holds no third witness - the "
+              "human's intent decides"),
 ]
 
 TWICE = [

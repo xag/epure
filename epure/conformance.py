@@ -67,6 +67,10 @@ class Conformance(BaseModel):
     #: How many (act, claim) pairs the check actually decided — so a zero can be read:
     #: 0 of 0 is silence, 0 of 40 is a verdict.
     judged: int = 0
+    #: Who the check names for each diagnostic, in step with `diagnostics`, where the check
+    #: has a rule to name one: "model", "app", "harness", or "unnamed" when its facts cannot
+    #: separate the candidates. Empty for a check that does not attribute.
+    culprits: list[str] = Field(default_factory=list)
 
 
 # --- the convention: one slice, one model ---------------------------------------------

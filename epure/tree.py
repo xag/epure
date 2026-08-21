@@ -1180,7 +1180,12 @@ _ATTRIBUTION_HYPOTHESIS = Node(
             "variable at all; whether the act's own writes went through any door of the "
             "variable; whether the same act on another tape was green. The bet is that a "
             "small rule over those facts names the culprit in most cases, and that the cases "
-            "it cannot name are a short, growing list of new words - the asymptote again.",
+            "it cannot name are a short, growing list of new words - the asymptote again. "
+            "The rule shipped 2026-08-21 (conduct@0.11.0): conduct/agrees names model, app, "
+            "harness or unnamed on every red from the four facts, one row per profile, "
+            "demonstrated on the cloakroom; `python -m epure.attribution claims.jsonl` "
+            "counts, from the diagnosis claims' `red` records, the reds met against the "
+            "reds the rule named right.",
         "consequence_if_wrong":
             "The reader stays in the loop for attribution, and the program's right edge is "
             "the verdict 'something is wrong here', which is still the larger half of the "
@@ -1195,7 +1200,9 @@ _ATTRIBUTION_HYPOTHESIS = Node(
             value=0, unit="red", provenance="asserted", grounded=False,
             source="2026-08-21: six reds (four harness, two model) attributed by reading "
                    "the tape; the natives wrote the act, the variable and the two worlds, "
-                   "and no tool wrote the culprit"),
+                   "and no tool wrote the culprit. Grounds from the first session that "
+                   "meets a red with the rule in place: python -m epure.attribution "
+                   "claims.jsonl --session ID, in the consumer's repo"),
     },
     children=[
         Node(

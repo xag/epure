@@ -182,6 +182,37 @@ def test_agrees_refuses_a_projection_outside_the_domain():
     assert got.violations == 1 and "outside its domain" in got.diagnostics[0]
 
 
+# the culprit rule: one row per (derived, declared, wrote, clock) profile the cloakroom can
+# witness, and the facts printed beside the name so a wrong attribution can be argued with
+CULPRITS = {
+    "TAG_UNWRITTEN": "app",
+    "DEPOSIT_TAGGED_TOO": "model",
+    "SIGN_UNDER_THE_CLOCK": "harness",
+    "SIGN_DARK_AT_CLOSING": "model",
+    "BYSTANDER_MOVED": "harness",
+    "TAG_WRONG": "unnamed",
+    "SIGN_WRONG": "unnamed",
+    "WORLD_LOST": "unnamed",
+}
+
+
+def test_every_red_under_agrees_names_its_culprit():
+    for name, who in CULPRITS.items():
+        tree = Quern()
+        tree.root.children = [spec.cloakroom(), getattr(spec, name).model_copy(deep=True)]
+        got = agrees(tree, "visit", "model")
+        assert got.violations == 1, (name, got.diagnostics)
+        assert got.culprits == [who], (name, got.culprits, got.diagnostics)
+        assert f"culprit: {who} [" in got.diagnostics[0], got.diagnostics[0]
+
+
+def test_culprits_walk_in_step_with_diagnostics():
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.AGREES.model_copy(deep=True)]
+    got = agrees(tree, "visit", "model")
+    assert got.violations == 0 and got.culprits == []
+
+
 def test_agrees_is_a_note_when_nothing_projects():
     tree = Quern()
     tree.root.children = [spec.turnstile(), spec.LAWFUL.model_copy(deep=True)]
