@@ -37,6 +37,7 @@ def build() -> Quern:
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
                            _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _REACHABLE_GRID,
+                           _BETWEEN_LOOKS_ONE_WAY,
                            _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
@@ -1276,6 +1277,71 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                     "where it is, not where it was hoped to be.",
             },
         ),
+    ],
+)
+
+
+_BETWEEN_LOOKS_ONE_WAY = Node(
+    id="the-act-between-is-only-looked-for-forwards",
+    kind="debt",
+    name="The culprit rule asks whether a door-bearing act lies between an act and the read "
+         "its world-AFTER came from, and never the mirror question about the read its "
+         "world-BEFORE came from - so a view's stale statement lands on the wrong culprit",
+    payload={
+        "what_it_costs":
+            "A view is read rarely - a board statement, not every act - so one pair of "
+            "statements is the window of every act in the span between them, and one act's "
+            "undeclared update is a disagreement all of them carry. The forward fact "
+            "(conduct@0.14.1) rescues the acts BEFORE the mover: their world-after was read "
+            "past it. The acts AFTER it have the mirror problem - their world-before was read "
+            "before it - and nothing asks, so they fall through to the harness fallback, "
+            "'the statement came from something not on the tape'. On the calibration set "
+            "that is the set-today fault's four rows of nine, named harness where model is "
+            "known - four of the residual rows of "
+            "[[a-red-is-attributed-by-a-rule-not-a-reader]]. Measured, not guessed: the fact "
+            "was written (a `before` list beside "
+            "`between`, guarded by `not clock` so a moved clock still wins as direct "
+            "evidence of the harness) and the calibration read 73 met / 61 named / 58 right, "
+            "up from 54, with no other row moved and 145 tests green. Then it was REVERTED, "
+            "because it cannot pass the genericity gate yet.",
+        "why_it_is_not_paid":
+            "The gate wants the fact demonstrated on the cloakroom, and the cloakroom cannot "
+            "witness it. The fallback the fact corrects is reached only by an act that writes "
+            "NOTHING the model knows - a read-act - because any known write reaches `model` "
+            "one branch earlier. Every cloakroom action writes a known door; the four chores "
+            "rows are read_wake, clock-read, show_board and board-read. So the spec bed lacks "
+            "the one shape that exhibits the bug, which is exactly why the bug went unseen. "
+            "Paying it means giving the cloakroom a read-only action (`updates: []`, "
+            "`touches.via: []`, as every real consumer has), which is semantic-model@0.15.0, "
+            "a conduct republish and a walk of the pin chain - a piece of work with its own "
+            "session, not a rider on another.",
+    },
+    params={
+        "rows_misnamed": Quantity(
+            value=4, unit="red", provenance="verified", grounded=True,
+            source="python -m tools.induce in the first consumer, 2026-08-23: the set-today "
+                   "fault reads model 5 / harness 4 of 9 - the five whose window holds the "
+                   "mover, and the four that follow it. The nine are one disagreement "
+                   "(wash_day -1 -> 1) seen from five successive acts and their calls, "
+                   "between one statement and the next"),
+        "calibration_if_paid": Quantity(
+            value=58, unit="red", provenance="verified", grounded=True,
+            source="73 met / 61 named / 58 right with the fact in place, against 73 / 61 / 54 "
+                   "without - measured on the working copy before the revert, the four rows "
+                   "moving harness -> model and nothing else moving"),
+    },
+    children=[
+        Node(id="discharge-a-read-act-in-the-cloakroom", kind="discharge",
+             name="Give the cloakroom a read-only action, demonstrate the mirror fact on it, "
+                  "and ship the rule with the calibration floor raised to 58",
+             payload={"route":
+                      "semantic-model@0.15.0 grows the read-act; the mirror of "
+                      "SHELVED_OFF_THE_HOOK is a view stated before an undeclared mover and "
+                      "read again after a read-act that follows it; conduct republishes with "
+                      "the row demonstrated; both consumers repin and the floor rises from 54 "
+                      "to 58 in the commit that says why. Raising the floor without the "
+                      "demonstration would be tuning the rule on its test set, which the "
+                      "induced-faults decision already refuses by name."}),
     ],
 )
 
