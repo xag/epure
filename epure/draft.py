@@ -219,11 +219,21 @@ def draft_update_where(var: str, dom: list[Any], samples: list[tuple[dict, dict,
     # partial otherwise. A later candidate every row CAN judge does not outrank it: when no
     # sample shows the value before the act, "the constant 0" and "the frame" are the same
     # evidence, and the simpler claim stands, marked for what it still needs.
+    # ...and a candidate no row could judge is not evidence of anything: it is skipped, not
+    # proposed - eight completions on a Monday before the clock was ever written do not
+    # draft `today` for a counter, they draft the increment every one of them shows.
+    frame_judged = any(var in pre for _, pre, _, _ in rows)
     for status, expr, needs, fits in candidates:
         ok, missing = judged(needs, fits)
         if not ok:
             continue
+        if len(missing) == len(rows):
+            continue
         if not missing:
+            if status == "constant" and not frame_judged:
+                # the constant every sample shows, with no sample showing the before: the
+                # frame is not refuted and not confirmed, and this says so
+                return expr, "partial", [(i, var) for i, _, _, _ in rows]
             return expr, status, []
         return expr, "partial", missing
     return None, "unresolved", []
@@ -403,7 +413,7 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                 tally["frames"] += 1
                 verdict = ("unwitnessed" if status == "unwitnessed"
                            else "agreed" if status == "frame"
-                           else "partial" if status == "partial" and expr is None
+                           else "partial" if status == "partial"
                            else "disputed")
                 tally[f"frames_{verdict}"] += 1
                 if verdict == "disputed":
@@ -425,7 +435,7 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                     else "different"
             tally[f"guards_{verdict}"] += 1
             row["guard"]["verdict"] = verdict
-            if verdict == "different" and not refused:
+            if verdict == "different" and not refused and guard.strip() != "true":
                 report["proposals"].append({
                     "action": c.id, "var": None, "hand": guard, "draft": drafted,
                     "verdict": "different", "kind": "guard",

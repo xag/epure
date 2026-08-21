@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.13.0",
+    version="0.13.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -956,7 +956,11 @@ CONDUCT_PACKAGE = Package(
                 "named harness on a tick the drawing had got wrong (counted, a cold red named "
                 "wrong); conduct/stamped reads the validator's `covers` (semantic-model@0.13.0); "
                 "conduct/eventually counts only the acts that move the world toward a "
-                "promise's horizon - a read is a stutter step.",
+                "promise's horizon - a read is a stutter step. 0.13.1: the agrees rule's fifth "
+                "fact, an act between, counts only an act with a door - a read-act declaring "
+                "`via: []` cannot hide a writer; with a clock read between every act and its "
+                "world-after, the rule had named model past the clock read, twice, right by "
+                "accident (counted).",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

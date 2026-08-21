@@ -1216,6 +1216,14 @@ def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None) -> bool:
 CULPRITS = ("model", "app", "harness", "unnamed")
 
 
+def _has_doors(W: _Worlds, action_id: str) -> bool:
+    """Whether the action declares any door at all - an effect's `via` or a `touches.via`."""
+    for a in W.model.actions:
+        if a.id == action_id:
+            return bool(any(e.via for e in a.effects) or list(a.touches_via))
+    return False
+
+
 def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]:
     """Who is wrong, named from four facts the native already holds about the (act, var)
     pair — never from a reader opening the tape. The rule is the ledger hypothesis
@@ -1240,9 +1248,14 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     wrote = any(_through(e, W.writes_of.get(var, [])) for _, e in w.act.events)
     clock = _clock_between(W, w.pre_at.get(var), w.post_at.get(var))
     post_at = w.post_at.get(var, (10 ** 9, float("inf")))
+    # an act between counts only if it has a door to hide a writer behind: a read-act with
+    # `via: []` (a board read, a clock read) wrote nothing by its own declaration, and the
+    # first harness to read the world after every act put one between every act and its
+    # world-after - the rule had named model "past read-clock", right by accident (0.13.1)
     between = [o for o in W.worlds
                if o.action is not None and not o.act.is_call
-               and w.act.to < o.act.at and o.act.to < post_at]
+               and w.act.to < o.act.at and o.act.to < post_at
+               and _has_doors(W, o.action["id"])]
     facts = (f"{'derived' if derived else 'stored'}, "
              f"{'declared' if declared else 'undeclared'}, "
              f"{'written through its door' if wrote else 'no write through its doors'}, "

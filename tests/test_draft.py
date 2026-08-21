@@ -83,10 +83,14 @@ def test_a_row_without_a_before_does_not_refute_what_it_cannot_judge():
                                                  ["last", "today"])
     assert (expr, status) == ("today", "partial")
     assert unsettled == [(1, "today")]
-    # and when no row shows the before at all, the frame is partial - not the constant
+    # and when no row shows the before at all, the constant every row shows is partial -
+    # the frame is neither refuted nor confirmed, and a candidate judged on no row is
+    # skipped, never proposed
     rows = [({}, {}, {"n": 0}), ({}, {}, {"n": 0})]
-    assert draft_update_where("n", list(range(8)), rows, [], ["n"]) == (None, "partial",
+    assert draft_update_where("n", list(range(8)), rows, [], ["n"]) == ("0", "partial",
                                                                           [(0, "n"), (1, "n")])
+    rows = [({"n": 0}, {}, {"n": 1}), ({"n": 1}, {}, {"n": 2}), ({"n": 6}, {}, {"n": 7})]
+    assert draft_update("n", list(range(8)), rows, [], ["n", "today"]) == ("n + 1", "increment")
 
 
 def test_a_guard_is_drafted_from_refusals():
