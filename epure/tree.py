@@ -35,7 +35,8 @@ def build() -> Quern:
     quern = Quern(packages=[r for r in refs if r.name in ("ledger", "conduct")])
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
-                           _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES, _TEMPORAL_DEBT,
+                           _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
+                           _ATTRIBUTION_HYPOTHESIS, _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
@@ -1157,6 +1158,66 @@ _DOOR_CENSUS_DEBT = Node(
                       "boundary records as a write is matched by a door of some action. "
                       "Grounded with the count that then holds; the first consumer first, where "
                       "the boundary is one declared module."}),
+    ],
+)
+
+
+_ATTRIBUTION_HYPOTHESIS = Node(
+    id="a-red-is-attributed-by-a-rule-not-a-reader",
+    kind="hypothesis",
+    name="A red from the conduct natives can be attributed - model, code, or harness - by a "
+         "rule over what the native already knows, without a reader opening the tape",
+    payload={
+        "held_because":
+            "The program's direction is human -> AI -> code: the human states intent, the "
+            "code renders the verdict. Today the verdict stops one step short. A native says "
+            "WHICH act, WHICH variable, WHICH two worlds disagree; which of the three things "
+            "is wrong - the drawing, the program, or the harness that recorded it - is still "
+            "read off the tape by whoever is watching. Six reds were attributed this way on "
+            "2026-08-21 and zero by the tooling. Yet the facts that decided them are facts "
+            "the natives hold: whether the moved variable is a derived view; whether a clock "
+            "read or a tick sits between the two worlds; whether the model declares the "
+            "variable at all; whether the act's own writes went through any door of the "
+            "variable; whether the same act on another tape was green. The bet is that a "
+            "small rule over those facts names the culprit in most cases, and that the cases "
+            "it cannot name are a short, growing list of new words - the asymptote again.",
+        "consequence_if_wrong":
+            "The reader stays in the loop for attribution, and the program's right edge is "
+            "the verdict 'something is wrong here', which is still the larger half of the "
+            "value. Nothing built on top depends on attribution being automatic; the cost of "
+            "being wrong is the diagnosis minutes per red, counted below.",
+    },
+    params={
+        # Computed per session from the claims and the receipts the natives write, never
+        # typed: the numerator is the reds whose diagnosis a tool wrote, the denominator is
+        # every red a session met. Ungrounded until the first tool-written diagnosis.
+        "reds_attributed_by_a_tool": Quantity(
+            value=0, unit="red", provenance="asserted", grounded=False,
+            source="2026-08-21: six reds (four harness, two model) attributed by reading "
+                   "the tape; the natives wrote the act, the variable and the two worlds, "
+                   "and no tool wrote the culprit"),
+    },
+    children=[
+        Node(
+            id="the-reader-keeps-attributing",
+            kind="falsification",
+            name="Three consecutive sessions where the rule attributes fewer than half the "
+                 "reds met, once the rule exists",
+            payload={
+                "claim":
+                    "Once a diagnosis rule ships on the violation (conduct/agrees first: "
+                    "derived-or-stored, clock-between, declared-or-not, written-through-a-"
+                    "door-or-not), count per session the reds it named right against the "
+                    "reds met. Three consecutive sessions under one half kills this: the "
+                    "facts a native holds were not the facts that decide, and attribution "
+                    "is a reading job. Not 'the rule was wrong once': the ratio, over time.",
+                "cadence": "per-session, from the claims files",
+                "discharge_route":
+                    "The counter stays and becomes the honest number in every status: reds "
+                    "met, reds the tool named. The program's right edge is then stated "
+                    "where it is, not where it was hoped to be.",
+            },
+        ),
     ],
 )
 
