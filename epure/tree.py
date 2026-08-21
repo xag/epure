@@ -518,6 +518,17 @@ _FAIRNESS_DEBT = Node(
             "verdicts are complete without it. Recorded now because the day the temporal "
             "backend lands, a liveness claim proven WITHOUT fairness assumptions is "
             "usually vacuously false, and whoever builds it must find this waiting.",
+        "the_day_has_come":
+            "2026-08-23: it has arrived and the annotation did not ship with it. "
+            "[[temporal-predicates-are-inexpressible]] discharged on 2026-08-21 - `promise`, "
+            "model/promised and conduct/eventually - and the discharge condition below asked "
+            "for fairness beside the first liveness predicate. A promise is now held in two "
+            "places, and only the model half is a claim about the program: `eventually` binds "
+            "whoever acts on the tape, which in the first consumer is a household, and a "
+            "flight there has already been rewritten so a person would hoover and the check "
+            "would stay green. That is the vacuity this debt predicted, arriving from the "
+            "other side - not a liveness claim proved for nothing, but a liveness claim that "
+            "binds the wrong party and is kept true by writing obedient tapes.",
     },
     children=[
         Node(id="fairness-ships-with-the-temporal-backend", kind="discharge",
@@ -526,7 +537,9 @@ _FAIRNESS_DEBT = Node(
                      "The temporal backend (the discharge of "
                      "temporal-predicates-are-inexpressible) ships fairness annotations "
                      "with its first liveness predicate, and grounds the param above with "
-                     "what can then be declared.",
+                     "what can then be declared. OVERDUE since 2026-08-21: the backend "
+                     "shipped without it, and a promise able to say `under weak fairness` is "
+                     "what lets a tape half bind the program and release the people.",
              }),
     ],
 )
