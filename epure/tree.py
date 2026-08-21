@@ -1019,9 +1019,11 @@ _PROJECTION_DEBT = Node(
             "state-var, the read door and the expression that turns its result into the "
             "variable's value. With it, one native holds projected == computed after every "
             "act, and effect and frame become value laws for free. Variables that are views "
-            "(chores' pending flags, recomputed by the rhythm) will not project cheaply, "
-            "and that is the paper's own caveat: a projection that reimplements the "
-            "operation tests nothing.",
+            "(a pending flag recomputed by a rhythm) were thought not to project cheaply - "
+            "the paper's own caveat, that a projection reimplementing the operation tests "
+            "nothing - until the derived view (2026-08-21, decision "
+            "a-view-projects-from-the-apps-statement): a view projects from the point where "
+            "the app states it, and reimplements nothing.",
     },
     children=[
         Node(id="projections-land-in-semantic-model", kind="discharge",

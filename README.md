@@ -11,11 +11,12 @@ Here the drawing is a **semantic model** — a small, finite mathematical object
 | 1 | **model ⊨ predicates** | proven, exhaustively, over every behavior the model admits | once, at design time |
 | 2 | **code ⊑ model** | never provable — so checked mechanically, against evidence | on every execution |
 
-The first is real proof, and it is cheap because the model is small. The second can never be proved — the code talks to a database, a clock and a network — so it is *checked*, on every tape, three ways:
+The first is real proof, and it is cheap because the model is small. The second can never be proved — the code talks to a database, a clock and a network — so it is *checked*, on every tape, four ways:
 
 - **refinement** — the semantic trace is a legal path of the model. If it is not, the tape names the first illegal step.
 - **licensing** — each semantic claim is justified by the raw boundary events inside its span. Testimony, anchored to evidence: a program may not claim it charged a card unless the tape shows it calling the thing that charges cards.
 - **totality** — no raw event escapes semantics. Behavior nobody modelled goes red rather than passing unnoticed, because unmodelled behavior is exactly where the bugs are.
+- **conduct** — the behavior laws of the cited sources (Hughes 2020, RFC 9110, Lamport), held by value: the store is read back, projected onto the model's variables, and compared with what the model's own updates compute after every act — so a tape judges the model as much as the model judges the tape. A state variable the app only recomputes (a view) projects from the point where the app states it.
 
 What that buys is a decomposition. A predicate violation in the wild is impossible without a refinement violation first, so a red result always answers *which of the two things is wrong*: the model was wrong (fix it, re-prove it) or the code diverged from it (the tape names the step). A failure that decomposes is a failure someone can act on.
 
@@ -23,14 +24,14 @@ What that buys is a decomposition. A predicate violation in the wild is impossib
 
 ## The state of it
 
-Early. Today this repo holds its own design ledger, its boundary declaration, and **`semantic-model@0.1.0`** — the meta-vocabulary a model is written in (`model`, `state-var`, `event-kind`, `license`, `action`, `observation`, `invariant`), published to the registry through the proof gate and pinned here by digest (`epure/package.py` is the authored source; the pin, not the file, is the meaning). The rest of the substrate is being built in the open, in this order:
+Today this repo holds its own design ledger, its boundary declaration, **`semantic-model@`** — the meta-vocabulary a model is written in (fifteen kinds: `model`, `state-var` with its projection or derived view, `event-kind`, `license`, `action`, `observation`, the effects `creates`/`mutates`/`deletes`/`merges`, `touches`, `validator`, `boundary`, `invariant`, `promise`) — and **`conduct@`**, the catalogue of behavior laws with its census of the sources, both published to the registry through the proof gate and pinned here by digest (`epure/package.py` and `epure/conduct.py` are the authored sources; the pin, not the file, is the meaning). The substrate, in the order it was built:
 
 | | |
 |---|---|
 | tape importer | a semantic tape becomes a tree the rule language can ask questions of |
 | conformance natives | `model/licensed`, `model/total`, `model/refines` — counts, `== 0` in an ordinary rule |
 | `model/prove` | exhaustive explicit-state checking of finite models; proofs as artifacts |
-| conduct natives | eighteen, in `epure.behavior` (and `model/promised` in `epure.reach`): by presence — `conduct/effect`, `faithful`, `frame`, `refusal` on a tape, `checkable` on a model; by value, over the projections a state-var declares — `agrees` (Hoare's diagram per act), the two-stretch laws `twice`, `last-write`, `commute`, `undo`, `durable`, `same-story`, `constructible`, and `merge`, `stamped`, `conditional`, `doors`, `eventually` over the `merges` effect, the `validator` kind, the `boundary` and the `promise` — the behavior laws of `conduct@` held against what the real system wrote and read back, through the doors (`via`, `shown_by`) an action declares in `semantic-model@0.5.0`; four of the nine families are carried as a named debt until a tape can witness them |
+| conduct natives | eighteen, in `epure.behavior` (and `model/promised` in `epure.reach`): by presence — `conduct/effect`, `faithful`, `frame`, `refusal` on a tape, `checkable` on a model; by value, over the projections a state-var declares — `agrees` (Hoare's diagram per act), the two-stretch laws `twice`, `last-write`, `commute`, `undo`, `durable`, `same-story`, `constructible`, and `merge`, `stamped`, `conditional`, `doors`, `eventually` over the `merges` effect, the `validator` kind, the `boundary` and the `promise` — the behavior laws of `conduct@` held against what the real system wrote and read back, through the doors (`via`, `shown_by`) an action declares; every family the census covers has a native, and the one item no native holds (weak fairness) is a named debt |
 | `epure.testimony` | one table per app, beside its `span()` call sites, naming what each act does to the store; the model generates its effect nodes from it and the app's tests hold every emission literal to it — so the drawing and the code cannot say two things about one act |
 | `epure.census` | every property the cited sources state (Hughes 2020, RFC 9110), each mapped to a law and given one status — covered, weakened, owed, aside — with the counts computed over the items; shipped as conduct@'s example, mounted in the ledger, and the number the brief shows |
 | `epure.survey` | drafts, per tool, the doors its tapes show it writing — generalized patterns, split into the tool's own writes and its spans' — so declaring ninety tools is a reading job, and the frame law convicts the first tape that takes a path the draft never saw |
