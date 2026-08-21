@@ -332,11 +332,17 @@ WORLD_UNOPENED = visit([*DEPOSIT, *world("red", None, None)])
 # --- the culprit, named by the rule (the attribution hypothesis) ---------------------------
 #
 # Each red under agrees carries who the native names from four facts it holds - derived or
-# stored, declared or not, written through its door or not, a clock read between the two
+# stored, declared or not, written through its door or not, the clock MOVED between the two
 # worlds or not. One tape per row the cloakroom can witness; the rows it cannot separate
 # say `unnamed`, and TAG_WRONG / SIGN_WRONG above are those.
+#
+# The clock fact is two reads on two days (conduct@0.13.0). A board reads the clock to say
+# what is due, so "a clock read between" was true of every statement and separated nothing;
+# what the harness can get wrong is the day an act ran under against the day its statement
+# was made under.
 
-_NOW: dict[str, Any] = {"k": "now", "v": "t"}
+_NOW: dict[str, Any] = {"k": "now", "v": "2026-05-04T18:00:00Z"}        # the evening
+_NEXT_DAY: dict[str, Any] = {"k": "now", "v": "2026-05-05T08:00:00Z"}   # the morning after
 
 # the drawing declares the move, the program wrote nothing through any door that carries it
 TAG_UNWRITTEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
@@ -345,17 +351,23 @@ TAG_UNWRITTEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
 # tag - and check-coat declares no update of the tag
 DEPOSIT_TAGGED_TOO = visit([*EMPTY, *_act("deposit", RED, _write("red"), _tag_write("blue")),
                             *world("red", "blue", None)])
-# SIGN_WRONG with the clock consulted between the write and the statement
-SIGN_UNDER_THE_CLOCK = visit([*EMPTY, _sign(False), *DEPOSIT, _NOW, *world("red", None, None),
-                              _sign(False)])
+# SIGN_WRONG with the clock MOVED between the write and the statement: the deposit ran in
+# the evening, the sign was read the next morning
+SIGN_UNDER_THE_CLOCK = visit([*EMPTY, _sign(False), _NOW, *DEPOSIT, _NEXT_DAY,
+                              *world("red", None, None), _sign(False)])
+# SIGN_WRONG with the clock read twice on ONE day - the board's own read before and after:
+# the write and the declaration agree and the arithmetic differs; the tape holds no third
+# witness, and the rule says so rather than blaming the clock
+SIGN_WRONG_SAME_DAY = visit([*EMPTY, _sign(False), _NOW, *DEPOSIT, _NOW,
+                             *world("red", None, None), _sign(False)])
 # the sign went dark across shelving, which wrote nothing the sign derives from, under a
 # clock read: a view the clock moves that no act declares
 # the hook reads empty only after the shelving that followed the deposit: the world-after was
 # read past an act that declares no move of `held`, so the drawing omits THAT act's update
 SHELVED_OFF_THE_HOOK = visit([*EMPTY, *DEPOSIT, *SHELVE_HIGH, *world(None, None, "high")])
 SIGN_DARK_AT_CLOSING = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None),
-                              _sign(True), *SHELVE_HIGH, _NOW, *world("red", None, "high"),
-                              _sign(False)])
+                              _sign(True), _NOW, *SHELVE_HIGH, _NEXT_DAY,
+                              *world("red", None, "high"), _sign(False)])
 
 # --- the culprit, named by the presence laws (effect, frame) ------------------------------
 #
@@ -690,9 +702,14 @@ AGREES_SPEC = [
               "says moves the tag, and check-coat declares no update of it - the drawing "
               "omits the update"),
     c("agrees", visited(SIGN_UNDER_THE_CLOCK), ["visit", "model"], expect=1,
-      because="culprit harness: the sign was stated under a clock read between the hook's "
-              "write and the statement; write and declaration agree, and the clock is the "
-              "harness's to set"),
+      because="culprit harness: the sign was stated under a clock that moved between the "
+              "hook's write and the statement - the deposit in the evening, the sign the "
+              "next morning; write and declaration agree, and the clock is the harness's to "
+              "set"),
+    c("agrees", visited(SIGN_WRONG_SAME_DAY), ["visit", "model"], expect=1,
+      because="culprit unnamed: the clock was read on both sides of the deposit and it was "
+              "the same day both times, so the clock is not what moved the sign - the two "
+              "arithmetics disagree and the tape holds no third witness"),
     c("agrees", visited(SIGN_DARK_AT_CLOSING), ["visit", "model"], expect=1,
       because="culprit model: the sign moved across shelving, which wrote nothing the sign "
               "derives from, with the clock read in between - the view is a function of the "

@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.12.2",
+    version="0.13.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -949,14 +949,21 @@ CONDUCT_PACKAGE = Package(
                 "otherwise. 0.12.2: the fairness law cites Lamport 2000 verbatim - the "
                 "one law the catalogue had carried uncited for want of the sentence; it "
                 "stays owed, since no kind annotates an action as fair, but it is no longer "
-                "unsourced.",
+                "unsourced. 0.13.0, from the first harness to read the whole world after every "
+                "act: the agrees rule's clock fact asks whether the clock MOVED between the two "
+                "worlds (two reads, two days), not whether it was read - a board reads the "
+                "clock to say what is due, so the old fact was true of every statement and "
+                "named harness on a tick the drawing had got wrong (counted, a cold red named "
+                "wrong); conduct/stamped reads the validator's `covers` (semantic-model@0.13.0); "
+                "conduct/eventually counts only the acts that move the world toward a "
+                "promise's horizon - a read is a stutter step.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.12.1"),
+        PackageRef(name="semantic-model", version="0.13.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

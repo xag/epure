@@ -188,6 +188,7 @@ CULPRITS = {
     "TAG_UNWRITTEN": "app",
     "DEPOSIT_TAGGED_TOO": "model",
     "SIGN_UNDER_THE_CLOCK": "harness",
+    "SIGN_WRONG_SAME_DAY": "unnamed",
     "SIGN_DARK_AT_CLOSING": "model",
     "SHELVED_OFF_THE_HOOK": "model",
     "BYSTANDER_MOVED": "harness",

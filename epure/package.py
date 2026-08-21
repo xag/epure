@@ -1,4 +1,4 @@
-"""semantic-model@0.12.1 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.13.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -229,7 +229,11 @@ VOCABULARY = [
         "conduct/stamped does not count one. Not a state-var - its value is opaque and "
         "unbounded, and the laws compare it for equality and change only. A STRONG validator "
         "moves whenever any projected variable moves and never otherwise; conduct/stamped "
-        "holds both directions on a tape, act by act. An action may carry `requires`: "
+        "holds both directions on a tape, act by act. Optional `covers`: the state-var ids "
+        "the stamp stands for (0.13.0) - RFC 9110's validator is a RESOURCE's, and a store "
+        "that keeps its clock in one document and its rows in another has two resources "
+        "where the model has one stamp; absent, the stamp covers every stored variable. An "
+        "action may carry `requires`: "
         "{\"validator\": <arg name>} - the act is conditional on the stamp it was handed "
         "matching the stamp the world shows before it (If-Match), and conduct/conditional "
         "holds that a matching act proceeds and a mismatching one refuses without writing "
@@ -709,7 +713,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.12.1",
+    version="0.13.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -778,7 +782,10 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "representation's version and a view moves with the clock, nothing written - "
                 "stated on the validator kind; and the vocabulary's prose names no client. 0.12.1: "
                 "`weekday` reads an epoch in milliseconds as well as an ISO date - the second "
-                "real store kept its dates as numbers.",
+                "real store kept its dates as numbers. 0.13.0: a validator may say what it "
+                "`covers` - the first consumer's clock lives in an index document its "
+                "household stamp never versioned, and the harness that first read the clock "
+                "back convicted every tick of a change that did not move the stamp.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

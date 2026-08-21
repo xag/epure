@@ -1,0 +1,1497 @@
+{
+  "name": "semantic-model",
+  "version": "0.13.0",
+  "description": "The meta-vocabulary a semantic model is written in: state variables over finite domains, actions with guards and updates, an alphabet of observable events each anchored to evidence by a license, and invariants a checker can settle exhaustively. A model in these kinds is what the prover proves predicates over, once, and what the conformance checks confront every tape with, forever. The package carries exprs and evaluates nothing — meaning travels first, pinned, and the machinery is built against the digest. Its rules refuse the three ways a model quietly stops describing a system: no alphabet, unlicensed testimony, unobservable actions. 0.2.0 pays the license KindDef's standing debt: an instantaneous act encloses nothing, so under the own-window-only contract it was unlicensable by construction — now a license reaches beyond its own window by NAMING its evidence (evidence(pattern, 'enclosing')), and only so: a bare count over an ancestor's window would license anything, which is no license at all. The turnstile grows the derived act (passage-counted) that exercises this; kinds and rules are otherwise 0.1.1's. 0.4.0 adds the conduct seam: an action may declare its effects as data — `creates`/`mutates`/`deletes` naming the entity and the inputs that determine it, `touches` naming the write boundary — so a behavior law is written once against the generic effect kind and every action that declares the effect inherits it, inheritance over template-stamping. No new rules: whether a model MUST declare effects is the conduct catalogue's demand, opt-in, not this vocabulary's. 0.5.0 pays 0.4.0's named debt: an effect declaration now carries its DOORS — `via`, the write that materializes it inside the act, and `shown_by`, the read through which the world shows it back — and `touches` carries `via`, the writes the act may make. A door is a name pattern over raw events, optionally narrowed by an argument, the same cut a license makes; it is what binds the model's abstract entity to what a tape can show, so the conduct natives (conduct@0.2.0) can hold the laws against executions. No new rules, still opt-in. The cloakroom example instantiates creates and deletes with doors and takes a `coat` argument so faithfulness has an input to check; the turnstile keeps mutates and touches WITHOUT doors — a hardware model with no store to read back from, which is exactly what conduct/checkable reports it as. 0.6.0 adds the PROJECTION: a state-var may say how the world shows its value (`shown`: a read door and an expr over its result) — Hoare's abstraction function, Hughes's toList, the family the paper ranks first and the conduct census had owed. The cloakroom projects both its variables and gains a ticket counter, so the value frame has a bystander to hold still. 0.6.1 documents two more projection helpers — `latest` and multi-pair `count` — and `weekday`'s `absent`: a log's last completion day and its completion count are what a real model's stored variables turned out to need. 0.7.0: the cloakroom's ticket counter gives way to a tag and a shelf — entities a repeat overwrites, an undo clears and that sit independently of each other — so the two-stretch laws (twice, last-write, commute, undo, durable, same-story, constructible) have something on the example to demonstrate against. 0.8.0 closes the census: the `merges` effect (another world absorbed, arriving as arguments, left-biased through `either`), the `validator` kind (the stamp that stands for the world's version - RFC 9110's ETag, a document's rev) and `requires` on an action (If-Match: conditional on the stamp). The cloakroom gains a register revision, a conditional retag and an import that merges another register. 0.9.0 adds `boundary`: the write functions the app's recorder declares, so the door census can hold every one to being some action's door - the word that makes an empty boundary mean the whole state - and a direction on `evidence()`: a license can now say the evidence came before the claim. 0.10.0 adds `promise`, the liveness predicate — Lamport's other half, the ledger's oldest debt: `when` a state holds, `then` another is reached, `unless` released, `within` a horizon; model/promised refutes the trap on the model, conduct/eventually the broken promise on a tape. The cloakroom promises a checked coat is reclaimed within three acts. 0.11.0 adds the DERIVED view: a state-var the app recomputes projects from the point where the app states it (`derived_from` names what it is a function of, so the read goes stale with their writes) - the cloakroom's OCCUPIED sign. 0.12.0: a derived view is not a change a validator stands for - the stamp is the stored representation's version and a view moves with the clock, nothing written - stated on the validator kind; and the vocabulary's prose names no client. 0.12.1: `weekday` reads an epoch in milliseconds as well as an ISO date - the second real store kept its dates as numbers. 0.13.0: a validator may say what it `covers` - the first consumer's clock lives in an index document its household stamp never versioned, and the harness that first read the clock back convicted every tick of a change that did not move the stamp.",
+  "publisher": "poietic.studio",
+  "requires": [],
+  "vocabulary": [
+    {
+      "kind": "model",
+      "description": "The root of one semantic model: a small, finite mathematical object — state variables, actions with guards and updates, an alphabet of observable events, invariants. Its children are `state-var`s, `action`s, `event-kind`s and `invariant`s. A model is small ON PURPOSE: the tractability of every downstream check — exhaustive proof at design time, refinement/licensing/totality on every tape — is bought here, at authoring time, and nowhere else. A domain that resists a small finite model is not a limitation to hide; it is a modeling decision to journal.",
+      "params": {},
+      "links": {},
+      "operations": {
+        "prove": {
+          "contract": "model/prove",
+          "description": "Exhaustive explicit-state check of every invariant over every reachable state — `solve('model/prove', self)` on the model node returns the count of refuted invariants. Bounded, never silently: exceeding the state cap is a refusal, not a partial pass.",
+          "params_doc": {
+            "cap": "optional bound on explored states (default 1e6)"
+          },
+          "medium": "wasm"
+        },
+        "total": {
+          "contract": "model/total",
+          "description": "No raw event escapes semantics: `solve('model/total', scenario, 'model')` on a scenario/session node whose `model` link names a node of this kind counts the raw boundary events no span encloses.",
+          "params_doc": {
+            "rel": "the link from the scenario to this model"
+          },
+          "medium": "wasm"
+        },
+        "refines": {
+          "contract": "model/refines",
+          "description": "The semantic trace is a behavior of the model: `solve('model/refines', scenario, 'model')` runs this model as an automaton over the scenario's top-level spans — args bound from span data, guards and domains respected, every invariant re-checked at every step — and counts divergences, naming the first divergent span.",
+          "params_doc": {
+            "rel": "the link from the scenario to this model"
+          },
+          "medium": "wasm"
+        }
+      }
+    },
+    {
+      "kind": "state-var",
+      "description": "One variable of the model's state; the node's id is the variable's name in every expr. Payload: `type` (\"bool\" | \"int\" | \"enum\"), `domain` (a value list for enum, {\"min\": n, \"max\": n} for int, absent for bool), `init` (the initial value, in the domain). FINITE DOMAINS ONLY in 0.1.0: only a finite model can be exhaustively proven by an explicit-state checker, so the bound on an int is not bookkeeping — it is the price of the proof. A quantity that cannot be finitely abstracted is a modeling decision to journal, not a wide domain to sneak in. Since 0.6.0 a state-var may carry its PROJECTION — `shown`: {\"door\": <door>, \"expr\": <rule grammar>} — how the world shows this variable's value: the read (a door, as an effect's `shown_by`) whose result, bound as `res`, the expr turns into a value of the domain. The expr's environment offers `at(path, default?)` (a dotted path into res; `*` takes the first value of a map), `exists()` (1 if res is not null/false/empty, else 0), `count(xs, key, value, ...)` (members of a map or list matching every key/value pair), `latest(xs, field, key, value, ...)` (the greatest `field` among matching members, or null), `weekday(when, absent?)` (0 = Monday; `when` an ISO date or an epoch in milliseconds, read in UTC; `absent` when there is no date), and the arithmetic helpers. This is Hoare's abstraction function, toList in Hughes: with it, `conduct/agrees` holds the world to the model's own updates after every act — project the reads before, apply the action, compare with the reads after — and the effect and frame laws gain their VALUE forms. Since 0.11.0 a variable that is a VIEW the app recomputes (a pending flag derived by a rhythm) projects too, as a DERIVED view: its door is the point where the app states the value it computed (`{\"event\": \"sem\", \"where\": {\"name\": ...}}`, the point's data bound as `res`) and `derived_from` names the stored variables it is a function of, so a read of it is stale once any of them was written. Hughes' warning decides the shape: a projection that reimplements the operation tests nothing, while one that reads the app's own decision holds the model's arithmetic to the app's. A view that carries no projection is still counted by the census.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "event-kind",
+      "description": "One entry of the model's alphabet: a semantic act the instrumented system may claim, matching BY NAME the `sem` span names the code emits on its flight-recorder tapes (the node's id is the span name). Payload: `args` ({name: type}) — the data a claiming span carries. Must carry at least one `license` child: an event-kind is the unit of testimony, and testimony without an evidence requirement is not checkable, merely recorded.",
+      "params": {},
+      "links": {},
+      "operations": {
+        "licensed": {
+          "contract": "model/licensed",
+          "description": "Testimony is justified by evidence: `solve('model/licensed', scenario, 'model')` on a scenario/session node holds every claiming span to this kind's licenses — each license expr evaluated with the declared args bound from the span's data, ctx('events') bound to its own raw window, and evidence(pattern, scope) reading named events from that window or, with scope 'enclosing', from its lineage — and counts the spans convicted. A span naming no event-kind of the model counts too: unknown testimony is unlicensed by definition.",
+          "params_doc": {
+            "rel": "the link from the scenario to the enclosing model"
+          },
+          "medium": "wasm"
+        }
+      }
+    },
+    {
+      "kind": "license",
+      "description": "The observation that justifies an emission of its parent event-kind: a predicate over raw boundary events. Payload: `expr` (rule grammar) and `note` (prose: what the evidence means). The expr's environment provides the event's args as variables and two evidence readers: `ctx('events')` — the claiming span's own raw window, in order — and `evidence(pattern, scope)` — the events whose name (fn / op / k) matches the fnmatch pattern, where scope 'own' (default) is that same window and 'enclosing' is the claim's lineage: its window plus every raw event a testimony ancestor directly encloses; a third argument, the direction, keeps only events 'before' the claim's begin or 'after' its end (0.9.0: positions travel on the import, so a license can say the read came first). The cut: a license may look beyond its own window ONLY by naming what it looks for — an instantaneous act's evidence usually lives one level up, in the act that produced it, but a bare count over an ancestor's window would be satisfied by any unrelated I/O, which is no license at all. Direction-blind: evidence anywhere in scope satisfies, before or after the claim. This package carries the expr and never evaluates it — evaluation is `model/licensed`'s contract. The move is the same one `ledger@`'s falsification.expr makes: prose that can already fire.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "action",
+      "description": "One transition of the model. Payload: `guard` (expr over state-vars and args — when the action is enabled), `updates` ([{\"var\": name, \"expr\": expr}] — the next state), `args` ({name: type}), and optionally `requires` ({\"validator\": arg name} — the act is conditional on the world's stamp matching the argument; see the `validator` kind). Must carry at least one `observation` child naming the event-kind whose occurrence on a trace instantiates it: an action nobody can observe is a transition the prover explores and no tape can exhibit, and the rule below refuses it.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "observation",
+      "description": "The witness relation: this action, when it happens, is what its parent model's named event-kind testifies to. Payload: `event` — the event-kind's id, resolved within the enclosing model. An id and not a path, so a model subtree can move without breaking its own internal references; a dangling id is the conformance natives' catch (they have full traversal — the rule grammar counts presence, which is what it can see).",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "creates",
+      "description": "An action's declared effect: something comes into being. Payload: `entity` (what, in the model's own words — a state-var of the model), `from` ([arg names] — the inputs that determine it, the faithfulness law's subject), and, since 0.5.0, the two DOORS that bind the abstract entity to what a tape can show: `via` (the write that materializes it, inside the act) and `shown_by` (the read through which the world shows it back, after the act). A door is a fnmatch pattern over a raw event's name (fn / op / k), or {\"event\": pattern, \"where\": {arg: pattern}} to narrow it by an argument — `where` keys name a kwarg, or a positional index as a string; either form may be given as a list. A child of `action`, and the seam the conduct laws bind to: the law is written ONCE against this kind, and every action that declares the effect inherits it — inheritance over template-stamping, the same way ledger@'s gate law binds every domain's gates. The doors are what make the laws checkable on a tape: `conduct/effect` holds that what the `via` write carried shows back through `shown_by` afterwards, and an effect declaring no doors is one no tape can witness, which `conduct/checkable` counts. Door patterns name an act, never its argument, unless `where` says so — the same cut a license makes.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "mutates",
+      "description": "An action's declared effect: something existing changes. Payload: `entity`, `from` ([arg names]), `via` and `shown_by`, exactly as `creates` — a separate kind rather than a mode flag because rules bind by kind and the grammar reads no payload (the assay lesson, applied in advance).",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "deletes",
+      "description": "An action's declared effect: something ceases. Payload: `entity`, `via` (the removing write, inside the act) and `shown_by` (the read that would show the entity if it were still there). The effect law's shape inverts here — after the action, the entity must NOT be shown: a `shown_by` read after the act that still returns what a prior `creates`/`mutates` of the same entity wrote, or that still names what the `via` write named, convicts — which is why deletion is its own kind and not a mutation.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "merges",
+      "description": "An action's declared effect: this world absorbs another. The other world arrives as ARGUMENTS - one per variable it carries - because a finite model has no world-valued argument, and a merge of two worlds over the same variables is exactly a tuple of values. Payload: `other` ({state-var: arg name} - which argument carries the other world's value of each variable), `absent` ({state-var: value} - the value that means 'nothing here', so left-bias has a meaning), `via` and `shown_by` as any effect. The updates that realise it are written with `either(x, absent, y)`: keep x unless it is absent, else take y. The merge laws (a-merge-keeps-both-and-prefers-the-left) bind to this kind: after the act each merged variable projects to its own value if present, else the other's; merging a world with itself changes nothing; merging (b then c) equals merging their merge - conduct/merge holds all three on a tape.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "validator",
+      "description": "A child of `model`: the stamp that stands for the world's version - RFC 9110's validator (an ETag, a Last-Modified, a document's `rev`). Payload: `door` and `expr`, exactly a projection's: the read that shows the stamp and the expression that turns the read into its value. It stands for the STORED representation: a derived view (0.11.0) moving with the clock is not a change it must record, and conduct/stamped does not count one. Not a state-var - its value is opaque and unbounded, and the laws compare it for equality and change only. A STRONG validator moves whenever any projected variable moves and never otherwise; conduct/stamped holds both directions on a tape, act by act. Optional `covers`: the state-var ids the stamp stands for (0.13.0) - RFC 9110's validator is a RESOURCE's, and a store that keeps its clock in one document and its rows in another has two resources where the model has one stamp; absent, the stamp covers every stored variable. An action may carry `requires`: {\"validator\": <arg name>} - the act is conditional on the stamp it was handed matching the stamp the world shows before it (If-Match), and conduct/conditional holds that a matching act proceeds and a mismatching one refuses without writing (412).",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "boundary",
+      "description": "A child of `model`: the write functions the app's recording boundary declares - the names that reach the tape as `fn` when the world is changed. Payload: `writes` ([fnmatch patterns]). The boundary itself is flight-recorder's (the app says which module functions it records); this says which of them WRITE, so the door census (conduct/doors) can hold every one to being a door of some action. Without it `touches.via: []` means 'no declared door', with it the whole state: a write function no act admits is a write the frame could never see, and the census says so before any tape does.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "touches",
+      "description": "An action's declared write boundary: the state it may change. Payload: `only` ([state-var names]) and, since 0.5.0, `via` ([doors] — the writes this act may make, in the tape's own names; same door shape as an effect's). The frame law's subject — «a value must be the same if it wasn't changed» needs to know what counts as changed, and this is that declaration. Inside a proved model the frame holds by construction (updates name every moving var); `only` exists so the SAME claim can be held against tapes, and `via` is how: `conduct/frame` takes every door any effect in the model declares as the model's known writes, and convicts an act that passes through one its own `touches.via` (and its effects' `via`) does not admit. A write door the model never declares is invisible to the frame — totality's catch, not this one's. `via: []` is a real statement: this act writes nothing.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "promise",
+      "description": "A child of `model`: a LIVENESS predicate — Lamport's other half, what must eventually happen rather than what must never. Payload: `when` (expr over state-vars: the state that makes the promise), `then` (expr: the state that keeps it), optionally `unless` (expr: the release — the promise is void once this holds, which is `until`), `within` (int: the horizon in acts on a tape) and `note`. Two halves hold it: `model/promised` walks the model and refutes a promise with a reachable `when`-state from which no `then`/`unless` state is reachable (the trap); `conduct/eventually` holds a tape to it — after an act leaves the projected world in `when`, some later world within `within` acts satisfies `then` or `unless`. Without `within` a finite tape can only note a promise still open, never refute it, which is the honest shape of liveness on a recording.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "invariant",
+      "description": "A predicate over state-vars that must hold in every reachable state of the model — proven exhaustively by `model/prove` at design time, and re-checked at every step of every refined trace at runtime, for free. Payload: `expr` (rule grammar over the state-vars as variables) and `note` (prose: what holding means, in the domain's own words). Safety only in 0.1.0: liveness and temporal claims have no vocabulary here yet, and that absence is carried as a debt in the authoring repo's ledger, not silently.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    }
+  ],
+  "rules": [
+    {
+      "name": "a-model-declares-its-alphabet",
+      "expr": "len(nodes('event-kind', self)) >= 1",
+      "description": "A model with no observable vocabulary cannot be refined by any tape: nothing the prover establishes about it ever binds to a running system, so its proofs are true and useless. One event-kind is the least a model must offer the world to be checkable against it.",
+      "kind": "model"
+    },
+    {
+      "name": "an-event-kind-carries-a-license",
+      "expr": "len(nodes('license', self)) >= 1",
+      "description": "Unlicensed testimony is relocated guessing about meaning: a span the code may emit with nothing any tape could be asked to show beneath it. The license is what anchors the claim to evidence, and an event-kind that carries none has opted out of the only check that makes testimony worth recording.",
+      "kind": "event-kind"
+    },
+    {
+      "name": "an-action-is-observable",
+      "expr": "len(nodes('observation', self)) >= 1",
+      "description": "An action no event-kind witnesses is untestable fiction: the prover explores its transitions, no tape can ever exhibit one, and the gap between the two is exactly where a proven model quietly stops describing the system. Every action names the testimony that instantiates it, or it does not enter.",
+      "kind": "action"
+    }
+  ],
+  "solvers": [
+    {
+      "name": "model/prove",
+      "description": "model |= invariants, established exhaustively over every reachable state of the (finite) model at `path`; returns the count of refuted invariants. Design-time, once; the artifact a green run emits grounds evidence.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "model/promised",
+      "description": "count the `promise`s of the model at `path` with a reachable `when`-state from which no `then` (or `unless`) state is reachable — the model-side half of liveness, by the same walk as model/escapes; a trap is reported with the shortest path into it.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "model/licensed",
+      "description": "(path, rel): count the spans under `path` whose claim the evidence their licenses name does not justify — own window by default, named evidence along the lineage via evidence(pattern, 'enclosing') — unknown kinds included.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "model/total",
+      "description": "(path, rel): count the raw boundary events under `path` enclosed by no span — behavior the linked model does not know exists.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "model/refines",
+      "description": "(path, rel): 0 iff the top-level span trace under `path` is a legal path of the linked model; on divergence, 1, naming the first illegal step.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    }
+  ],
+  "examples": [
+    {
+      "id": "turnstile",
+      "kind": "model",
+      "name": "A coin-operated turnstile",
+      "params": {},
+      "links": {},
+      "meta": {},
+      "payload": {},
+      "children": [
+        {
+          "id": "state",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "enum",
+            "domain": [
+              "locked",
+              "unlocked"
+            ],
+            "init": "locked"
+          },
+          "children": []
+        },
+        {
+          "id": "coins",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "int",
+            "domain": {
+              "min": 0,
+              "max": 3
+            },
+            "init": 0
+          },
+          "children": []
+        },
+        {
+          "id": "entries",
+          "kind": "state-var",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "int",
+            "domain": {
+              "min": 0,
+              "max": 3
+            },
+            "init": 0
+          },
+          "children": []
+        },
+        {
+          "id": "coin",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "coin-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('acceptor.read')) >= 1",
+                "note": "the claiming span encloses a raw exchange with the coin acceptor — named, so a span wrapping the wrong I/O is convicted, not counted"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "push",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "push-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('sensor.read')) >= 1",
+                "note": "the claiming span encloses a raw reading from the rotation sensor"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "passage-counted",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "passage-counted-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('sensor.read', 'enclosing', 'before')) >= 1",
+                "note": "the derived, instantaneous act: the tally increments because the rotation sensor read a passage, but the read happened in the act that detected it, one level up — a point encloses nothing, so its license names the evidence, looks along its lineage, and says the read came BEFORE the count (0.9.0). Decomposition, not a transition: it nests under the push that counted it and no action witnesses it"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "insert-coin",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "state == 'locked' and coins < 3",
+            "updates": [
+              {
+                "var": "state",
+                "expr": "'unlocked'"
+              },
+              {
+                "var": "coins",
+                "expr": "coins + 1"
+              }
+            ],
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "insert-coin-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "coin"
+              },
+              "children": []
+            },
+            {
+              "id": "insert-coin-mutates",
+              "kind": "mutates",
+              "name": "the coin count moves; no argument determines it, prior state does",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "coins",
+                "from": []
+              },
+              "children": []
+            },
+            {
+              "id": "insert-coin-touches",
+              "kind": "touches",
+              "name": "entries is out of bounds: a coin that moved the tally would be a frame violation",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "state",
+                  "coins"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "push-through",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "state == 'unlocked'",
+            "updates": [
+              {
+                "var": "state",
+                "expr": "'locked'"
+              },
+              {
+                "var": "entries",
+                "expr": "entries + 1"
+              }
+            ],
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "push-through-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "push"
+              },
+              "children": []
+            },
+            {
+              "id": "push-through-mutates",
+              "kind": "mutates",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "entries",
+                "from": []
+              },
+              "children": []
+            },
+            {
+              "id": "push-through-touches",
+              "kind": "touches",
+              "name": "coins is out of bounds: passing through never refunds or swallows a coin",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "state",
+                  "entries"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "no-free-entry",
+          "kind": "invariant",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "expr": "entries <= coins",
+            "note": "nobody passes through more times than coins were accepted — never unlocked without a prior coin, stated as a pure state predicate so an explicit-state walk can settle it"
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "cloakroom",
+      "kind": "model",
+      "name": "A one-hook cloakroom",
+      "params": {},
+      "links": {},
+      "meta": {},
+      "payload": {},
+      "children": [
+        {
+          "id": "held",
+          "kind": "state-var",
+          "name": "the hook holds a coat iff a read of it returns one",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "int",
+            "domain": {
+              "min": 0,
+              "max": 1
+            },
+            "init": 0,
+            "shown": {
+              "door": "hook.read",
+              "expr": "exists()"
+            }
+          },
+          "children": []
+        },
+        {
+          "id": "tag",
+          "kind": "state-var",
+          "name": "the colour written on the ticket: tagging again overwrites, so the last tag wins and tagging twice is tagging once",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "enum",
+            "domain": [
+              "none",
+              "red",
+              "blue"
+            ],
+            "init": "none",
+            "shown": {
+              "door": "tag.read",
+              "expr": "at('color', 'none')"
+            }
+          },
+          "children": []
+        },
+        {
+          "id": "shelf",
+          "kind": "state-var",
+          "name": "where the coat sits: independent of the tag, so tagging and shelving commute",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "enum",
+            "domain": [
+              "floor",
+              "high",
+              "low"
+            ],
+            "init": "floor",
+            "shown": {
+              "door": "shelf.read",
+              "expr": "at('level', 'floor')"
+            }
+          },
+          "children": []
+        },
+        {
+          "id": "lit",
+          "kind": "state-var",
+          "name": "the OCCUPIED sign on the door: a view the attendant recomputes from the hook and states at the `sign-shown` point - nothing stores it, so its projection reads the statement, and it is stale once the hook was written (0.11.0, the derived view)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "type": "bool",
+            "init": false,
+            "shown": {
+              "door": {
+                "event": "sem",
+                "where": {
+                  "name": "sign-shown"
+                }
+              },
+              "expr": "at('occupied')",
+              "derived_from": [
+                "held"
+              ]
+            }
+          },
+          "children": []
+        },
+        {
+          "id": "cloakroom-boundary",
+          "kind": "boundary",
+          "name": "every function the cloakroom's recorder knows as a write; each is a door of some action below, which conduct/doors holds",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "writes": [
+              "hook.write",
+              "hook.delete",
+              "tag.write",
+              "shelf.write",
+              "register.write"
+            ]
+          },
+          "children": []
+        },
+        {
+          "id": "register-rev",
+          "kind": "validator",
+          "name": "the cloakroom register's revision: RFC 9110's strong validator, read back as a number and compared for change, never for value",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "door": "register.read",
+            "expr": "at('rev')"
+          },
+          "children": []
+        },
+        {
+          "id": "deposit",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {
+              "coat": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "deposit-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('hook.write')) >= 1",
+                "note": "the claiming span encloses a raw write to the hook's store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "sign-shown",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "sign-shown-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "true",
+                "note": "the attendant's statement of the sign: a point that claims nothing about the store, so no evidence licenses it - the law that holds it is conduct/agrees, through the derived view `lit` that reads its data"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "tagging",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {
+              "color": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "tagging-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('tag.write')) >= 1",
+                "note": "the ticket was written"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "shelving",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {
+              "level": {
+                "type": "enum",
+                "domain": [
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "shelving-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('shelf.write')) >= 1",
+                "note": "the shelf register was written"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "retagging",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {
+              "color": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              },
+              "expected": {
+                "type": "int",
+                "domain": {
+                  "min": 0,
+                  "max": 9
+                }
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "retagging-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('register.read', 'enclosing')) >= 1",
+                "note": "a conditional act reads the register's stamp before it decides"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "importing",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {
+              "other_tag": {
+                "type": "enum",
+                "domain": [
+                  "none",
+                  "red",
+                  "blue"
+                ]
+              },
+              "other_shelf": {
+                "type": "enum",
+                "domain": [
+                  "floor",
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "importing-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('register.write')) >= 1",
+                "note": "the other register was written into this one"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "reclaim",
+          "kind": "event-kind",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "reclaim-license",
+              "kind": "license",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "len(evidence('hook.delete')) >= 1",
+                "note": "the claiming span encloses the raw removal from the hook's store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "check-coat",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 0",
+            "updates": [
+              {
+                "var": "held",
+                "expr": "1"
+              },
+              {
+                "var": "lit",
+                "expr": "true"
+              }
+            ],
+            "args": {
+              "coat": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "check-coat-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "deposit"
+              },
+              "children": []
+            },
+            {
+              "id": "check-coat-creates",
+              "kind": "creates",
+              "name": "the ticket comes into being: after this action, the world must show it, and show it as deposited — the hook.write carried the coat, and a hook.read afterwards returns what it carried",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "held",
+                "from": [
+                  "coat"
+                ],
+                "via": "hook.write",
+                "shown_by": "hook.read"
+              },
+              "children": []
+            },
+            {
+              "id": "check-coat-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "held",
+                  "lit"
+                ],
+                "via": [
+                  "hook.write",
+                  "register.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "tag-coat",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 1",
+            "updates": [
+              {
+                "var": "tag",
+                "expr": "color"
+              }
+            ],
+            "args": {
+              "color": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "tag-coat-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "tagging"
+              },
+              "children": []
+            },
+            {
+              "id": "tag-coat-mutates",
+              "kind": "mutates",
+              "name": "an overwrite: the update reads the argument and not the old tag, which is what lets the last write win and a repeat change nothing",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "tag",
+                "from": [
+                  "color"
+                ],
+                "via": "tag.write",
+                "shown_by": "tag.read"
+              },
+              "children": []
+            },
+            {
+              "id": "tag-coat-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "tag"
+                ],
+                "via": [
+                  "tag.write",
+                  "register.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "shelve-coat",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 1",
+            "updates": [
+              {
+                "var": "shelf",
+                "expr": "level"
+              }
+            ],
+            "args": {
+              "level": {
+                "type": "enum",
+                "domain": [
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "shelve-coat-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "shelving"
+              },
+              "children": []
+            },
+            {
+              "id": "shelve-coat-mutates",
+              "kind": "mutates",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "shelf",
+                "from": [
+                  "level"
+                ],
+                "via": "shelf.write",
+                "shown_by": "shelf.read"
+              },
+              "children": []
+            },
+            {
+              "id": "shelve-coat-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "shelf"
+                ],
+                "via": [
+                  "shelf.write",
+                  "register.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "retag-if",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 1",
+            "updates": [
+              {
+                "var": "tag",
+                "expr": "color"
+              }
+            ],
+            "args": {
+              "color": {
+                "type": "enum",
+                "domain": [
+                  "red",
+                  "blue"
+                ]
+              },
+              "expected": {
+                "type": "int",
+                "domain": {
+                  "min": 0,
+                  "max": 9
+                }
+              }
+            },
+            "requires": {
+              "validator": "expected"
+            }
+          },
+          "children": [
+            {
+              "id": "retag-if-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "retagging"
+              },
+              "children": []
+            },
+            {
+              "id": "retag-if-mutates",
+              "kind": "mutates",
+              "name": "If-Match: the retag proceeds only if the register's rev is the one the caller was handed, and refuses - writing nothing - otherwise",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "tag",
+                "from": [
+                  "color"
+                ],
+                "via": "tag.write",
+                "shown_by": "tag.read"
+              },
+              "children": []
+            },
+            {
+              "id": "retag-if-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "tag"
+                ],
+                "via": [
+                  "tag.write",
+                  "register.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "import-register",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 1",
+            "updates": [
+              {
+                "var": "tag",
+                "expr": "either(tag, 'none', other_tag)"
+              },
+              {
+                "var": "shelf",
+                "expr": "either(shelf, 'floor', other_shelf)"
+              }
+            ],
+            "args": {
+              "other_tag": {
+                "type": "enum",
+                "domain": [
+                  "none",
+                  "red",
+                  "blue"
+                ]
+              },
+              "other_shelf": {
+                "type": "enum",
+                "domain": [
+                  "floor",
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          },
+          "children": [
+            {
+              "id": "import-register-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "importing"
+              },
+              "children": []
+            },
+            {
+              "id": "import-register-merges",
+              "kind": "merges",
+              "name": "another register absorbed, left-biased: what this one already says stands, what it lacks is taken from the other",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "other": {
+                  "tag": "other_tag",
+                  "shelf": "other_shelf"
+                },
+                "absent": {
+                  "tag": "none",
+                  "shelf": "floor"
+                },
+                "via": "register.write",
+                "shown_by": [
+                  "tag.read",
+                  "shelf.read"
+                ]
+              },
+              "children": []
+            },
+            {
+              "id": "import-register-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "tag",
+                  "shelf"
+                ],
+                "via": [
+                  "register.write",
+                  "tag.write",
+                  "shelf.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "reclaim-coat",
+          "kind": "action",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "held == 1",
+            "updates": [
+              {
+                "var": "held",
+                "expr": "0"
+              },
+              {
+                "var": "lit",
+                "expr": "false"
+              },
+              {
+                "var": "tag",
+                "expr": "'none'"
+              },
+              {
+                "var": "shelf",
+                "expr": "'floor'"
+              }
+            ],
+            "args": {}
+          },
+          "children": [
+            {
+              "id": "reclaim-coat-witness",
+              "kind": "observation",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "event": "reclaim"
+              },
+              "children": []
+            },
+            {
+              "id": "reclaim-coat-deletes",
+              "kind": "deletes",
+              "name": "the ticket ceases: after this action, the world must NOT show it — the effect law inverted, which is why deletion is its own kind. The removal clears the tag and the shelf with it, which is what lets the undo restore the world before the deposit",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "entity": "held",
+                "via": "hook.delete",
+                "shown_by": "hook.read"
+              },
+              "children": []
+            },
+            {
+              "id": "reclaim-coat-touches",
+              "kind": "touches",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "only": [
+                  "held",
+                  "lit",
+                  "tag",
+                  "shelf"
+                ],
+                "via": [
+                  "hook.delete",
+                  "register.write"
+                ]
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "a-coat-is-reclaimed",
+          "kind": "promise",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "when": "held == 1",
+            "then": "held == 0",
+            "within": 3,
+            "note": "a coat checked in is reclaimed — the cloakroom is not a wardrobe. Within three acts on a tape; the model must at least make it possible from every state with a coat on the hook"
+          },
+          "children": []
+        },
+        {
+          "id": "no-tag-without-a-coat",
+          "kind": "invariant",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "expr": "held == 1 or tag == 'none'",
+            "note": "a ticket is written on a coat: the hook empty, the tag is none"
+          },
+          "children": []
+        },
+        {
+          "id": "never-two-coats",
+          "kind": "invariant",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "expr": "held <= 1",
+            "note": "the hook is single: a create over an occupied hook is refused by the guard, and this states the consequence as a pure state predicate"
+          },
+          "children": []
+        }
+      ]
+    }
+  ],
+  "counter_examples": [
+    {
+      "rule": "a-model-declares-its-alphabet",
+      "nodes": [
+        {
+          "id": "black-box",
+          "kind": "model",
+          "name": "A sealed counter nobody can observe",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "count",
+              "kind": "state-var",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "type": "int",
+                "domain": {
+                  "min": 0,
+                  "max": 1
+                },
+                "init": 0
+              },
+              "children": []
+            },
+            {
+              "id": "bounded",
+              "kind": "invariant",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "expr": "count <= 1",
+                "note": "provable, and unrefinable"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a model with state and an invariant but no observable vocabulary — every proof over it is true and binds to nothing"
+    },
+    {
+      "rule": "an-event-kind-carries-a-license",
+      "nodes": [
+        {
+          "id": "beep",
+          "kind": "event-kind",
+          "name": "An act any code may claim for free",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "args": {}
+          },
+          "children": []
+        }
+      ],
+      "because": "testimony with no evidence requirement — the code could claim it forever and no tape could ever convict the claim"
+    },
+    {
+      "rule": "an-action-is-observable",
+      "nodes": [
+        {
+          "id": "silent-reset",
+          "kind": "action",
+          "name": "A reset no event witnesses",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "guard": "1 == 1",
+            "updates": [
+              {
+                "var": "count",
+                "expr": "0"
+              }
+            ],
+            "args": {}
+          },
+          "children": []
+        }
+      ],
+      "because": "a transition the prover would explore and no tape can ever exhibit — untestable fiction with a guard on it"
+    }
+  ]
+}

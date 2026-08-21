@@ -1027,6 +1027,10 @@ class _Worlds:
                 v.src = str(c.payload.get("expr", ""))
                 v.expr = _compile(v.src, f"validator '{c.id}'")
                 v.domain = None
+                # the stored variables this stamp stands for: `covers`, or every one of them.
+                # RFC 9110's validator is a RESOURCE's; a model whose stored variables live
+                # in several documents says which of them the stamp versions
+                v.covers = list(c.payload.get("covers") or [])
                 self.validators.append(v)
         # the doors that write each projected variable: the EFFECT doors (`via`) of every
         # action that updates it - the writes that carry its value, not the stamps and rows
@@ -1191,12 +1195,22 @@ def _equal_on(a: dict[str, Any], b: dict[str, Any], vars: Iterable[str]) -> bool
 
 
 def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None) -> bool:
-    """Whether the clock was consulted strictly between two places on the tape — a `now`
-    event, the recorder's own kind for a clock read. With no pre-read, the window opens at
-    the tape's start."""
+    """Whether the clock MOVED strictly between two places on the tape: the `now` events
+    there - the recorder's own kind for a clock read - fall on more than one calendar day.
+    With no pre-read, the window opens at the tape's start.
+
+    Until conduct@0.13.0 this asked whether the clock was READ between the two worlds, and
+    that is true of every statement a board makes - the board reads the clock to say what
+    is due - so the fact separated nothing: the first cold red it met (2026-08-22, a tick
+    that carried a missed turn forward, which the drawing omitted) was named harness on the
+    strength of the board's own clock read. What the harness can get wrong is the DAY: an
+    act run under the flight's clock and a statement made under the machine's. Two reads,
+    two days, is that; two reads on one day is the app's arithmetic against the drawing's."""
     lo = lo if lo is not None else (-1, -1)
     hi = hi if hi is not None else (10 ** 9, float("inf"))
-    return any(lo < pos < hi and e.get("k") == "now" for pos, e in W.stream)
+    days = {str(e.get("v"))[:10] for pos, e in W.stream
+            if lo < pos < hi and e.get("k") == "now"}
+    return len(days) > 1
 
 
 CULPRITS = ("model", "app", "harness", "unnamed")
@@ -1211,7 +1225,8 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
       derived   the variable is a view (`derived_from`), stated by the app, not stored
       declared  the bound action declares an update of it
       wrote     the act's own events passed through a door the model says moves it
-      clock     the clock was read between the pre-world and the post-world
+      clock     the clock moved - two reads on different days - between the pre-world and
+                the post-world
       between   another act bound to an action lies between this act and the read its
                 post-world came from - so the post-world is really that act's, and an
                 update that act fails to declare lands here, on its neighbour
@@ -1231,7 +1246,7 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     facts = (f"{'derived' if derived else 'stored'}, "
              f"{'declared' if declared else 'undeclared'}, "
              f"{'written through its door' if wrote else 'no write through its doors'}, "
-             f"{'clock read between' if clock else 'no clock between'}"
+             f"{'clock moved between' if clock else 'clock still between'}"
              + (f", {between[0].action['id']} between" if between else ""))
     if not declared and not wrote:
         if not derived:
@@ -1239,12 +1254,12 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
                                "declared update and no write through any door the model says "
                                "moves it: something the recorder did not see wrote the store")
         if clock:
-            return "model", (f"[{facts}] the view is recomputed under a clock read between the "
-                             "two worlds and the act declares no move of it: the drawing "
+            return "model", (f"[{facts}] the view is recomputed under a clock that moved between "
+                             "the two worlds and the act declares no move of it: the drawing "
                              "misses the update the clock implies")
         return "harness", (f"[{facts}] the view moved with no write to what it derives from "
-                           "and no clock between the two statements: the statement came from "
-                           "something not on the tape")
+                           "and the clock still between the two statements: the statement "
+                           "came from something not on the tape")
     if not declared and wrote:
         return "model", (f"[{facts}] the act wrote through a door the drawing itself says "
                          "moves this variable, and declares no update of it: the drawing "
@@ -1258,8 +1273,8 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
                          f"move of '{var}' - so its doors are not counted as writers and the "
                          "read was taken as this act's; the drawing omits that act's update")
     if derived and clock:
-        return "harness", (f"[{facts}] the view was stated under a clock read between the "
-                           "write and the statement; the write and the declaration agree, "
+        return "harness", (f"[{facts}] the view was stated under a clock that moved between "
+                           "the write and the statement; the write and the declaration agree, "
                            "and the clock is the harness's to set")
     return "unnamed", (f"[{facts}] one writer, two arithmetics - the drawing's and the "
                        "program's - and the tape holds no third witness")
@@ -1661,13 +1676,19 @@ def stamped(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     stamp stands for: the validator is the stored representation's version (an ETag, a
     document's rev), and a view recomputed from the clock and the stored variables moves
     when the day does, with nothing written - RFC 9110 §8.8.1 speaks of the representation
-    changing, and the representation is what is stored."""
+    changing, and the representation is what is stored. A validator that names `covers`
+    stands for those stored variables alone: the RFC's validator is a resource's, and a
+    store that keeps its clock in one document and its rows in another has two resources
+    where the model has one stamp (semantic-model@0.13.0)."""
     def judge(W: _Worlds, diagnostics, notes) -> int:
         if not W.validators:
             notes.append(f"{path}: the model declares no validator — nothing stamped")
             return 0
         judged = 0
         stored = [v for v, p in W.projections.items() if not p.derived_from]
+        covered = {c for v in W.validators for c in v.covers}
+        if covered:
+            stored = [v for v in stored if v in covered]
         for w in W.worlds:
             if w.action is None or w.act.is_call:
                 continue
@@ -1752,7 +1773,11 @@ def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     whose projected world after satisfies `when`, some later act's world after — within
     `within` acts — satisfies `then` or `unless`. A promise with no `within` cannot be
     refuted by a finite tape and is only noted while open; a promise whose horizon runs
-    past the tape's end is noted, not counted."""
+    past the tape's end is noted, not counted. The horizon counts the acts that MOVE the
+    world - an act bound to an action with no updates (a read, a clock read) is a stutter
+    step, and a harness that reads the whole world after every act must not spend the
+    promise's horizon doing so (conduct@0.13.0: the first harness to do it broke every
+    promise on tapes where nothing was promised to happen)."""
     def judge(W: _Worlds, diagnostics, notes) -> int:
         judged = 0
         promises = []
@@ -1766,7 +1791,8 @@ def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         if not promises:
             notes.append(f"{path}: the model makes no promise — nothing to keep")
             return 0
-        spans = [w for w in W.worlds if w.action is not None and not w.act.is_call]
+        spans = [w for w in W.worlds if w.action is not None and not w.act.is_call
+                 and w.action["updates"]]
 
         def holds(expr, world):
             try:
