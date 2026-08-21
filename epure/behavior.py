@@ -1058,6 +1058,12 @@ class _Worlds:
                     out.extend(writers(d, seen | {var}))
             return out
         self.writes_of: dict[str, list[Door]] = {v: writers(v) for v in self.projections}
+        # the model's CLOCK: the state-var that says what day the store thinks it is
+        # (`clock: true`, semantic-model@0.14.0), which a clock read on the tape is held
+        # against - a statement made under a day the store does not hold is the harness's
+        self.clock_var: str | None = next((c.id for c in self.model_node.children
+                                           if c.kind == "state-var" and c.payload.get("clock")),
+                                          None)
         self.notes: list[str] = []
         self.errors: list[str] = []
         self.worlds: list[_World] = []
@@ -1196,10 +1202,16 @@ def _equal_on(a: dict[str, Any], b: dict[str, Any], vars: Iterable[str]) -> bool
 # --- conduct/agrees: the world, projected, agrees with the model's own updates -------------
 
 
-def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None) -> bool:
-    """Whether the clock MOVED strictly between two places on the tape: the `now` events
-    there - the recorder's own kind for a clock read - fall on more than one calendar day.
-    With no pre-read, the window opens at the tape's start.
+def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None,
+                   world: dict[str, Any] | None = None) -> bool:
+    """Whether the clock MOVED strictly between two places on the tape. With a model that
+    declares its clock variable (`clock: true`) and a world that shows it, a `now` event in
+    the window whose weekday is not the day the store holds is a clock that moved - the
+    harness's flight clock against the machine's, the one thing the rule is for (0.14.0,
+    from the calibration set: the machine-day fault had gone unnamed under the two-days
+    fact, since every read on such a tape is the machine's one day). Without a clock
+    variable, the `now` events falling on more than one calendar day. With no pre-read, the
+    window opens at the tape's start.
 
     Until conduct@0.13.0 this asked whether the clock was READ between the two worlds, and
     that is true of every statement a board makes - the board reads the clock to say what
@@ -1210,9 +1222,18 @@ def _clock_between(W: _Worlds, lo: tuple | None, hi: tuple | None) -> bool:
     two days, is that; two reads on one day is the app's arithmetic against the drawing's."""
     lo = lo if lo is not None else (-1, -1)
     hi = hi if hi is not None else (10 ** 9, float("inf"))
-    days = {str(e.get("v"))[:10] for pos, e in W.stream
-            if lo < pos < hi and e.get("k") == "now"}
-    return len(days) > 1
+    nows = [e.get("v") for pos, e in W.stream if lo < pos < hi and e.get("k") == "now"]
+    if W.clock_var and world and W.clock_var in world:
+        held = world[W.clock_var]
+        for v in nows:
+            try:
+                day = _weekday(v)
+            except Exception:
+                continue
+            if day is not None and _normalize(day) != _normalize(held):
+                return True
+        return False
+    return len({str(v)[:10] for v in nows}) > 1
 
 
 CULPRITS = ("model", "app", "harness", "unnamed")
@@ -1235,8 +1256,9 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
       derived   the variable is a view (`derived_from`), stated by the app, not stored
       declared  the bound action declares an update of it
       wrote     the act's own events passed through a door the model says moves it
-      clock     the clock moved - two reads on different days - between the pre-world and
-                the post-world
+      clock     the clock moved between the pre-world and the post-world: a clock read that
+                disagrees with the model's clock variable, or two reads on different days
+      known     the act wrote through some door the model knows at all
       between   another act bound to an action lies between this act and the read its
                 post-world came from - so the post-world is really that act's, and an
                 update that act fails to declare lands here, on its neighbour
@@ -1248,7 +1270,9 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     proj = W.projections[var]
     derived = bool(proj.derived_from)
     wrote = any(_through(e, W.writes_of.get(var, [])) for _, e in w.act.events)
-    clock = _clock_between(W, w.pre_at.get(var), w.post_at.get(var))
+    known = any(_through(e, W.model.known) for _, e in w.act.events)
+    clock = _clock_between(W, w.pre_at.get(var), w.post_at.get(var),
+                           w.post if W.clock_var in w.post else w.pre)
     post_at = w.post_at.get(var, (10 ** 9, float("inf")))
     # an act between counts only if it has a door to hide a writer behind: a read-act with
     # `via: []` (a board read, a clock read) wrote nothing by its own declaration, and the
@@ -1268,13 +1292,17 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
             return "harness", (f"[{facts}] a stored variable moved between two reads with no "
                                "declared update and no write through any door the model says "
                                "moves it: something the recorder did not see wrote the store")
-        if clock:
-            return "model", (f"[{facts}] the view is recomputed under a clock that moved between "
-                             "the two worlds and the act declares no move of it: the drawing "
-                             "misses the update the clock implies")
-        return "harness", (f"[{facts}] the view moved with no write to what it derives from "
-                           "and the clock still between the two statements: the statement "
-                           "came from something not on the tape")
+        if clock and not known:
+            return "harness", (f"[{facts}] the view was stated under a clock the store does "
+                               "not hold, by an act that wrote nothing: the statement's day "
+                               "is the harness's")
+        if clock or known:
+            return "model", (f"[{facts}] the view moved across an act that "
+                             f"{'wrote through a door the model knows' if known else 'ran under a clock that moved'}"
+                             " and declares no move of it: the drawing misses the update")
+        return "harness", (f"[{facts}] the view moved with no write through any door and the "
+                           "clock still between the two statements: the statement came from "
+                           "something not on the tape")
     if not declared and wrote:
         return "model", (f"[{facts}] the act wrote through a door the drawing itself says "
                          "moves this variable, and declares no update of it: the drawing "

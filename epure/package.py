@@ -1,4 +1,4 @@
-"""semantic-model@0.13.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.14.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -91,6 +91,10 @@ VOCABULARY = [
         "field, key, value, ...)` (the greatest `field` among matching members, or null), "
         "`weekday(when, absent?)` (0 = Monday; `when` an ISO date or an epoch in milliseconds, "
         "read in UTC; `absent` when there is no date), and the "
+        "arithmetic helpers. A state-var may be the model's CLOCK (`clock: true`, 0.14.0): "
+        "the day the store thinks it is, which the natives hold a clock read on the tape "
+        "against - a statement made under a day the store does not hold is the harness's, "
+        "not the drawing's. The rest of the projection's helpers: "
         "arithmetic helpers. This is Hoare's abstraction function, toList in "
         "Hughes: with it, `conduct/agrees` holds the world to the model's own updates after "
         "every act — project the reads before, apply the action, compare with the reads "
@@ -713,7 +717,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.13.0",
+    version="0.14.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -785,7 +789,9 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "real store kept its dates as numbers. 0.13.0: a validator may say what it "
                 "`covers` - the first consumer's clock lives in an index document its "
                 "household stamp never versioned, and the harness that first read the clock "
-                "back convicted every tick of a change that did not move the stamp.",
+                "back convicted every tick of a change that did not move the stamp. 0.14.0: a "
+                "state-var may be the model's `clock`, so the attribution rule can tell a "
+                "statement made under the machine's day from one made under the store's.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

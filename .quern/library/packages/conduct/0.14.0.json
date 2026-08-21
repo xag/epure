@@ -1,0 +1,2742 @@
+{
+  "name": "conduct",
+  "version": "0.14.0",
+  "description": "The behavior laws of operations, as checkable data: what a declared effect promises under reading back (it happened, it matches its inputs, nothing else moved), under algebra (repetition, inversion, refusal), and under time (replay, persistence, witnessability). Nine families, a census folded from Hughes's five approaches to writing properties onto what a tape can witness. Laws bind by INHERITANCE to semantic-model's generic effect kinds — an action declares `creates` and every creates-law arrives; nothing is stamped per operation. Each law carries the tape that would convict it, the declaration that switches it on, and the source that authorises it; an uncited law is an ungrounded param the ledger's own gate refuses to let travel as settled. 0.2.0 delivers the natives 0.1.0 named: conduct/effect, conduct/faithful, conduct/frame and conduct/refusal hold a recorded run to the effect, faithfulness, frame and refusal families through the doors an action declares (semantic-model@0.5.0's `via`/`shown_by`), and conduct/checkable holds the model to the checkability family. 0.3.0 is the census correction: 0.1.0 called itself nine families folded from the sources and had grounded the nine on its own length; read in full, the sources state seventy properties, and the model-based family — the abstraction function, which Hughes ranks first — was among those folded into nothing. 0.3.0 adds the `census`/`item` kinds with the four statuses (covered, weakened, owed, aside) and the rule that every item carries one; ships the census of both sources as an example, every item mapped to a law; adds the eleven laws the items named and no law held, each cited verbatim from the source; and cites three laws 0.1.0 carried uncited (refusal, undo, same-story) from the paper's own formulas. 0.4.0 delivers the family the census ranked first: conduct/agrees, the model-based native, reading each state-var's value through the projection semantic-model@0.6.0 lets it declare and holding the world to the model's own updates after every act — which is the effect, faithfulness and frame laws in their VALUE forms. Fifteen census items move from weakened or owed to covered; the census says which. 0.4.1 follows semantic-model@0.6.1 (two more projection helpers). 0.4.2: the frame law - this package's example - carries its third sighting, from the first run with every tool call an act; content only. 0.5.0 pays the two-stretch debt: conduct/twice, last-write, commute, undo, durable, same-story and constructible compare the projected world around two acts rather than one — idempotence, overwrite, commutation, undo, durability, determinism and reachability, each refuted on the cloakroom by a tape that fails it and each stated in the sources' own formulas. Eighteen census items move to covered. 0.6.0 closes the census: conduct/merge (left-biased, idempotent, associative absorption of another world, over semantic-model@0.8.0's `merges`), conduct/stamped and conduct/conditional (RFC 9110's strong validator and If-Match/412, over the `validator` kind and `requires`), and probe tapes held to conduct/constructible before any other law. Every item the two sources state is now covered by a native in the source's own form, except the half of `safe` that names the WHOLE state. 0.7.0 pays that too: conduct/doors, over semantic-model@0.9.0's `boundary`, holds every write function the recorder knows to being some action's door. 0.8.0: liveness - conduct/eventually over semantic-model@0.10.0's `promise`, with model/promised on the model side; Lamport's other half, the census's third source, covered. 0.9.0: the natives read semantic-model@0.11.0's DERIVED view - a state-var the app recomputes, projected from the point where the app states it - so the value laws and the promises reach the views a rhythm derives; no new law, the same laws seeing more. 0.10.0: conduct/stamped does not count a derived view as a change - the first real run convicted a day's tick for moving the views without bumping a stored document's stamp, which the RFC does not ask - and the catalogue's prose names no client. 0.11.0: each red under conduct/agrees names a culprit - model, app, harness, or unnamed - from four facts the native holds; the attribution is a measured hypothesis, never a verdict trusted on its own. 0.11.1: a fifth fact, from the first measurement - an act between this one and the read its world-after came from: a missing declaration hides a writer and the red lands on the neighbour, so the rule names the act between. 0.11.2 follows semantic-model@0.12.1 (weekday over an epoch in milliseconds). 0.12.0: the presence laws attribute too - conduct/effect from five facts of its own (another known door written, shown after no write, a type-forgetting match, a writer between, the boundary's record), conduct/frame from whether the stray write names what the act was given; the second consumer's first two cold reds were under these laws, where no rule spoke. 0.12.1: the frame rule, measured against the first consumer's re-induced frame faults, had named app six times where the drawing was wrong; it now names model on a write about the act's own subject or through a door every act of the action uses, and unnamed otherwise. 0.12.2: the fairness law cites Lamport 2000 verbatim - the one law the catalogue had carried uncited for want of the sentence; it stays owed, since no kind annotates an action as fair, but it is no longer unsourced. 0.13.0, from the first harness to read the whole world after every act: the agrees rule's clock fact asks whether the clock MOVED between the two worlds (two reads, two days), not whether it was read - a board reads the clock to say what is due, so the old fact was true of every statement and named harness on a tick the drawing had got wrong (counted, a cold red named wrong); conduct/stamped reads the validator's `covers` (semantic-model@0.13.0); conduct/eventually counts only the acts that move the world toward a promise's horizon - a read is a stutter step. 0.13.1: the agrees rule's fifth fact, an act between, counts only an act with a door - a read-act declaring `via: []` cannot hide a writer; with a clock read between every act and its world-after, the rule had named model past the clock read, twice, right by accident (counted). 0.13.2: the two-stretch laws (twice, last-write, commute, undo, durable, same-story) name a culprit through the same facts, on the act and variable each red is about - one name per red, unnamed where the facts cannot separate the drawing from the program. 0.14.0, refused by the calibration set and put right: the two-days clock fact had left the machine-day fault unnamed (every read on such a tape is the machine's one day) - the fact is now a clock read that disagrees with the model's own clock variable (semantic-model@0.14.0), two days where no clock is declared; and a derived view that moved across an act that wrote through a door the model knows names model (the drawing misses what that write does), harness only when nothing was written - the set-today fault had gone to harness on the old fact.",
+  "publisher": "poietic.studio",
+  "requires": [
+    {
+      "name": "grounding",
+      "version": "1.2.0"
+    },
+    {
+      "name": "semantic-model",
+      "version": "0.14.0"
+    }
+  ],
+  "vocabulary": [
+    {
+      "kind": "law",
+      "description": "A claim about how an OPERATION behaves — what its effect promises under reading back, repetition, inversion, refusal, replay and time — that holds across domains because it binds to the generic effect kinds (semantic-model@0.4.0's creates/mutates/deletes/touches, with doors since 0.5.0), never to any one operation. It carries an `authority` param, grounded when a reputable source has actually stated it and ungrounded when it is observation carried honestly as a debt.",
+      "params": {},
+      "links": {
+        "supersedes": "the law this one replaces, if any"
+      },
+      "operations": {}
+    },
+    {
+      "kind": "citation",
+      "description": "Where the law actually comes from: a publisher, a title, a URL, and — the part that matters — the QUOTE. A citation without the words is a citation nobody can check, and an unfalsifiable appeal to authority is worse than an honest opinion.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "falsifier",
+      "description": "The tape that constitutes a violation: which effect declaration, which stretch of execution, what read disagrees. A behavior law whose breach no tape could exhibit is a taste, and tastes do not belong in a package.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "trigger",
+      "description": "The effect declaration that switches this law on. This is the inheritance seam: an action declares `creates`, and every law whose trigger names `creates` binds to it — the author writes what the operation does, and the laws arrive.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "sighting",
+      "description": "A real defect this law actually caught, in a real system, on a real tape. Evidence, not decoration: a law that has never caught anything is a law nobody should trust.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "census",
+      "description": "Every property a cited source states, as `item` children, with the counts computed over them as params (items, covered, weakened, owed, aside). The harness against a catalogue filtered by what was feasible: the number on the brief is the source's, and what was left out is a number too.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "item",
+      "description": "One property as its source states it: the node's name is the formula, the payload names the `source`, its `category` and `section`, and the `law` it maps to. Carries exactly one status child — covered, weakened, owed or aside — and the rule below refuses an item with none or two.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "covered",
+      "description": "A native holds the item's law in the form the source states it. Payload `because` names the native and how.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "weakened",
+      "description": "A native holds a lesser form of the item — presence where the source compares values, a door where the source reads a variable back. Payload `because` says exactly what is missing, so the weakening is a debt with a shape, not a rounding-up.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "owed",
+      "description": "No native holds the item. Payload `because` names the debt node in the authoring ledger that carries it and states its discharge.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
+      "kind": "aside",
+      "description": "The item is not a claim about an operation's behaviour — a test generator, a measurement, a warm-up example, a transport policy. Payload `because` says why; an aside without a reason is a filter.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    }
+  ],
+  "rules": [
+    {
+      "name": "a-law-can-be-violated-observably",
+      "expr": "len(nodes('falsifier', self)) >= 1",
+      "description": "A law whose breach cannot be shown by a tape can never produce a verdict, and a verdict is the only thing a law is for.",
+      "kind": "law"
+    },
+    {
+      "name": "a-law-is-switched-on-by-something",
+      "expr": "len(nodes('trigger', self)) >= 1",
+      "description": "Laws arrive because an effect declaration called for them. A law that applies to everything applies to nothing: it becomes a checklist item, and a checklist item is read once and never again.",
+      "kind": "law"
+    },
+    {
+      "name": "a-law-cites-a-source",
+      "expr": "len(nodes('citation', self)) >= 1",
+      "description": "A law that cannot name who said it is a hypothesis. It may be carried, and it will be red, and that is the honest state of it.",
+      "kind": "law"
+    },
+    {
+      "name": "an-item-has-one-status",
+      "expr": "len(nodes('covered', self)) + len(nodes('weakened', self)) + len(nodes('owed', self)) + len(nodes('aside', self)) == 1",
+      "description": "Every property the source states is covered, weakened, owed or set aside — exactly one, said on the item. None is a property quietly dropped; two is a property counted twice; either is how a census stops being the source's.",
+      "kind": "item"
+    }
+  ],
+  "solvers": [
+    {
+      "name": "conduct/effect",
+      "description": "(path, rel): count the declared effects under `path` the world failed to show — a creates/mutates whose `via` write is absent from the act or whose `shown_by` read after it (before the entity's next act) does not return what the write carried; a deletes whose `shown_by` read after it still does. A read that never comes is a note, not a count.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/faithful",
+      "description": "(path, rel): count the effects under `path` whose `via` write does not carry every input the effect's `from` names, as the span testified them.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/frame",
+      "description": "(path, rel): count the writes under `path` through a door the model knows (any `via` it declares) that the act's own `touches.via` and effects' `via` do not admit. Acts whose actions declare no `touches` are outside the law.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/refusal",
+      "description": "(path, rel): count the outermost spans under `path` that ended in error having written through a door the model knows.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/checkable",
+      "description": "(path): on the model at `path`, count the declarations no tape could witness — an effect naming no state-var, no `via`, or no `shown_by`; a `touches` naming an unknown state-var.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/twice",
+      "description": "(path, rel): count the adjacent repeats under `path` — same kind, same data, one action whose guard still admits it in the projected world after the first — after which the world differs from the world after the first. A guard that refuses the repeat exits the family.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/last-write",
+      "description": "(path, rel): count the entities under `path` written by two adjacent acts as overwrites (the update reads the argument, not the entity) whose value after the second is not the second's update applied to the world before the first.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/commute",
+      "description": "(path, rel): count the stretch pairs under `path` — A;B on disjoint variables and, elsewhere, B;A from an equal projected world — whose worlds after differ. A stretch with no reverse on the tape is noted.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/undo",
+      "description": "(path, rel): count the create-then-delete pairs on one entity under `path` after which the projected world differs from before the create — residue.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/durable",
+      "description": "(path, rel): count the (act, variable) pairs under `path` where a later read, before any act that updates the variable, projects a value other than the one the first read after the act showed.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/same-story",
+      "description": "(path, rel): count the pairs of acts under `path` with the same kind and data from equal projected worlds whose projected worlds after differ — an undeclared input. Equivalent worlds stay equivalent by the same count.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/constructible",
+      "description": "(path, rel): count the distinct projected worlds read off `path` that no sequence of the model's actions reaches from init.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/eventually",
+      "description": "(path, rel): count the acts under `path` that leave the projected world in a state that makes a `promise` and are followed, within the promise's `within` acts, by no world that keeps or releases it. A promise still open when the tape ends, or without a horizon, is noted.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/doors",
+      "description": "(path): on the model at `path`, count the write functions its `boundary` declares that no action admits through any door. Zero with a boundary means the frame's empty boundary is the whole state; no boundary is a note.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/merge",
+      "description": "(path, rel): count the merges under `path` after which a merged variable does not project to its own value where present, else the other's (left bias; a self-merge therefore a no-op), plus the stretch pairs where (b then c) and (b merged with c) from one world leave different worlds (associativity).",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/stamped",
+      "description": "(path, rel): count the acts under `path` that moved a projected variable while the model's validator read the same after as before.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/conditional",
+      "description": "(path, rel): count the acts under `path` whose action `requires` the validator and which proceeded although the stamp they were handed differed from the world's, or wrote anyway, or refused although it matched.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    },
+    {
+      "name": "conduct/agrees",
+      "description": "(path, rel): count the (act, projected state-var) pairs under `path` where the world disagrees with the model — the variable's value projected from the first reads after the act differs from the action's own update applied to the values projected from the last reads before it, or, for a variable the action does not update, differs from the value before. Hoare's diagram on a tape. A missing read, an act binding no single action, a model projecting nothing: notes, never counts.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {
+        "rel": "the link from the scenario/session to the model"
+      },
+      "fuel": 500000000
+    }
+  ],
+  "examples": [
+    {
+      "id": "the-frame-holds",
+      "kind": "law",
+      "name": "A value is the same if it wasn't changed",
+      "params": {
+        "authority": {
+          "value": 1.0,
+          "unit": "law",
+          "provenance": "cited",
+          "grounded": true,
+          "source": "Hughes 2020, postconditions: previously inserted keys with unchanged values",
+          "derived_from": []
+        }
+      },
+      "links": {},
+      "meta": {},
+      "payload": {
+        "note": "Inside a proved model the frame holds by construction — updates name every moving var. The law exists for tapes, where the real system writes. Each red names a culprit (0.12.0) from two facts: the stray write names what the act was given, or every act bound to the same action writes through the door - either is a door the drawing omits. A write that names nothing the act was given, on some acts and not others, is a conditional door the drawing omits OR the program moving what the act is not about, and the tape holds no fact that separates them: `unnamed`. 0.12.0 had said `app` there; the three sightings above, re-induced, were all of that shape and all the drawing's - 6 named, 0 right - so 0.12.1 names nothing it cannot stand on.",
+        "native": "conduct/frame",
+        "covers": {
+          "covered": 2,
+          "weakened": 0,
+          "owed": 0,
+          "aside": 0
+        }
+      },
+      "children": [
+        {
+          "id": "the-frame-holds--falsifier",
+          "kind": "falsifier",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "claim": "A tape where state outside the action's declared `touches` boundary differs after the action from before it."
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--trigger-0",
+          "kind": "trigger",
+          "name": "",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "when": "an action declares `touches` — everything outside `only` is the frame"
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--citation-0",
+          "kind": "citation",
+          "name": "John Hughes — How to Specify It! A Guide to Writing Properties of Pure Functions (Chalmers, 2020)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "url": "https://research.chalmers.se/publication/517894/file/517894_Fulltext.pdf",
+            "quote": "after calling insert, then we should be able to find the key just inserted, and any previously inserted keys with unchanged values"
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--sighting-0",
+          "kind": "sighting",
+          "name": "surface-tape walks, 2026-08-19",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "what": "An 'empty' walk read a seeded store: a server a previous run failed to kill was still holding port 8199, so state the walk never touched had been moved by something else — the frame assumption violated by an unowned writer, and the deposited walk was a lie until the PID was hunted down."
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--sighting-1",
+          "kind": "sighting",
+          "name": "chores flights and scenes, first run of conduct/frame, 2026-08-20",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "what": "Two turn-done acts on the-rhythms-run and a chore-added on every scene wrote through app.storage.create to sent/second_settler and sent/second_chore — the #149 onboarding milestones, claimed and counted from inside the completion writer and the add (deliberately, to spare a round trip; #150 is the cost) and never in the drawing. The model's boundary was wrong, not the code: the doors are admitted on those acts now, with the finding on them (chores-model@0.12.0). Caught by the native, not by reading: the effect, faithfulness and refusal laws were green on the same tapes."
+          },
+          "children": []
+        },
+        {
+          "id": "the-frame-holds--sighting-2",
+          "kind": "sighting",
+          "name": "chores, first run with every tool call an act, 2026-08-20",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "what": "Two more the moment the surveyed tool boundaries made more doors known: turn-done writes index/metrics, and the hand-written door for it had said `metrics` — a declaration wrong in a way nothing could see until a neighbour declared the same door right; and chore-added, on the free-plan scene, rewrites the whole household document (the grace clock, plan.note_size) inside the act — one scene took that path, the survey had not seen it inside a span. Both corrected in the app's table; the model followed."
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "the-census-of-the-sources",
+      "kind": "census",
+      "name": "Every property the cited sources state, each mapped to a law and counted by what holds it: covered, weakened, owed, or set aside",
+      "params": {
+        "items": {
+          "value": 74.0,
+          "unit": "item",
+          "provenance": "computed",
+          "grounded": true,
+          "source": "len(ITEMS): 57 from Hughes 2020 (every `prop` in Figures 3–8 and the text), 14 from RFC 9110 §8.8, §9.2, §13, §15, 3 from Lamport 1977 (safety, liveness)",
+          "derived_from": []
+        },
+        "covered": {
+          "value": 64.0,
+          "unit": "item",
+          "provenance": "computed",
+          "grounded": true,
+          "source": "items whose status child is `covered`",
+          "derived_from": []
+        },
+        "weakened": {
+          "value": 1.0,
+          "unit": "item",
+          "provenance": "computed",
+          "grounded": true,
+          "source": "items whose status child is `weakened`",
+          "derived_from": []
+        },
+        "owed": {
+          "value": 1.0,
+          "unit": "item",
+          "provenance": "computed",
+          "grounded": true,
+          "source": "items whose status child is `owed`",
+          "derived_from": []
+        },
+        "aside": {
+          "value": 8.0,
+          "unit": "item",
+          "provenance": "computed",
+          "grounded": true,
+          "source": "items whose status child is `aside`",
+          "derived_from": []
+        }
+      },
+      "links": {},
+      "meta": {},
+      "payload": {
+        "note": "Read the numbers before the laws: `owed` and `weakened` are what this catalogue does not yet do, in the sources' own count."
+      },
+      "children": [
+        {
+          "id": "hughes-2020--Reverse",
+          "kind": "item",
+          "name": "reverse xs === predictRev xs; reverse (reverse xs) === xs",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "aside",
+            "section": "§2",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "Reverse--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "the paper's warm-up on list reversal, not a property of a store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--Wrong",
+          "kind": "item",
+          "name": "reverse xs === xs",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "aside",
+            "section": "§2",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "Wrong--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "the paper's deliberately false property, shown to fail"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--NilValid",
+          "kind": "item",
+          "name": "valid nil",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "the-invariant-holds"
+          },
+          "children": [
+            {
+              "id": "NilValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "model/prove checks every invariant in the initial state"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertValid",
+          "kind": "item",
+          "name": "valid (insert k v t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "the-invariant-holds"
+          },
+          "children": [
+            {
+              "id": "InsertValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "model/prove over every reachable state; model/refines re-checks after every act on a tape"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteValid",
+          "kind": "item",
+          "name": "valid t ==> valid (delete k t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "the-invariant-holds"
+          },
+          "children": [
+            {
+              "id": "DeleteValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "as InsertValid"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionValid",
+          "kind": "item",
+          "name": "valid (union t t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--ArbitraryValid",
+          "kind": "item",
+          "name": "valid t (for generated t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "a-generated-world-is-valid"
+          },
+          "children": [
+            {
+              "id": "ArbitraryValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/constructible on a probe tape: every world read off a mutated tape is one the model reaches, held before any other law is reported"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--ShrinkValid",
+          "kind": "item",
+          "name": "valid t ==> all valid (shrink t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": "a-generated-world-is-valid"
+          },
+          "children": [
+            {
+              "id": "ShrinkValid--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/constructible on a probe tape: every world read off a mutated tape is one the model reaches, held before any other law is reported"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--ValidEquivalent",
+          "kind": "item",
+          "name": "valid t === fastValid t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "validity",
+            "section": "§4.1",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "ValidEquivalent--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "two implementations of the validity predicate agree — about the test's own oracle, not the store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPost",
+          "kind": "item",
+          "name": "find k' (insert k v t) === if k == k' then Just v else find k' t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "InsertPost--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPost-others",
+          "kind": "item",
+          "name": "k /= k' ==> find k' (insert k v t) === find k' t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-frame-holds"
+          },
+          "children": [
+            {
+              "id": "InsertPost-others--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: a variable the action does not update projects the same value after as before; conduct/frame holds the door form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPost-value",
+          "kind": "item",
+          "name": "find k (insert k v t) === Just v, for the v that was the argument",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-matches-its-inputs"
+          },
+          "children": [
+            {
+              "id": "InsertPost-value--weakened",
+              "kind": "weakened",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "where the entity's update READS the input (assignee := member), conduct/agrees holds the read equal to the argument — the source's form; where it ignores it (held := 1, whatever the coat), conduct/faithful only checks that the WRITE carried the input, not that a read returns it — a weaker form, since nothing on the model projects the coat"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPostSameKey",
+          "kind": "item",
+          "name": "find k (insert k v t) === Just v",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "InsertPostSameKey--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeletePost",
+          "kind": "item",
+          "name": "find k' (delete k t) === if k == k' then Nothing else find k' t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "DeletePost--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeletePost-others",
+          "kind": "item",
+          "name": "k /= k' ==> find k' (delete k t) === find k' t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-frame-holds"
+          },
+          "children": [
+            {
+              "id": "DeletePost-others--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: a variable the action does not update projects the same value after as before; conduct/frame holds the door form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindPostPresent",
+          "kind": "item",
+          "name": "find k (insert k v t) === Just v",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "FindPostPresent--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindPostAbsent",
+          "kind": "item",
+          "name": "find k (delete k t) === Nothing",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "FindPostAbsent--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/effect, deletes: no shown_by read after the act still shows what an earlier effect carried or names what the removal named"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertDeleteComplete",
+          "kind": "item",
+          "name": "case find k t of Nothing -> t === delete k t; Just v -> t === insert k v t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "twice-is-once"
+          },
+          "children": [
+            {
+              "id": "InsertDeleteComplete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/twice: the world after an admitted repeat equals the world after once"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionPost",
+          "kind": "item",
+          "name": "find k (union t t') === (find k t <|> find k t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "postcondition",
+            "section": "§4.2",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionPost--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertInsertWeak",
+          "kind": "item",
+          "name": "k /= k' ==> insert k v (insert k' v' t) ≏ insert k' v' (insert k v t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3",
+            "law": "independent-writes-commute"
+          },
+          "children": [
+            {
+              "id": "InsertInsertWeak--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/commute: A;B and B;A from an equal world leave equal worlds"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertInsert",
+          "kind": "item",
+          "name": "insert k v (insert k' v' t) ≏ if k == k' then insert k v t else insert k' v' (insert k v t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3",
+            "law": "last-write-wins"
+          },
+          "children": [
+            {
+              "id": "InsertInsert--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/last-write: the value after the second overwrite is the second's update on the world before the first"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertDeleteWeak",
+          "kind": "item",
+          "name": "k /= k' ==> insert k v (delete k' t) ≏ delete k' (insert k v t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3",
+            "law": "independent-writes-commute"
+          },
+          "children": [
+            {
+              "id": "InsertDeleteWeak--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/commute: A;B and B;A from an equal world leave equal worlds"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertDelete",
+          "kind": "item",
+          "name": "insert k v (delete k' t) ≏ if k == k' then insert k v t else delete k' (insert k v t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3",
+            "law": "last-write-wins"
+          },
+          "children": [
+            {
+              "id": "InsertDelete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/last-write: the value after the second overwrite is the second's update on the world before the first"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertUnion",
+          "kind": "item",
+          "name": "insert k v (union t t') ≏ union (insert k v t) t'",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "InsertUnion--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteNil",
+          "kind": "item",
+          "name": "delete k nil ≏ nil",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "§4.3, Appendix A",
+            "law": "refusal-changes-nothing"
+          },
+          "children": [
+            {
+              "id": "DeleteNil--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/refusal: an act that does not apply (its guard refuses it, here an empty world) writes through no door"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteInsertWeak",
+          "kind": "item",
+          "name": "k /= k' ==> delete k (insert k' v' t) ≏ insert k' v' (delete k t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "independent-writes-commute"
+          },
+          "children": [
+            {
+              "id": "DeleteInsertWeak--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/commute: A;B and B;A from an equal world leave equal worlds"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteInsert",
+          "kind": "item",
+          "name": "delete k (insert k' v' t) ≏ if k == k' then delete k t else insert k' v' (delete k t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "undo-restores"
+          },
+          "children": [
+            {
+              "id": "DeleteInsert--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/undo: the world after the delete equals the world before the create"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteDelete",
+          "kind": "item",
+          "name": "delete k (delete k' t) ≏ delete k' (delete k t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "independent-writes-commute"
+          },
+          "children": [
+            {
+              "id": "DeleteDelete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/commute: A;B and B;A from an equal world leave equal worlds"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteUnion",
+          "kind": "item",
+          "name": "delete k (union t t') ≏ union (delete k t) (delete k t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "DeleteUnion--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionNil1",
+          "kind": "item",
+          "name": "union nil t ≏ t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionNil1--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionNil2",
+          "kind": "item",
+          "name": "union t nil ≏ t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionNil2--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionDeleteInsert",
+          "kind": "item",
+          "name": "union (delete k t) (insert k v t') ≏ insert k v (union t t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionDeleteInsert--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionUnionIdem",
+          "kind": "item",
+          "name": "union t t ≏ t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionUnionIdem--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionUnionAssoc",
+          "kind": "item",
+          "name": "union (union t1 t2) t3 ≏ union t1 (union t2 t3)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionUnionAssoc--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindNil",
+          "kind": "item",
+          "name": "find k nil === Nothing",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-read-changes-nothing"
+          },
+          "children": [
+            {
+              "id": "FindNil--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "a read of an empty world answers nothing and, by conduct/frame on an act declaring touches.via = [], writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindInsert",
+          "kind": "item",
+          "name": "find k (insert k' v' t) === if k == k' then Just v' else find k t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "FindInsert--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindInsert-later",
+          "kind": "item",
+          "name": "find k t, read again after later acts that do not name k, === find k t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "the else-branch of FindInsert read over time, Appendix A",
+            "law": "shown-once-shown-until-touched"
+          },
+          "children": [
+            {
+              "id": "FindInsert-later--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/durable: every later read projects what the first showed, until an act updates it"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindDelete",
+          "kind": "item",
+          "name": "find k (delete k' t) === if k == k' then Nothing else find k t",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "the-effect-is-shown"
+          },
+          "children": [
+            {
+              "id": "FindDelete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the variable's value projected from the reads after the act equals the model's own update applied to the projected world before it; conduct/effect holds the presence form where no projection exists"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindUnion",
+          "kind": "item",
+          "name": "find k (union t t') === (find k t <|> find k t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "metamorphic",
+            "section": "Appendix A",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "FindUnion--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPreservesEquivWeak",
+          "kind": "item",
+          "name": "t ≏ t' ==> insert k v t ≏ insert k v t'",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "§4.3",
+            "law": "equivalent-worlds-stay-equivalent"
+          },
+          "children": [
+            {
+              "id": "InsertPreservesEquivWeak--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/same-story: equivalence is projected equality, compared after the same act"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertPreservesEquiv",
+          "kind": "item",
+          "name": "insert k v t ≏ insert k v t' (t ≏ t' generated)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "§4.3, Fig. 5",
+            "law": "equivalent-worlds-stay-equivalent"
+          },
+          "children": [
+            {
+              "id": "InsertPreservesEquiv--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/same-story: equivalence is projected equality, compared after the same act"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeletePreservesEquiv",
+          "kind": "item",
+          "name": "delete k t ≏ delete k t'",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "Fig. 5",
+            "law": "equivalent-worlds-stay-equivalent"
+          },
+          "children": [
+            {
+              "id": "DeletePreservesEquiv--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/same-story: equivalence is projected equality, compared after the same act"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionPreservesEquiv",
+          "kind": "item",
+          "name": "union t1 t2 ≏ union t1' t2'",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "Fig. 5",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionPreservesEquiv--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindPreservesEquiv",
+          "kind": "item",
+          "name": "find k t === find k t'",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "Fig. 5",
+            "law": "same-state-same-story"
+          },
+          "children": [
+            {
+              "id": "FindPreservesEquiv--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/same-story: same act, same data, equal projected worlds before — equal after"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--Equivs",
+          "kind": "item",
+          "name": "t ≏ t' (for generated pairs)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "Fig. 5",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "Equivs--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "tests the generator of equivalent pairs, not the store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--ShrinkEquivs",
+          "kind": "item",
+          "name": "t ≏ t' ==> all equivalent (shrink (t, t'))",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "preservation of equivalence",
+            "section": "Fig. 5",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "ShrinkEquivs--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "tests the shrinker, not the store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionInsert",
+          "kind": "item",
+          "name": "union (insert k v t) t' ≏ insert k v (union t t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "inductive (completeness of insertion)",
+            "section": "§4.4",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionInsert--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertComplete",
+          "kind": "item",
+          "name": "t === foldl (flip (uncurry insert)) nil (insertions t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "inductive (completeness of insertion)",
+            "section": "§4.4",
+            "law": "every-world-is-constructible"
+          },
+          "children": [
+            {
+              "id": "InsertComplete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/constructible: every projected world read off the tape is a state the prover reaches"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertCompleteForDelete",
+          "kind": "item",
+          "name": "InsertComplete (delete k t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "inductive (completeness of insertion)",
+            "section": "§4.4",
+            "law": "every-world-is-constructible"
+          },
+          "children": [
+            {
+              "id": "InsertCompleteForDelete--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/constructible: every projected world read off the tape is a state the prover reaches"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertCompleteForUnion",
+          "kind": "item",
+          "name": "InsertComplete (union t t')",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "inductive (completeness of insertion)",
+            "section": "§4.4",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "InsertCompleteForUnion--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--NilModel",
+          "kind": "item",
+          "name": "toList nil === []",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5, Fig. 6",
+            "law": "the-world-agrees-with-the-model"
+          },
+          "children": [
+            {
+              "id": "NilModel--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the projected world after the act equals the model's update applied to the projected world before — the diagram, on a tape"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--InsertModel",
+          "kind": "item",
+          "name": "toList (insert k v t) === L.insert (k, v) (deleteKey k (toList t))",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5, Fig. 6",
+            "law": "the-world-agrees-with-the-model"
+          },
+          "children": [
+            {
+              "id": "InsertModel--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the projected world after the act equals the model's update applied to the projected world before — the diagram, on a tape"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--DeleteModel",
+          "kind": "item",
+          "name": "toList (delete k t) === deleteKey k (toList t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5, Fig. 6",
+            "law": "the-world-agrees-with-the-model"
+          },
+          "children": [
+            {
+              "id": "DeleteModel--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the projected world after the act equals the model's update applied to the projected world before — the diagram, on a tape"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--UnionModel",
+          "kind": "item",
+          "name": "toList (union t t') === L.sort (L.unionBy ((==) `on` fst) (toList t) (toList t'))",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5, Fig. 6",
+            "law": "a-merge-keeps-both-and-prefers-the-left"
+          },
+          "children": [
+            {
+              "id": "UnionModel--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/merge: after the act each merged variable projects to its own value where present, else the other's; a self-merge leaves the world; (b then c) equals (b merged with c)"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--FindModel",
+          "kind": "item",
+          "name": "find k t === L.lookup k (toList t)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5, Fig. 6",
+            "law": "the-world-agrees-with-the-model"
+          },
+          "children": [
+            {
+              "id": "FindModel--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/agrees: the projected world after the act equals the model's update applied to the projected world before — the diagram, on a tape"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--Measure",
+          "kind": "item",
+          "name": "label (measure k t) ... (coverage of the insert cases)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "aside",
+            "section": "§6",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "Measure--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "a measurement of test-case distribution, not a property of the store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "hughes-2020--Unique",
+          "kind": "item",
+          "name": "x /= y (for generated pairs)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "aside",
+            "section": "§6",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "Unique--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "a property of the key generator, not the store"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--safe",
+          "kind": "item",
+          "name": "A request method is considered \"safe\" if it is intended only for retrieving information and MUST NOT change the state of the origin server",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "method property",
+            "section": "§9.2.1",
+            "law": "a-read-changes-nothing"
+          },
+          "children": [
+            {
+              "id": "safe--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/frame convicts a write through any door the model knows inside an act declaring touches.via = []; conduct/agrees convicts a projected variable that moved across it"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--safe-undeclared-doors",
+          "kind": "item",
+          "name": "...MUST NOT change the state of the origin server — the WHOLE state, including what no declaration names",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "method property",
+            "section": "§9.2.1",
+            "law": "a-read-changes-nothing"
+          },
+          "children": [
+            {
+              "id": "safe-undeclared-doors--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/doors: every write function the model's boundary declares is a door of some action, so a read-act's empty boundary excludes the whole state the recorder can see"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--idempotent",
+          "kind": "item",
+          "name": "the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "method property",
+            "section": "§9.2.2",
+            "law": "twice-is-once"
+          },
+          "children": [
+            {
+              "id": "idempotent--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/twice: the world after an admitted repeat equals the world after once"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--cacheable",
+          "kind": "item",
+          "name": "Responses to safe request methods are cacheable, provided the response has appropriate Cache-Control or Expires header fields",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "method property",
+            "section": "§9.2.3",
+            "law": ""
+          },
+          "children": [
+            {
+              "id": "cacheable--aside",
+              "kind": "aside",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "a policy about HTTP responses, not a property of an operation on a store; an http@ vocabulary's to state"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--strong-validator",
+          "kind": "item",
+          "name": "A strong validator is representation metadata that changes value whenever the associated representation changes",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "validator",
+            "section": "§8.8.1",
+            "law": "a-change-moves-the-validator"
+          },
+          "children": [
+            {
+              "id": "strong-validator--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/stamped: an act that moved a projected variable moved the validator"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--weak-validator",
+          "kind": "item",
+          "name": "A weak validator is representation metadata that might not change for every alteration to the associated representation",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "validator",
+            "section": "§8.8.1",
+            "law": "a-change-moves-the-validator"
+          },
+          "children": [
+            {
+              "id": "weak-validator--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/stamped: an act that moved a projected variable moved the validator"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--last-modified",
+          "kind": "item",
+          "name": "the date and time at which the origin server believes the representation was last modified",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "validator",
+            "section": "§8.8.2",
+            "law": "a-change-moves-the-validator"
+          },
+          "children": [
+            {
+              "id": "last-modified--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/stamped: an act that moved a projected variable moved the validator"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--etag",
+          "kind": "item",
+          "name": "An entity tag is an opaque validator for differentiating between multiple representations of the same resource",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "validator",
+            "section": "§8.8.3",
+            "law": "a-change-moves-the-validator"
+          },
+          "children": [
+            {
+              "id": "etag--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/stamped: an act that moved a projected variable moved the validator"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--if-match",
+          "kind": "item",
+          "name": "makes the request method conditional on the recipient origin server having a current representation of the target resource that matches the provided entity-tag(s)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§13.1.1",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "if-match--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--if-none-match",
+          "kind": "item",
+          "name": "makes the request method conditional on a recipient cache or origin server NOT having a current representation of the target resource that matches any of the provided entity-tag(s)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§13.1.2",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "if-none-match--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--if-modified-since",
+          "kind": "item",
+          "name": "makes a GET or HEAD request method conditional on the origin server only sending a representation if the selected representation has been modified since the provided HTTP-date",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§13.1.3",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "if-modified-since--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--if-unmodified-since",
+          "kind": "item",
+          "name": "makes the request method conditional on the origin server only applying the request to the target resource if the selected representation has not been modified since the provided HTTP-date",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§13.1.4",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "if-unmodified-since--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--precondition-failed",
+          "kind": "item",
+          "name": "The 412 (Precondition Failed) status code indicates that one or more conditions given in the request header fields evaluated to false when tested on the server",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§15.5.13",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "precondition-failed--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "rfc-9110--not-modified",
+          "kind": "item",
+          "name": "The 304 (Not Modified) status code indicates that a conditional GET or HEAD request has been received and would have resulted in a 200 (OK) response if it were not for the fact that the condition evaluated to false",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "rfc-9110",
+            "category": "conditional request",
+            "section": "§15.4.5",
+            "law": "a-conditional-write-compares-before-it-writes"
+          },
+          "children": [
+            {
+              "id": "not-modified--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "conduct/conditional: handed the current stamp the act proceeds; handed another it refuses and writes nothing"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "lamport-1977--safety",
+          "kind": "item",
+          "name": "safety ... the proper generalization of partial correctness to concurrent programs - something bad never happens",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "lamport-1977",
+            "category": "property kind",
+            "section": "the paper's own annotation, lamport.azurewebsites.net/pubs",
+            "law": "the-invariant-holds"
+          },
+          "children": [
+            {
+              "id": "safety--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "model/prove over every reachable state, re-checked by model/refines at every step of a tape; conduct/constructible holds every world read off a tape to reachability"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "lamport-1977--liveness",
+          "kind": "item",
+          "name": "liveness ... the proper generalization of termination to concurrent programs - something good eventually happens",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "lamport-1977",
+            "category": "property kind",
+            "section": "the paper's own annotation, lamport.azurewebsites.net/pubs",
+            "law": "what-is-promised-eventually-happens"
+          },
+          "children": [
+            {
+              "id": "liveness--covered",
+              "kind": "covered",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "model/promised: from every state where the promise is made, a state that keeps it is reachable; conduct/eventually: on a tape, kept within the horizon the promise names, or reported open"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "lamport-1977--weak-fairness",
+          "kind": "item",
+          "name": "weak fairness: an action that stays enabled is eventually taken (Lamport, Fairness and Hyperfairness, 2000 - stated here from the literature's standard form; the paper's own sentence has not been verified and the law it maps to is carried uncited)",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "lamport-1977",
+            "category": "property kind",
+            "section": "Fairness and Hyperfairness, 2000",
+            "law": "an-enabled-act-is-eventually-taken"
+          },
+          "children": [
+            {
+              "id": "weak-fairness--owed",
+              "kind": "owed",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "because": "fairness-is-inexpressible"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counter_examples": [
+    {
+      "rule": "an-item-has-one-status",
+      "nodes": [
+        {
+          "id": "cx4-item",
+          "kind": "item",
+          "name": "toList (insert k v t) === L.insert (k, v) (deleteKey k (toList t))",
+          "params": {},
+          "links": {},
+          "meta": {},
+          "payload": {
+            "source": "hughes-2020",
+            "category": "model-based",
+            "section": "§4.5",
+            "law": ""
+          },
+          "children": []
+        }
+      ],
+      "because": "a property the source states with no status — dropped from the count without a word, which is exactly how a census stops being the source's"
+    },
+    {
+      "rule": "a-law-cites-a-source",
+      "nodes": [
+        {
+          "id": "reads-never-lie",
+          "kind": "law",
+          "name": "A read always returns what was last written",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "asserted",
+              "grounded": false,
+              "source": "feels obviously true",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx1-f",
+              "kind": "falsifier",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "claim": "a tape where a read disagrees with the last write"
+              },
+              "children": []
+            },
+            {
+              "id": "cx1-t",
+              "kind": "trigger",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "when": "any effect declaration"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a behavior claim that names no authority — a hypothesis wearing a law's name, which is how every one of these families started"
+    },
+    {
+      "rule": "a-law-can-be-violated-observably",
+      "nodes": [
+        {
+          "id": "behaves-well",
+          "kind": "law",
+          "name": "The system should behave predictably",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "cited",
+              "grounded": true,
+              "source": "a methodology book",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx2-t",
+              "kind": "trigger",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "when": "any effect declaration"
+              },
+              "children": []
+            },
+            {
+              "id": "cx2-c",
+              "kind": "citation",
+              "name": "A methodology book",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "url": "https://example.invalid",
+                "quote": "Systems should behave predictably."
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a law whose breach no tape could ever exhibit can never produce a verdict, so it is a taste and not a law"
+    },
+    {
+      "rule": "a-law-is-switched-on-by-something",
+      "nodes": [
+        {
+          "id": "always-applies",
+          "kind": "law",
+          "name": "Every operation is idempotent",
+          "params": {
+            "authority": {
+              "value": 1.0,
+              "unit": "law",
+              "provenance": "cited",
+              "grounded": true,
+              "source": "RFC 9110 §9.2.2",
+              "derived_from": []
+            }
+          },
+          "links": {},
+          "meta": {},
+          "payload": {},
+          "children": [
+            {
+              "id": "cx3-f",
+              "kind": "falsifier",
+              "name": "",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "claim": "a tape where twice differs from once"
+              },
+              "children": []
+            },
+            {
+              "id": "cx3-c",
+              "kind": "citation",
+              "name": "IETF RFC 9110, HTTP Semantics — §9.2.2 Idempotent Methods",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+                "quote": "A request method is considered \"idempotent\" if the intended effect on the server of multiple identical requests with that method is the same as the effect for a single such request."
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "because": "a law nothing switches on is a checklist item, and a checklist item is read once and never again"
+    }
+  ]
+}
