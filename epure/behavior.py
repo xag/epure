@@ -776,19 +776,32 @@ def _strings(v: Any) -> list[str]:
     return []
 
 
-def _frame_culprit(model: _Model, act: _Act, event: dict[str, Any]) -> tuple[str, str]:
+def _doors_of(model: _Model, event: dict[str, Any]) -> list[int]:
+    """Which of the model's known doors this event passes through - the door's identity on
+    the tape, since doors are patterns and two events through the same doors are the same
+    kind of write."""
+    return [i for i, d in enumerate(model.known) if d(event)]
+
+
+def _frame_culprit(model: _Model, acts: list[_Act], act: _Act, bound: list[_Action],
+                   event: dict[str, Any]) -> tuple[str, str]:
     """Who is wrong when an act writes through a door the model knows and its boundary does
     not admit - from two facts the native holds about the (act, write) pair:
 
-      subject    the write's arguments name something the act's data names: the write is
-                 about this act's own subject
-      given      the act's data names anything at all - without it `subject` cannot be
-                 decided either way
+      subject     the write's arguments name something the act's data names: the write is
+                  about this act's own subject
+      systematic  every act on the tape bound to the same action writes through this door,
+                  and there is more than one: the door is the act's behaviour, not an
+                  accident of one run
 
-    A write about the act's own subject is a door the drawing forgot on the act; a write
-    naming nothing the act was given is the program moving something the act was not
-    about. A nested span's write is the outer act's own (refinement-consumes-top-level-
-    spans), so nesting is no fact here.
+    Either is the drawing's omission: an act that writes about its own subject, or always,
+    through a door its boundary lacks, touches it - the declaration is what is wrong. A
+    stray write that names nothing the act was given, on some of the acts and not others,
+    is a conditional door the drawing omits OR the program moving what it should not, and
+    the tape holds no fact that separates the two - the first consumer's first four frame
+    reds (2026-08-20) were of this shape, and all four were the drawing's; the rule says
+    `unnamed` rather than carry that as a prior. A nested span's write is the outer act's
+    own (refinement-consumes-top-level-spans), so nesting is no fact here.
     """
     door = _named(event)
     given = _strings(act.span.payload.get("data") or {})
@@ -797,17 +810,28 @@ def _frame_culprit(model: _Model, act: _Act, event: dict[str, Any]) -> tuple[str
     admitters = [a.id for a in model.actions
                  if _through(event, a.touches_via)
                  or any(_through(event, e.via) for e in a.effects)]
+    ids = {a.id for a in bound}
+    key = _doors_of(model, event)
+    peers = [o for o in acts if o is not act and o.is_call == act.is_call
+             and {a.id for a in model.bound(o.span)} == ids]
+    through = [o for o in peers
+               if any(_doors_of(model, e) == key
+                      for _, e in (o.own if o.is_call else o.events))]
+    systematic = bool(peers) and len(through) == len(peers)
     facts = (f"{'about ' + repr(subject[0]) if subject else 'names nothing the act was given'}, "
              f"{'given ' + ', '.join(repr(g) for g in given[:3]) if given else 'given nothing'}, "
-             f"admitted by {', '.join(admitters) or 'no action'}")
+             f"{len(through) + 1} of {len(peers) + 1} {'/'.join(sorted(ids))} act(s) write "
+             f"through it, admitted by {', '.join(admitters) or 'no action'}")
     if subject:
         return "model", (f"[{facts}] the write through '{door}' is about this act's own "
-                         f"subject: the drawing omits a door the act uses on what it was given")
-    if given:
-        return "app", (f"[{facts}] the write through '{door}' names nothing this act was "
-                       "given: the program moved something the act was not about")
-    return "unnamed", (f"[{facts}] the act was given nothing to compare the write against: "
-                       "the tape holds no witness to whose door it is")
+                         "subject: the drawing omits a door the act uses on what it was given")
+    if systematic:
+        return "model", (f"[{facts}] every act bound to this action writes through '{door}': "
+                         "the door is the act's behaviour, and the drawing omits it")
+    return "unnamed", (f"[{facts}] a write that names nothing the act was given, on this act "
+                       "and not on every one: a conditional door the drawing omits, or the "
+                       "program moving what the act is not about - the tape holds no fact "
+                       "that separates them")
 
 
 def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
@@ -834,7 +858,7 @@ def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         # answers to that span's own declaration
         for _, e in (act.own if act.is_call else act.events):
             if _through(e, model.known) and not _through(e, allowed):
-                who, why = _frame_culprit(model, act, e)
+                who, why = _frame_culprit(model, acts, act, bound, e)
                 culprits.append(who)
                 diagnostics.append(
                     f"{act.path}: '{act.span.kind}' ({', '.join(a.id for a in bound)}) "

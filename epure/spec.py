@@ -393,6 +393,17 @@ TAGGED_THE_HOOK = visit([*DEPOSIT, _read({"coat": "red"})],
 TAGGED_ANOTHER_HOOK = visit([*DEPOSIT, _read({"coat": "red"})],
                             [*_act("tagging", {"color": "red"}, _tag_write("red"), _write("blue")),
                              _read({"coat": "blue"})])
+# every tagging on the tape also shelves the coat: the shelf is the tagging's own door
+TAGGING_ALWAYS_SHELVES = visit([*DEPOSIT, _read({"coat": "red"})],
+                               [*_act("tagging", {"color": "red"}, _tag_write("red"),
+                                      _shelf_write("high"))],
+                               [*_act("tagging", {"color": "blue"}, _tag_write("blue"),
+                                      _shelf_write("high"))])
+# one tagging of two shelves the coat: a conditional door, or a stray write
+TAGGING_ONCE_SHELVES = visit([*DEPOSIT, _read({"coat": "red"})],
+                             [*_act("tagging", {"color": "red"}, _tag_write("red"),
+                                    _shelf_write("high"))],
+                             [*TAG_BLUE])
 
 # --- two stretches (twice, last-write, commute, undo, durable, same-story, constructible) ---
 
@@ -601,12 +612,20 @@ FRAME = [
     c("frame", visited(TAGGED_THE_HOOK), ["visit", "model"], expect=1,
       because="culprit model: the tagging wrote the hook with the colour it was given - the "
               "write is about the act's own subject, and the drawing omits the door"),
+    c("frame", visited(TAGGING_ALWAYS_SHELVES), ["visit", "model"], expect=2,
+      because="culprit model, twice: every tagging on the tape also shelves the coat - the "
+              "shelf is the tagging's behaviour, and the drawing omits the door"),
+    c("frame", visited(TAGGING_ONCE_SHELVES), ["visit", "model"], expect=1,
+      because="culprit unnamed: one tagging of two shelves the coat, and the write names "
+              "nothing the tagging was given - a conditional door the drawing omits, or the "
+              "program moving what the act is not about; the tape holds no fact that "
+              "separates them, and the rule says so rather than guess"),
     c("frame", visited(TAGGED_ANOTHER_HOOK), ["visit", "model"], expect=1,
-      because="culprit app: the tagging wrote the hook with a colour it was not given - the "
-              "program moved something the act was not about"),
+      because="culprit unnamed: the tagging wrote the hook with a colour it was not given, "
+              "once - the same two readings, unseparated"),
     c("frame", visited(OVERREACH), ["visit", "model"], expect=1,
       because="culprit unnamed: the reclaim was given nothing to compare the stray write "
-              "against - the tape holds no witness to whose door it is"),
+              "against, and it is the only reclaim on the tape"),
 ]
 
 REFUSAL = [

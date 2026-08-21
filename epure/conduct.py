@@ -292,10 +292,14 @@ CONDUCT_LAWS = [
         ],
         note="Inside a proved model the frame holds by construction — updates name every "
              "moving var. The law exists for tapes, where the real system writes. Each red "
-             "names a culprit (0.12.0) from whether the stray write names what the act was "
-             "given: about the act's own subject, the drawing omits a door; about something "
-             "else, the program moved what the act was not about; given nothing, unnamed. "
-             "The three sightings above were all of the first kind.",
+             "names a culprit (0.12.0) from two facts: the stray write names what the act "
+             "was given, or every act bound to the same action writes through the door - "
+             "either is a door the drawing omits. A write that names nothing the act was "
+             "given, on some acts and not others, is a conditional door the drawing omits OR "
+             "the program moving what the act is not about, and the tape holds no fact that "
+             "separates them: `unnamed`. 0.12.0 had said `app` there; the three sightings "
+             "above, re-induced, were all of that shape and all the drawing's - 6 named, 0 "
+             "right - so 0.12.1 names nothing it cannot stand on.",
         native="conduct/frame",
     ),
 
@@ -861,7 +865,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.12.0",
+    version="0.12.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -930,7 +934,11 @@ CONDUCT_PACKAGE = Package(
                 "shown after no write, a type-forgetting match, a writer between, the "
                 "boundary's record), conduct/frame from whether the stray write names what "
                 "the act was given; the second consumer's first two cold reds were under "
-                "these laws, where no rule spoke.",
+                "these laws, where no rule spoke. 0.12.1: the frame rule, measured against "
+                "the first consumer's re-induced frame faults, had named app six times where "
+                "the drawing was wrong; it now names model on a write about the act's own "
+                "subject or through a door every act of the action uses, and unnamed "
+                "otherwise.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

@@ -364,7 +364,8 @@ EFFECT_CULPRITS = {
 }
 FRAME_CULPRITS = {
     "TAGGED_THE_HOOK": "model",
-    "TAGGED_ANOTHER_HOOK": "app",
+    "TAGGING_ONCE_SHELVES": "unnamed",
+    "TAGGED_ANOTHER_HOOK": "unnamed",
     "OVERREACH": "unnamed",
 }
 
@@ -391,6 +392,15 @@ def test_every_red_under_frame_names_its_culprit():
         got = _one_red(frame, name)
         assert got.culprits == [who], (name, got.culprits, got.diagnostics)
         assert f"culprit: {who} [" in got.diagnostics[0], got.diagnostics[0]
+
+
+def test_a_systematic_stray_door_is_the_drawings():
+    from epure.behavior import frame
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.TAGGING_ALWAYS_SHELVES.model_copy(deep=True)]
+    got = frame(tree, "visit", "model")
+    assert got.violations == 2 and got.culprits == ["model", "model"], got.diagnostics
+    assert "2 of 2 tag-coat act(s)" in got.diagnostics[0], got.diagnostics[0]
 
 
 def test_presence_culprits_walk_in_step_with_diagnostics():

@@ -17,8 +17,8 @@
     },
     {
       "name": "conduct",
-      "version": "0.12.0",
-      "sha256": "c3838d728e14217d8990d85fdb9f7a9724f571471bb1c4b0663c87359a995359"
+      "version": "0.12.1",
+      "sha256": "bd7074d3dec474574bfe299aca9d892bc93c8e12a1a2b2998fb1200a54d65ed2"
     }
   ]
 }
