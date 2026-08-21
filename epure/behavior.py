@@ -968,6 +968,9 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
       declared  the bound action declares an update of it
       wrote     the act's own events passed through a door the model says moves it
       clock     the clock was read between the pre-world and the post-world
+      between   another act bound to an action lies between this act and the read its
+                post-world came from - so the post-world is really that act's, and an
+                update that act fails to declare lands here, on its neighbour
 
     One culprit per row, and the rows the facts cannot separate say `unnamed` out loud
     rather than guess: one writer and two arithmetics — the drawing's and the program's —
@@ -977,10 +980,15 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     derived = bool(proj.derived_from)
     wrote = any(_through(e, W.writes_of.get(var, [])) for _, e in w.act.events)
     clock = _clock_between(W, w.pre_at.get(var), w.post_at.get(var))
+    post_at = w.post_at.get(var, (10 ** 9, float("inf")))
+    between = [o for o in W.worlds
+               if o.action is not None and not o.act.is_call
+               and w.act.to < o.act.at and o.act.to < post_at]
     facts = (f"{'derived' if derived else 'stored'}, "
              f"{'declared' if declared else 'undeclared'}, "
              f"{'written through its door' if wrote else 'no write through its doors'}, "
-             f"{'clock read between' if clock else 'no clock between'}")
+             f"{'clock read between' if clock else 'no clock between'}"
+             + (f", {between[0].action['id']} between" if between else ""))
     if not declared and not wrote:
         if not derived:
             return "harness", (f"[{facts}] a stored variable moved between two reads with no "
@@ -1000,6 +1008,11 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
     if declared and not wrote:
         return "app", (f"[{facts}] the drawing declares the move and the program wrote "
                        "nothing through any door that carries it")
+    if between:
+        who = between[0].action["id"]
+        return "model", (f"[{facts}] the world-after was read past '{who}', which declares no "
+                         f"move of '{var}' - so its doors are not counted as writers and the "
+                         "read was taken as this act's; the drawing omits that act's update")
     if derived and clock:
         return "harness", (f"[{facts}] the view was stated under a clock read between the "
                            "write and the statement; the write and the declaration agree, "

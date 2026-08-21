@@ -350,6 +350,9 @@ SIGN_UNDER_THE_CLOCK = visit([*EMPTY, _sign(False), *DEPOSIT, _NOW, *world("red"
                               _sign(False)])
 # the sign went dark across shelving, which wrote nothing the sign derives from, under a
 # clock read: a view the clock moves that no act declares
+# the hook reads empty only after the shelving that followed the deposit: the world-after was
+# read past an act that declares no move of `held`, so the drawing omits THAT act's update
+SHELVED_OFF_THE_HOOK = visit([*EMPTY, *DEPOSIT, *SHELVE_HIGH, *world(None, None, "high")])
 SIGN_DARK_AT_CLOSING = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None),
                               _sign(True), *SHELVE_HIGH, _NOW, *world("red", None, "high"),
                               _sign(False)])
@@ -598,6 +601,10 @@ AGREES_SPEC = [
       because="culprit model: the sign moved across shelving, which wrote nothing the sign "
               "derives from, with the clock read in between - the view is a function of the "
               "clock and no act declares the move"),
+    c("agrees", visited(SHELVED_OFF_THE_HOOK), ["visit", "model"], expect=1,
+      because="culprit model: the deposit's world-after was read past the shelving, which "
+              "declares no move of the hook - a missing declaration hides a writer, and the "
+              "red lands on the neighbour; the rule names the act between"),
     c("agrees", visited(BYSTANDER_MOVED), ["visit", "model"], expect=1,
       because="culprit harness: the tag moved across shelving with no declared update and "
               "no write through any door the drawing says moves it - something the recorder "

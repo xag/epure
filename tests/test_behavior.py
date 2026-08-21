@@ -189,6 +189,7 @@ CULPRITS = {
     "DEPOSIT_TAGGED_TOO": "model",
     "SIGN_UNDER_THE_CLOCK": "harness",
     "SIGN_DARK_AT_CLOSING": "model",
+    "SHELVED_OFF_THE_HOOK": "model",
     "BYSTANDER_MOVED": "harness",
     "TAG_WRONG": "unnamed",
     "SIGN_WRONG": "unnamed",

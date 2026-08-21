@@ -1197,12 +1197,19 @@ _ATTRIBUTION_HYPOTHESIS = Node(
         # typed: the numerator is the reds whose diagnosis a tool wrote, the denominator is
         # every red a session met. Ungrounded until the first tool-written diagnosis.
         "reds_attributed_by_a_tool": Quantity(
-            value=0, unit="red", provenance="asserted", grounded=False,
-            source="2026-08-21: six reds (four harness, two model) attributed by reading "
-                   "the tape; the natives wrote the act, the variable and the two worlds, "
-                   "and no tool wrote the culprit. Grounds from the first session that "
-                   "meets a red with the rule in place: python -m epure.attribution "
-                   "claims.jsonl --session ID, in the consumer's repo"),
+            value=11, unit="red", provenance="verified", grounded=True,
+            source="2026-08-21, the first measurement: the first consumer re-induced the "
+                   "four faults its first real run had met (one harness, three model) in "
+                   "scratch, with the culprits known, and held the rule's word against them - "
+                   "12 reds met, 12 named, 11 right, the tool's own tally. The miss named "
+                   "harness where the drawing was wrong: a dropped update hid the act's doors "
+                   "as writers and the red landed on the neighbour. That fact - an act "
+                   "between the act and the read its world-after came from - is the fifth "
+                   "fact (conduct@0.11.1); re-measured 12/12/12. Before the rule: six reds, "
+                   "zero named by a tool"),
+        "reds_met": Quantity(
+            value=12, unit="red", provenance="verified", grounded=True,
+            source="the same measurement: the denominator, counted by the same tally"),
     },
     children=[
         Node(
