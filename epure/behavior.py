@@ -538,6 +538,18 @@ def _effects_of(model: _Model, act: _Act) -> list[_Effect]:
 # --- conduct/effect: what an action declares it does, the world shows afterward -----------
 
 
+def _door_names(spec: Any) -> list[str]:
+    """The event-name pattern(s) a door spec names - a bare string, a dict's `event`, or
+    each of a list's."""
+    if isinstance(spec, str):
+        return [spec]
+    if isinstance(spec, dict):
+        return [str(spec["event"])] if spec.get("event") else []
+    if isinstance(spec, list):
+        return [n for x in spec for n in _door_names(x)]
+    return []
+
+
 def _entity_doors(model: _Model, entity: str) -> list[Door]:
     """Every door any effect on `entity` writes through."""
     return [d for a in model.actions for e in a.effects if e.entity == entity for d in e.via]
@@ -575,10 +587,11 @@ def _effect_culprit(model: _Model, acts: list[_Act], i: int, eff: _Effect, until
     One culprit per red, and the rows the facts cannot separate say `unnamed`.
     """
     act = acts[i]
-    door = eff.via_spec if isinstance(eff.via_spec, str) else repr(eff.via_spec)
+    door = " | ".join(_door_names(eff.via_spec)) or repr(eff.via_spec)
     others = [_named(e) for _, e in act.events
               if _through(e, model.known) and not _through(e, eff.via)]
-    recorded = any(fnmatch(door, w) or fnmatch(w, door) for w in model.boundary)
+    recorded = any(fnmatch(n, w) or fnmatch(w, n)
+                   for n in _door_names(eff.via_spec) for w in model.boundary)
     between = _writer_between(model, acts, i, until, _entity_doors(model, eff.entity))
     shown = [r for r in reads if r.get("res") not in (None, {}, [], "")]
     coerced = any(_coerced(r.get("res"), v) for r in reads for v in carried)

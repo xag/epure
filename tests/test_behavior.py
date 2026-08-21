@@ -417,3 +417,10 @@ def test_coerced_forgets_scalar_types_and_nothing_else():
     assert _coerced({"a": 5.0}, {"a": "5"})
     assert not _coerced({"a": "6"}, {"a": 5})
     assert not _coerced({"a": "red"}, {"a": "blue"})
+
+
+def test_a_dict_door_is_matched_against_the_boundary_by_its_event():
+    from epure.behavior import _door_names
+    assert _door_names({"event": "kv.hset", "where": {"0": "x:*"}}) == ["kv.hset"]
+    assert _door_names(["a.write", {"event": "b.write"}]) == ["a.write", "b.write"]
+    assert _door_names("hook.write") == ["hook.write"]
