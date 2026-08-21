@@ -1206,7 +1206,11 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                    "as writers and the red landed on the neighbour. That fact - an act "
                    "between the act and the read its world-after came from - is the fifth "
                    "fact (conduct@0.11.1); re-measured 12/12/12. Before the rule: six reds, "
-                   "zero named by a tool"),
+                   "zero named by a tool. The first COLD reds, the same day, in the second "
+                   "consumer's first slice: 2 met, 0 named - one under agrees errored in the "
+                   "projection before the rule could speak (a fractional clock, parsed as a "
+                   "date), one under effect, which has no rule. Both harness. The induced "
+                   "number is the calibration; this is the measurement, and it is 0 of 2"),
         "reds_met": Quantity(
             value=12, unit="red", provenance="verified", grounded=True,
             source="the same measurement: the denominator, counted by the same tally"),
