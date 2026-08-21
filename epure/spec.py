@@ -357,6 +357,43 @@ SIGN_DARK_AT_CLOSING = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None
                               _sign(True), *SHELVE_HIGH, _NOW, *world("red", None, "high"),
                               _sign(False)])
 
+# --- the culprit, named by the presence laws (effect, frame) ------------------------------
+#
+# The same hypothesis, on the laws that hold an act by presence rather than by value. The
+# facts are the native's own: another known door written instead, something shown after no
+# write, a match once both sides forget their scalar types, a writer between the act and
+# the read that no declaration stopped at, the boundary's record of the door; for the frame,
+# whether the stray write names what the act was given.
+
+# the deposit wrote the ticket's door instead of the hook's
+WRONG_DOOR = visit([*_act("deposit", RED, _tag_write("red")), _read(None)])
+# no write, and the world shows nothing: the program did not deposit
+NEVER_DEPOSITED = visit([*_act("deposit", RED), _read(None)])
+# written as a number, read back as text: the store re-typed it and nothing else
+RETYPED = visit([*_act("deposit", RED, _fx("hook.write", [{"coat": "red", "since": 5}])),
+                 _read({"coat": "red", "since": "5"})])
+# deposited red, then the shelving - which declares no effect on the hook - rewrote it
+OVERWRITTEN_BY_THE_SHELVING = visit([*DEPOSIT,
+                                     *_act("shelving", {"level": "high"}, _shelf_write("high"),
+                                           _write("blue")),
+                                     _read({"coat": "blue"})])
+# deposited red, nothing between, the hook shows blue
+SHOWN_OTHERWISE = visit([*DEPOSIT, _read({"coat": "blue"})])
+# reclaimed, then the shelving hung the coat back without declaring it
+RESTORED_BEHIND_THE_RECLAIM = visit([*DEPOSIT, _read({"coat": "red"})],
+                                    [*RECLAIM,
+                                     *_act("shelving", {"level": "high"}, _shelf_write("high"),
+                                           _write("red")),
+                                     _read({"coat": "red"})])
+# the tagging also wrote the hook, with the colour it was given
+TAGGED_THE_HOOK = visit([*DEPOSIT, _read({"coat": "red"})],
+                        [*_act("tagging", {"color": "red"}, _tag_write("red"), _write("red")),
+                         _read({"coat": "red"})])
+# the tagging also wrote the hook, with a colour it was not given
+TAGGED_ANOTHER_HOOK = visit([*DEPOSIT, _read({"coat": "red"})],
+                            [*_act("tagging", {"color": "red"}, _tag_write("red"), _write("blue")),
+                             _read({"coat": "blue"})])
+
 # --- two stretches (twice, last-write, commute, undo, durable, same-story, constructible) ---
 
 TAGGED_TWICE = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
@@ -507,6 +544,36 @@ EFFECT = [
     c("effect", [cloakroom(), Node(id="visit", kind="session")], ["visit", "model"],
       expect_error="links 'model' to 0",
       because="a tape naming no model is unjudged, never green"),
+    # the culprit rows: each red names who the native holds responsible, from its own facts
+    c("effect", visited(WRONG_DOOR), ["visit", "model"], expect=1,
+      because="culprit model: the deposit wrote through tag.write, a door the drawing knows, "
+              "and not through hook.write - the effect names the wrong door"),
+    c("effect", visited(NOOP), ["visit", "model"], expect=1,
+      because="culprit harness: no write inside the act and the hook shows a coat after it - "
+              "something the recorder did not see wrote the store"),
+    c("effect", visited(NEVER_DEPOSITED), ["visit", "model"], expect=1,
+      because="culprit app: no write inside the act and the hook shows nothing after - the "
+              "program did not do what the drawing says"),
+    c("effect", visited(RETYPED), ["visit", "model"], expect=1,
+      because="culprit harness: the write carried since=5 and the read shows since='5' - the "
+              "value came back with its type changed and nothing else; the store or the "
+              "recorder re-typed it, the program's arithmetic agrees"),
+    c("effect", visited(OVERWRITTEN_BY_THE_SHELVING), ["visit", "model"], expect=1,
+      because="culprit model: the shelving wrote the hook between the deposit and the read "
+              "and declares no effect on it - the drawing omits a writer, and the red lands "
+              "on its neighbour"),
+    c("effect", visited(SHOWN_OTHERWISE), ["visit", "model"], expect=1,
+      because="culprit app: the write landed, nothing wrote between, and the hook shows blue "
+              "- the program wrote one thing and shows another"),
+    c("effect", visited(LOST), ["visit", "model"], expect=1,
+      because="culprit unnamed: the write was recorded and the hook shows nothing - it went "
+              "where no read looks or the store dropped it; the tape holds no third witness"),
+    c("effect", visited(RESTORED_BEHIND_THE_RECLAIM), ["visit", "model"], expect=1,
+      because="culprit model: the shelving hung the coat back after the reclaim and declares "
+              "no effect on the hook - the drawing omits the act that put the entity back"),
+    c("effect", visited(RESIDUE), ["visit", "model"], expect=1,
+      because="culprit app: the removal was written, nothing wrote the coat back, and the "
+              "hook still shows it - the removal did not remove"),
 ]
 
 FAITHFUL = [
@@ -530,6 +597,16 @@ FRAME = [
     c("frame", visited(NOOP), ["visit", "model"], expect=0,
       because="an act that wrote nothing at all moved nothing outside its frame, whatever "
               "else is wrong with it"),
+    # the culprit rows
+    c("frame", visited(TAGGED_THE_HOOK), ["visit", "model"], expect=1,
+      because="culprit model: the tagging wrote the hook with the colour it was given - the "
+              "write is about the act's own subject, and the drawing omits the door"),
+    c("frame", visited(TAGGED_ANOTHER_HOOK), ["visit", "model"], expect=1,
+      because="culprit app: the tagging wrote the hook with a colour it was not given - the "
+              "program moved something the act was not about"),
+    c("frame", visited(OVERREACH), ["visit", "model"], expect=1,
+      because="culprit unnamed: the reclaim was given nothing to compare the stray write "
+              "against - the tape holds no witness to whose door it is"),
 ]
 
 REFUSAL = [

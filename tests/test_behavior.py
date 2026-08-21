@@ -347,3 +347,63 @@ def test_a_failed_call_that_wrote_is_a_refusal():
     tree.root.children = [spec.cloakroom(), tape]
     (why,) = refusal(tree, "visit", "model").diagnostics
     assert "the call 'cloakroom' failed and still wrote through ['hook.write']" in why
+
+
+# the presence laws' culprit rules (conduct@0.12.0): one row per profile of the facts the
+# effect and frame natives hold, each a cloakroom tape built for that row
+EFFECT_CULPRITS = {
+    "WRONG_DOOR": "model",
+    "NOOP": "harness",
+    "NEVER_DEPOSITED": "app",
+    "RETYPED": "harness",
+    "OVERWRITTEN_BY_THE_SHELVING": "model",
+    "SHOWN_OTHERWISE": "app",
+    "LOST": "unnamed",
+    "RESTORED_BEHIND_THE_RECLAIM": "model",
+    "RESIDUE": "app",
+}
+FRAME_CULPRITS = {
+    "TAGGED_THE_HOOK": "model",
+    "TAGGED_ANOTHER_HOOK": "app",
+    "OVERREACH": "unnamed",
+}
+
+
+def _one_red(native, name):
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), getattr(spec, name).model_copy(deep=True)]
+    got = native(tree, "visit", "model")
+    assert got.violations == 1, (name, got.diagnostics)
+    return got
+
+
+def test_every_red_under_effect_names_its_culprit():
+    from epure.behavior import effect
+    for name, who in EFFECT_CULPRITS.items():
+        got = _one_red(effect, name)
+        assert got.culprits == [who], (name, got.culprits, got.diagnostics)
+        assert f"culprit: {who} [" in got.diagnostics[0], got.diagnostics[0]
+
+
+def test_every_red_under_frame_names_its_culprit():
+    from epure.behavior import frame
+    for name, who in FRAME_CULPRITS.items():
+        got = _one_red(frame, name)
+        assert got.culprits == [who], (name, got.culprits, got.diagnostics)
+        assert f"culprit: {who} [" in got.diagnostics[0], got.diagnostics[0]
+
+
+def test_presence_culprits_walk_in_step_with_diagnostics():
+    from epure.behavior import effect, frame
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), spec.RECLAIMED.model_copy(deep=True)]
+    assert effect(tree, "visit", "model").culprits == []
+    assert frame(tree, "visit", "model").culprits == []
+
+
+def test_coerced_forgets_scalar_types_and_nothing_else():
+    from epure.behavior import _coerced
+    assert _coerced({"a": "5", "b": '["x"]'}, {"a": 5, "b": ["x"]})
+    assert _coerced({"a": 5.0}, {"a": "5"})
+    assert not _coerced({"a": "6"}, {"a": 5})
+    assert not _coerced({"a": "red"}, {"a": "blue"})

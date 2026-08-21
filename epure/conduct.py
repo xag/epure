@@ -228,7 +228,14 @@ CONDUCT_LAWS = [
                   "an action declares `deletes` — inverted: the entity must NOT be shown"],
         citations=[(HUGHES, HUGHES_URL, HUGHES_POSTCONDITION)],
         note="The floor of every postcondition: the operation is not a no-op wearing a verb. "
-             "Deletion inverts the check, which is why `deletes` is its own kind.",
+             "Deletion inverts the check, which is why `deletes` is its own kind. Each red "
+             "names a culprit - model, app, harness, or unnamed - from facts the native "
+             "holds (0.12.0): another known door written instead of the effect's, something "
+             "shown after an act that recorded no write, a read that matches the write once "
+             "both forget their scalar types, a writer between the act and the read that no "
+             "declaration stopped at, the boundary's record of the door. The rule is the "
+             "measured hypothesis `a-red-is-attributed-by-a-rule-not-a-reader`, counted by "
+             "`epure.attribution`, never trusted.",
         native="conduct/effect",
     ),
     _law(
@@ -284,7 +291,11 @@ CONDUCT_LAWS = [
              "a span. Both corrected in the app's table; the model followed."),
         ],
         note="Inside a proved model the frame holds by construction — updates name every "
-             "moving var. The law exists for tapes, where the real system writes.",
+             "moving var. The law exists for tapes, where the real system writes. Each red "
+             "names a culprit (0.12.0) from whether the stray write names what the act was "
+             "given: about the act's own subject, the drawing omits a door; about something "
+             "else, the program moved what the act was not about; given nothing, unnamed. "
+             "The three sightings above were all of the first kind.",
         native="conduct/frame",
     ),
 
@@ -850,7 +861,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.11.2",
+    version="0.12.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -914,7 +925,12 @@ CONDUCT_PACKAGE = Package(
                 "the first measurement - an act between this one and the read its world-after "
                 "came from: a missing declaration hides a writer and the red lands on the "
                 "neighbour, so the rule names the act between. 0.11.2 follows semantic-model@0.12.1 "
-                "(weekday over an epoch in milliseconds).",
+                "(weekday over an epoch in milliseconds). 0.12.0: the presence laws attribute "
+                "too - conduct/effect from five facts of its own (another known door written, "
+                "shown after no write, a type-forgetting match, a writer between, the "
+                "boundary's record), conduct/frame from whether the stray write names what "
+                "the act was given; the second consumer's first two cold reds were under "
+                "these laws, where no rule spoke.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws

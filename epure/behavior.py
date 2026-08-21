@@ -215,6 +215,34 @@ def _within(hay: Any, needle: Any) -> bool:
     return False
 
 
+def _loose(v: Any) -> Any:
+    """`v` with its scalar types forgotten: a JSON text is what it parses to, a numeric text
+    is its number, every number a float. What a store that re-types on the way through -
+    a Redis client that deserializes, a column that stringifies a float - does to a value,
+    applied on both sides so the two can be compared past it."""
+    if isinstance(v, dict):
+        return {k: _loose(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_loose(x) for x in v]
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+        except ValueError:
+            return v
+        return v if isinstance(parsed, str) else _loose(parsed)
+    return v
+
+
+def _coerced(hay: Any, needle: Any) -> bool:
+    """`needle` appears in `hay` once both forget their scalar types - a round trip that
+    changed a type and nothing else."""
+    return _within(_loose(hay), _loose(needle))
+
+
 def _identifiers(event: dict[str, Any]) -> list[str]:
     """What a removal named: its string arguments, and the last path segment of each."""
     out: list[str] = []
@@ -394,6 +422,10 @@ class _Model:
     def __init__(self, model: Node):
         self.state_vars = {c.id for c in model.children if c.kind == "state-var"}
         self.actions = [_Action(c) for c in model.children if c.kind == "action"]
+        # the write functions the recorder knows (semantic-model's `boundary`): a fact the
+        # culprit rules read - a door the boundary does not record is the drawing's error
+        self.boundary: list[str] = [str(w) for c in model.children if c.kind == "boundary"
+                                    for w in (c.payload.get("writes") or [])]
         # Every door the model knows as a write: the frame's universe.
         self.known: list[Door] = []
         for a in self.actions:
@@ -506,6 +538,101 @@ def _effects_of(model: _Model, act: _Act) -> list[_Effect]:
 # --- conduct/effect: what an action declares it does, the world shows afterward -----------
 
 
+def _entity_doors(model: _Model, entity: str) -> list[Door]:
+    """Every door any effect on `entity` writes through."""
+    return [d for a in model.actions for e in a.effects if e.entity == entity for d in e.via]
+
+
+def _writer_between(model: _Model, acts: list[_Act], i: int, until: tuple,
+                    doors: list[Door]) -> _Act | None:
+    """The first act that begins after this one ends and before `until`, and wrote
+    through one of `doors` - a writer the horizon did not stop at, because it declares
+    no effect on the entity."""
+    for later in _after(acts, i):
+        if later.at >= until:
+            break
+        if any(_through(e, doors) for _, e in later.events):
+            return later
+    return None
+
+
+def _effect_culprit(model: _Model, acts: list[_Act], i: int, eff: _Effect, until: tuple,
+                    writes: list[dict], reads: list[dict], carried: list[Any] = ()
+                    ) -> tuple[str, str]:
+    """Who is wrong, named from facts the native already holds about the (act, effect)
+    pair - the presence half of `a-red-is-attributed-by-a-rule-not-a-reader`, measured
+    like the value half (`epure.attribution`).
+
+      elsewhere  the act wrote through a door the model knows other than the effect's
+      shown      a `shown_by` read after the act shows something, although no via write
+                 is inside the act
+      coerced    a read shows what the write carried once both forget their scalar types
+                 - the value came back with its type changed and nothing else
+      between    an act begins after this one and before the entity's horizon and writes
+                 through a door of this entity: a writer no declaration stopped at
+      recorded   the boundary records the effect's door as a write the recorder knows
+
+    One culprit per red, and the rows the facts cannot separate say `unnamed`.
+    """
+    act = acts[i]
+    door = eff.via_spec if isinstance(eff.via_spec, str) else repr(eff.via_spec)
+    others = [_named(e) for _, e in act.events
+              if _through(e, model.known) and not _through(e, eff.via)]
+    recorded = any(fnmatch(door, w) or fnmatch(w, door) for w in model.boundary)
+    between = _writer_between(model, acts, i, until, _entity_doors(model, eff.entity))
+    shown = [r for r in reads if r.get("res") not in (None, {}, [], "")]
+    coerced = any(_coerced(r.get("res"), v) for r in reads for v in carried)
+    facts = (f"{'no via write' if not writes else 'via write inside'}, "
+             f"{'wrote through ' + others[0] if others else 'no other known door'}, "
+             f"{len(reads)} read(s) after, "
+             f"{'shown' if shown else 'nothing shown'}, "
+             f"{'coerced match' if coerced else 'no coerced match'}, "
+             f"{'door recorded by the boundary' if recorded else 'door not in the boundary'}"
+             + (f", {between.span.kind} between" if between else ""))
+    if not writes:
+        if others:
+            return "model", (f"[{facts}] the act wrote through '{others[0]}', a door the "
+                             f"drawing knows, and not through '{door}': the effect names "
+                             "the wrong door")
+        if model.boundary and not recorded:
+            return "model", (f"[{facts}] the effect names '{door}', a door the boundary "
+                             "does not record: the drawing names a door the recorder has "
+                             "never known")
+        if shown:
+            return "harness", (f"[{facts}] the world shows the entity after an act that "
+                               "recorded no write of it: something the recorder did not "
+                               "see wrote the store")
+        if reads:
+            return "app", (f"[{facts}] the act wrote nothing through '{door}' and the world "
+                           "shows nothing after: the program did not do what the drawing "
+                           "says")
+        return "unnamed", (f"[{facts}] no write, no read, nothing shown: the tape holds "
+                           "no witness either way")
+    if eff.kind == "deletes":
+        if between:
+            return "model", (f"[{facts}] '{between.span.kind}' wrote through a door of "
+                             f"'{eff.entity}' after the removal and declares no effect on "
+                             "it: the drawing omits the act that put the entity back")
+        return "app", (f"[{facts}] the removal was written, nothing wrote the entity back, "
+                       "and the world still shows it: the removal did not remove")
+    if coerced:
+        return "harness", (f"[{facts}] a read shows what the write carried once both forget "
+                           "their scalar types: the store or the recorder re-typed the "
+                           "value on the way through, and the program's arithmetic agrees")
+    if between:
+        return "model", (f"[{facts}] '{between.span.kind}' wrote through a door of "
+                         f"'{eff.entity}' between the act and the read and declares no "
+                         "effect on it: the drawing omits a writer, and the red lands on "
+                         "its neighbour")
+    if shown:
+        return "app", (f"[{facts}] the write landed, nothing wrote between, and the world "
+                       "shows a different value: the program wrote one thing and shows "
+                       "another")
+    return "unnamed", (f"[{facts}] the write was recorded and the world shows nothing: the "
+                       "write went where no read looks, or the store dropped it - the "
+                       "tape holds no third witness")
+
+
 def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many declared effects under `path` the world failed to show.
 
@@ -520,8 +647,15 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     model = _Model(model_node)
     acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
+    culprits: list[str] = []
     notes: list[str] = []
     judged = 0
+
+    def convict(sentence: str, i: int, eff: _Effect, until: tuple, writes: list,
+                reads: list, carried: list = ()) -> None:
+        who, why = _effect_culprit(model, acts, i, eff, until, writes, reads, carried)
+        diagnostics.append(f"{sentence} — culprit: {who} {why}")
+        culprits.append(who)
 
     for i, act in enumerate(acts):
         if act.span.payload.get("outcome") == "error":
@@ -533,13 +667,13 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 continue  # conduct/checkable's finding, not a tape's
             writes = [e for _, e in act.events if _through(e, eff.via)]
             where = f"{act.path}: '{act.span.kind}' ({eff.action}) declares {eff.kind} '{eff.entity}'"
-            if not writes:
-                diagnostics.append(f"{where} via {eff.via_spec!r}, and no such write is "
-                                   "inside the act — a verb with nothing under it")
-                continue
             until = _horizon(acts, model, i, eff.entity)
             reads = [e for at, e in stream
                      if act.to < at < until and _through(e, eff.shown_by)]
+            if not writes:
+                convict(f"{where} via {eff.via_spec!r}, and no such write is inside the act "
+                        "— a verb with nothing under it", i, eff, until, writes, reads)
+                continue
             if eff.kind in ("creates", "mutates"):
                 carried = [v for w in writes for v in _carried(w)]
                 if not carried:
@@ -552,9 +686,10 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     continue
                 judged += 1
                 if not any(_within(r.get("res"), v) for r in reads for v in carried):
-                    diagnostics.append(
+                    convict(
                         f"{where}: {len(reads)} read(s) through {eff.shown_spec!r} after "
-                        f"the act, none returns what the {len(writes)} write(s) carried")
+                        f"the act, none returns what the {len(writes)} write(s) carried",
+                        i, eff, until, writes, reads, carried)
             else:
                 targets = [v for j in range(i) for e2 in _effects_of(model, acts[j])
                            if e2.entity == eff.entity and e2.kind != "deletes"
@@ -570,12 +705,13 @@ def effect(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                     res = r.get("res")
                     if (any(_within(res, v) for v in targets)
                             or any(_names(res, x) for x in idents)):
-                        diagnostics.append(
+                        convict(
                             f"{where}: a {eff.shown_spec!r} read after the act still shows "
-                            "the entity — the removal did not remove")
+                            "the entity — the removal did not remove",
+                            i, eff, until, writes, reads)
                         break
     return Conformance(check="conduct/effect", violations=len(diagnostics),
-                       diagnostics=diagnostics, notes=notes, judged=judged)
+                       diagnostics=diagnostics, notes=notes, judged=judged, culprits=culprits)
 
 
 # --- conduct/faithful: what was made from the inputs agrees with the inputs ---------------
@@ -628,6 +764,52 @@ def faithful(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
 # --- conduct/frame: a value is the same if it wasn't changed ------------------------------
 
 
+def _strings(v: Any) -> list[str]:
+    """Every non-empty string inside a value, at any depth - what an act's data or a write's
+    arguments name."""
+    if isinstance(v, str):
+        return [v] if v else []
+    if isinstance(v, dict):
+        return [s for x in v.values() for s in _strings(x)]
+    if isinstance(v, list):
+        return [s for x in v for s in _strings(x)]
+    return []
+
+
+def _frame_culprit(model: _Model, act: _Act, event: dict[str, Any]) -> tuple[str, str]:
+    """Who is wrong when an act writes through a door the model knows and its boundary does
+    not admit - from two facts the native holds about the (act, write) pair:
+
+      subject    the write's arguments name something the act's data names: the write is
+                 about this act's own subject
+      given      the act's data names anything at all - without it `subject` cannot be
+                 decided either way
+
+    A write about the act's own subject is a door the drawing forgot on the act; a write
+    naming nothing the act was given is the program moving something the act was not
+    about. A nested span's write is the outer act's own (refinement-consumes-top-level-
+    spans), so nesting is no fact here.
+    """
+    door = _named(event)
+    given = _strings(act.span.payload.get("data") or {})
+    names = set(_strings(event.get("args") or []) + _strings(event.get("kwargs") or {}))
+    subject = [g for g in given if any(g == n or (len(g) >= 3 and g in n) for n in names)]
+    admitters = [a.id for a in model.actions
+                 if _through(event, a.touches_via)
+                 or any(_through(event, e.via) for e in a.effects)]
+    facts = (f"{'about ' + repr(subject[0]) if subject else 'names nothing the act was given'}, "
+             f"{'given ' + ', '.join(repr(g) for g in given[:3]) if given else 'given nothing'}, "
+             f"admitted by {', '.join(admitters) or 'no action'}")
+    if subject:
+        return "model", (f"[{facts}] the write through '{door}' is about this act's own "
+                         f"subject: the drawing omits a door the act uses on what it was given")
+    if given:
+        return "app", (f"[{facts}] the write through '{door}' names nothing this act was "
+                       "given: the program moved something the act was not about")
+    return "unnamed", (f"[{facts}] the act was given nothing to compare the write against: "
+                       "the tape holds no witness to whose door it is")
+
+
 def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """How many writes under `path` pass through a door the model knows that the act's own
     boundary does not admit. The universe is every `via` any effect or `touches` in the
@@ -637,6 +819,7 @@ def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     model = _Model(model_node)
     acts, _ = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
+    culprits: list[str] = []
 
     def admitted(bound: list[_Action]) -> list[Door]:
         return [d for a in bound for d in a.touches_via] + \
@@ -651,14 +834,16 @@ def frame(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
         # answers to that span's own declaration
         for _, e in (act.own if act.is_call else act.events):
             if _through(e, model.known) and not _through(e, allowed):
+                who, why = _frame_culprit(model, act, e)
+                culprits.append(who)
                 diagnostics.append(
                     f"{act.path}: '{act.span.kind}' ({', '.join(a.id for a in bound)}) "
                     f"writes through '{_named(e)}' "
                     f"{_render(e.get('kwargs') or e.get('args') or '')[:80]}, a door "
                     "outside its declared boundary — something moved that the act never "
-                    "claimed to touch")
+                    f"claimed to touch — culprit: {who} {why}")
     return Conformance(check="conduct/frame", violations=len(diagnostics),
-                       diagnostics=diagnostics)
+                       diagnostics=diagnostics, culprits=culprits)
 
 
 # --- conduct/refusal: an action the guard refuses leaves every value untouched ------------
