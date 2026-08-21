@@ -1203,9 +1203,14 @@ _ATTRIBUTION_HYPOTHESIS = Node(
         "reds_attributed_by_a_tool": Quantity(
             value=32, unit="red", provenance="verified", grounded=True,
             source="2026-08-22, the third session, the first whose reds were all COLD - met by "
-                   "the harness that reads the whole world after every act, none induced: 9 met, "
+                   "the harness that reads the whole world after every act, none induced: 11 met, "
                    "4 named, 3 right (`epure.attribution` over both consumers' claims, "
-                   "--session). agrees 3/3/2: a tick carrying a missed turn forward was named "
+                   "--session); the last two, on the flight the draft named, unnamed rightly. "
+                   "The CALIBRATION the same day (chores' tools.induce, now a CI test with a "
+                   "floor): 0.13.0 had read 73 met / 52 named / 40 right on the induced set while "
+                   "fixing one cold red - the two-days clock fact left the machine-day fault "
+                   "unnamed - and 0.14.1 reads 73 / 61 / 54 with the clock held against the "
+                   "model's own clock variable and the act-between fact asked first. agrees 3/3/2: a tick carrying a missed turn forward was named "
                    "harness on 'a clock read between', a fact true of every board statement - "
                    "the fact is now whether the clock MOVED (0.13.0); two done-bins reds were "
                    "named model by 'read-clock between', an act with no door - right by accident, "
@@ -1245,9 +1250,9 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                    "is not a red any more (weekday reads a numeric string), so it cannot be "
                    "re-measured"),
         "reds_met": Quantity(
-            value=50, unit="red", provenance="verified", grounded=True,
+            value=52, unit="red", provenance="verified", grounded=True,
             source="the same measurement: the denominator, counted by the same tally over "
-                   "both consumers' claims files (41 through 2026-08-21, 9 cold on 2026-08-22)"),
+                   "both consumers' claims files (41 through 2026-08-21, 11 cold on 2026-08-22)"),
     },
     children=[
         Node(
@@ -1326,8 +1331,17 @@ _DRAFT_HYPOTHESIS = Node(
                    "first measurement (2026-08-21, chores-model@0.20.0 over 20 tapes, "
                    "health-model@0.1.0), with different arithmetic behind five of them"),
         "updates_drafted_equivalent": Quantity(
-            value=18, unit="update", provenance="verified", grounded=True,
-            source="2026-08-22, the second measurement, three moves apart so each is its own "
+            value=24, unit="update", provenance="verified", grounded=True,
+            source="2026-08-22, late: 24 of 29 - chores 20 of 25, health 4 of 4 - after the "
+                   "RICHER GRAMMAR (a boolean as the simplest separating predicate, an int as a "
+                   "conditional in the hand's own form: wash_day and done-bins' flag drafted "
+                   "equivalent) and the FLIGHT IT NAMED (the-placed-turns, on the separating "
+                   "worlds --propose printed one variable from a sampled one: two more tick "
+                   "corrections, two acts witnessed; 0 partial, 0 unresolved, 0 unwitnessed). "
+                   "Five different remain: the tick's wash_pending (the separating world is one "
+                   "the model cannot reach - the generator does not know reachability yet), two "
+                   "placed-wash paths no tape takes, skip-bins' two from one sample. Earlier the "
+                   "same day, the second measurement, three moves apart so each is its own "
                    "number. THE HARNESS: chores' flights read the clock and the board after "
                    "every act (the Monday tick off tape, since production's wake index is never "
                    "empty) - chores 5 -> 11 of 25, unwitnessed 12 -> 3, and four updates moved "
