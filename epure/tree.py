@@ -36,7 +36,7 @@ def build() -> Quern:
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
-                           _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _REACHABLE_GRID,
+                           _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _DRAFT_ROUTING, _REACHABLE_GRID,
                            _BETWEEN_LOOKS_ONE_WAY,
                            _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
@@ -1355,6 +1355,66 @@ _BETWEEN_LOOKS_ONE_WAY = Node(
                       "to 58 in the commit that says why. Raising the floor without the "
                       "demonstration would be tuning the rule on its test set, which the "
                       "induced-faults decision already refuses by name."}),
+    ],
+)
+
+
+_DRAFT_ROUTING = Node(
+    id="a-draft-disagreement-is-adjudicated-before-it-reaches-a-person",
+    kind="decision",
+    name="The draft's remainder is triaged into three tracks - a missing flight, an "
+         "adjudication recorded as an act, and the small rest where intent decides - and only "
+         "the third reaches the person",
+    payload={
+        "rationale":
+            "The model and the code do not come from one head, so their agreement is not "
+            "self-congratulation: both are written to a person's prompt and both are "
+            "corrected by an external signal - a gate going red sends an agent back to the "
+            "code, a conviction sends the work to the person. Every red already has a track. "
+            "The draft's remainder has none: it prints a line and waits to be noticed, which "
+            "is why the same rows have survived four measurements. Routed the same way it "
+            "splits three ways, and the sizes are very unequal. UNWITNESSED and 'positives "
+            "only' are not disagreements at all - they are absent evidence, and `--propose` "
+            "already names the flight, so the track is mechanical. DIFFERENT is a real "
+            "contradiction with everything an adjudicator needs in hand: both expressions, "
+            "the separating world, the tapes. Most resolve to a stale drawing or a wrong "
+            "program, and the verdict is defensible against the evidence rather than "
+            "asserted. Only what turns on INTENT is left - should a placed wash survive a "
+            "calendar day - and no tape answers that, so no confidence about it should be "
+            "manufactured.",
+        "consequence":
+            "Step 4's `confirmed` changes shape. It was drawn as a person accepting a drafted "
+            "expression; it becomes an ADJUDICATION recorded as an act - the verdict, who or "
+            "what made it, when, the drafted and hand expressions, and the tapes and acts it "
+            "rested on - carrying whether it was settled against evidence or escalated "
+            "because intent decides. The recording is the whole point: an adjudication with "
+            "no record of what it rested on is a confident opinion that evaporates, which is "
+            "the thing this repository exists to refuse. The rule already drawn for step 4 "
+            "still holds and now bites harder: a confirmation goes red when the samples it "
+            "rested on no longer exist on any tape.",
+    },
+    children=[
+        Node(id="alt-every-disagreement-reaches-the-person", kind="alternative",
+             name="Show the person every row the draft could not settle, as the step-4 "
+                  "sketch had it",
+             payload={"why":
+                      "The largest class is absent evidence, which a person cannot supply by "
+                      "reading - the flight can. Spending the one scarce reviewer on rows a "
+                      "tool settles is how a review track dies: it fills with work that did "
+                      "not need judgement until the judgement stops arriving."}),
+        Node(id="alt-the-filter-decides-everything", kind="alternative",
+             name="Let the adjudicator settle every row and escalate nothing",
+             payload={"why":
+                      "Intent has no witness on any tape. A firm answer where no evidence "
+                      "exists is exactly the failure mode the whole programme is built "
+                      "against - and it would be indistinguishable, in the record, from the "
+                      "rows that were genuinely settled."}),
+        Node(id="alt-leave-it-printed", kind="alternative",
+             name="Leave the remainder as lines in --propose and let whoever reads them act",
+             payload={"why":
+                      "That is today, and today the rows persist by default rather than by "
+                      "decision. A measurement whose remainder nothing routes is a "
+                      "measurement nobody acts on."}),
     ],
 )
 
