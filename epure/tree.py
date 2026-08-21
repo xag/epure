@@ -1185,7 +1185,11 @@ _ATTRIBUTION_HYPOTHESIS = Node(
             "harness or unnamed on every red from the four facts, one row per profile, "
             "demonstrated on the cloakroom; `python -m epure.attribution claims.jsonl` "
             "counts, from the diagnosis claims' `red` records, the reds met against the "
-            "reds the rule named right.",
+            "reds the rule named right. The presence laws followed (conduct@0.12.0, "
+            "2026-08-21 evening): conduct/effect from five facts of its own, conduct/frame "
+            "from whether the stray write names what the act was given or every act of the "
+            "action writes through it - the two cold reds of the day had been under these "
+            "laws, where no rule spoke.",
         "consequence_if_wrong":
             "The reader stays in the loop for attribution, and the program's right edge is "
             "the verdict 'something is wrong here', which is still the larger half of the "
@@ -1197,7 +1201,7 @@ _ATTRIBUTION_HYPOTHESIS = Node(
         # typed: the numerator is the reds whose diagnosis a tool wrote, the denominator is
         # every red a session met. Ungrounded until the first tool-written diagnosis.
         "reds_attributed_by_a_tool": Quantity(
-            value=11, unit="red", provenance="verified", grounded=True,
+            value=29, unit="red", provenance="verified", grounded=True,
             source="2026-08-21, the first measurement: the first consumer re-induced the "
                    "four faults its first real run had met (one harness, three model) in "
                    "scratch, with the culprits known, and held the rule's word against them - "
@@ -1210,10 +1214,27 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                    "consumer's first slice: 2 met, 0 named - one under agrees errored in the "
                    "projection before the rule could speak (a fractional clock, parsed as a "
                    "date), one under effect, which has no rule. Both harness. The induced "
-                   "number is the calibration; this is the measurement, and it is 0 of 2"),
+                   "number is the calibration; this is the measurement, and it is 0 of 2. "
+                   "The evening of the same day, the presence rules (conduct@0.12.0) held "
+                   "against known faults in both consumers, `epure.attribution` over each "
+                   "repo's claims for the session: agrees 12/12/12 again; effect 15/15/15 "
+                   "in the first consumer (a completion's via spelt as the chore door - "
+                   "model) and 2/2/2 in the second (its cold red re-induced: the fractional "
+                   "clock stringified by the store - harness, named by the type-forgetting "
+                   "fact); frame 12 met / 6 named / 0 right - the 0.12.0 rule named app on "
+                   "the six re-induced 2026-08-20 sightings (sent/*, index/metrics on "
+                   "turn-done), all the drawing's; the write names nothing the act was given "
+                   "and no tape fact separates an omitted conditional door from a stray "
+                   "write, so 0.12.1 says unnamed there (the same six: 6 met, 0 named). "
+                   "Total 41 met, 35 named, 29 right; excluding the superseded 0.12.0 frame "
+                   "run, 35 met, 29 named, 29 right: every name the rules give is right, and "
+                   "what they cannot name they decline. The second cold red of the morning "
+                   "is not a red any more (weekday reads a numeric string), so it cannot be "
+                   "re-measured"),
         "reds_met": Quantity(
-            value=12, unit="red", provenance="verified", grounded=True,
-            source="the same measurement: the denominator, counted by the same tally"),
+            value=41, unit="red", provenance="verified", grounded=True,
+            source="the same measurement: the denominator, counted by the same tally over "
+                   "both consumers' claims files"),
     },
     children=[
         Node(
