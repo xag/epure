@@ -1201,8 +1201,21 @@ _ATTRIBUTION_HYPOTHESIS = Node(
         # typed: the numerator is the reds whose diagnosis a tool wrote, the denominator is
         # every red a session met. Ungrounded until the first tool-written diagnosis.
         "reds_attributed_by_a_tool": Quantity(
-            value=29, unit="red", provenance="verified", grounded=True,
-            source="2026-08-21, the first measurement: the first consumer re-induced the "
+            value=32, unit="red", provenance="verified", grounded=True,
+            source="2026-08-22, the third session, the first whose reds were all COLD - met by "
+                   "the harness that reads the whole world after every act, none induced: 9 met, "
+                   "4 named, 3 right (`epure.attribution` over both consumers' claims, "
+                   "--session). agrees 3/3/2: a tick carrying a missed turn forward was named "
+                   "harness on 'a clock read between', a fact true of every board statement - "
+                   "the fact is now whether the clock MOVED (0.13.0); two done-bins reds were "
+                   "named model by 'read-clock between', an act with no door - right by accident, "
+                   "and 0.13.1 counts an act between only with a door. frame 1/1/1. The other "
+                   "five reds fell under laws with no rule: stamped (the validator's scope), "
+                   "eventually (twice - the horizon counted reads; then a flight where nobody "
+                   "hoovered), refinement (two guards the app never had), and a persona "
+                   "falsifier (the-return, the missed pile on a return day). Ratio 3/9, the "
+                   "first session under one half: one of the three the falsifier needs. Earlier, "
+                   "2026-08-21, the first measurement: the first consumer re-induced the "
                    "four faults its first real run had met (one harness, three model) in "
                    "scratch, with the culprits known, and held the rule's word against them - "
                    "12 reds met, 12 named, 11 right, the tool's own tally. The miss named "
@@ -1232,9 +1245,9 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                    "is not a red any more (weekday reads a numeric string), so it cannot be "
                    "re-measured"),
         "reds_met": Quantity(
-            value=41, unit="red", provenance="verified", grounded=True,
+            value=50, unit="red", provenance="verified", grounded=True,
             source="the same measurement: the denominator, counted by the same tally over "
-                   "both consumers' claims files"),
+                   "both consumers' claims files (41 through 2026-08-21, 9 cold on 2026-08-22)"),
     },
     children=[
         Node(
@@ -1288,6 +1301,13 @@ _DRAFT_HYPOTHESIS = Node(
             "evaluator), not merely on the samples that made it, so a constant that fits two "
             "samples of the same day is counted as different from the argument the person "
             "meant. Two consumers make the number a measurement and not a fit.",
+        "the_loop_closed_once":
+            "2026-08-22: `--propose` names, per unsettled row, the observation that separates "
+            "draft from hand. Three were flown as named - the clock around the Monday acts, "
+            "the quota's bound, the guards - and the number moved from 8 to 18 of 29 while the "
+            "tapes corrected the hand four times. Hypothesis from the data, falsifier stated, "
+            "the next experiment chosen by what discriminates; what remains for a person is "
+            "five rows of 'different', each with its separating case printed beside it.",
         "consequence_if_wrong":
             "The person keeps writing the arithmetic, as today, and the draft is a checklist "
             "of what the tapes do and do not determine - still worth having, since every "
@@ -1301,12 +1321,37 @@ _DRAFT_HYPOTHESIS = Node(
         # equivalent: the draft agrees over the whole domain.
         "updates_by_hand": Quantity(
             value=29, unit="update", provenance="verified", grounded=True,
-            source="2026-08-21, the first measurement: chores-model@0.20.0 over its 20 tapes "
-                   "(147 bound acts) declares 25 updates, health-model@0.1.0 over its one "
-                   "flight (11 bound acts) declares 4"),
+            source="2026-08-22: chores-model@0.22.0 over its 23 tapes declares 25 updates, "
+                   "health-model@0.1.1 over its one flight declares 4 - the same counts as the "
+                   "first measurement (2026-08-21, chores-model@0.20.0 over 20 tapes, "
+                   "health-model@0.1.0), with different arithmetic behind five of them"),
         "updates_drafted_equivalent": Quantity(
-            value=8, unit="update", provenance="verified", grounded=True,
-            source="the same run: chores 5 of 25 (wash_pending := false, wash_day := 0 - 1, "
+            value=18, unit="update", provenance="verified", grounded=True,
+            source="2026-08-22, the second measurement, three moves apart so each is its own "
+                   "number. THE HARNESS: chores' flights read the clock and the board after "
+                   "every act (the Monday tick off tape, since production's wake index is never "
+                   "empty) - chores 5 -> 11 of 25, unwitnessed 12 -> 3, and four updates moved "
+                   "from 'different' to 'unresolved' because the richer samples show variation "
+                   "the grammar has no word for (the tick's views). THE TOOL: a row without a "
+                   "before no longer thrown away (it witnesses a constant or an argument), a "
+                   "candidate no row can judge skipped, `partial` naming the row and the "
+                   "unread operand - health 3 -> 4 of 4 (pick_day := day had been witnessed "
+                   "all along), chores' hoover_last := today named 'the store showed no today "
+                   "before' the two Monday acts. THE FLIGHTS THE DRAFT NAMED: the bins bound "
+                   "reached and held (the-bins-bound) - min(bins_settled + 1, 7) different -> "
+                   "equivalent; the guards tried (the-guards-are-tried) - the app proceeded "
+                   "on both, five guards left the drawing. Total 18 of 29: chores 14 of 25, "
+                   "health 4 of 4. The remainder, named by `--propose`: 5 DIFFERENT (the "
+                   "tick's wash_by_hand and skip-wash's, where the tapes say frame and no "
+                   "placed wash ever met a calendar day or a skip; set-wash-today's wash_day, "
+                   "set on a Tuesday only; skip-bins' two, one sample); 4 UNRESOLVED (the "
+                   "tick's three view updates and done-bins' comparison - conditionals and "
+                   "comparisons, the grammar's own remainder); 2 UNWITNESSED (set-hoover-today, "
+                   "skip-hoover: no tape takes them). And what the tapes did to the HAND: four "
+                   "corrections to chores-model (a missed turn carried forward, the quota's "
+                   "flag a view of settled asks, five guards, a door) - the draft measured "
+                   "against a drawing the tapes had first put right. Earlier, 2026-08-21, the "
+                   "first measurement: 8 of 29 - chores 5 of 25 (wash_pending := false, wash_day := 0 - 1, "
                    "hoover_pending := false, hoover_assignee := member, bins_assignee := "
                    "member), health 3 of 4 (curated := true, curated := false, poll_day := "
                    "day). The remainder, named: 12 UNWITNESSED - no sample shows the variable "
@@ -1323,10 +1368,20 @@ _DRAFT_HYPOTHESIS = Node(
                    "'different' is a case the tapes never took, and the draft says which"),
         "guards_by_hand": Quantity(
             value=16, unit="guard", provenance="verified", grounded=True,
-            source="the same run: chores 13, health 3"),
+            source="the same run: chores 13, health 3 - five of chores' now `true`, since the "
+                   "tape refuted them"),
         "guards_drafted_equivalent": Quantity(
             value=1, unit="guard", provenance="verified", grounded=True,
-            source="the same run: health's show-home, whose hand guard is `true`. Refused "
+            source="2026-08-22: still 1 - and the draft can now read refusals (the pre-worlds "
+                   "of error-outcome acts, the simplest separating predicate of a small "
+                   "grammar), so the number is no longer a limit of the tool. It is a fact "
+                   "about the consumers: refused bound acts on 24 tapes, 0. The flight built "
+                   "to refuse (the-guards-are-tried) found the app proceeding where the "
+                   "drawing's guards said no, both times - the guards were the hand's, and "
+                   "left; health's `day >= today` is a clock claim on a variable nothing "
+                   "projects. A guard is drafted from refusals or not at all, and slice 1 of "
+                   "either app refuses nothing by model state. Earlier, 2026-08-21: "
+                   "health's show-home, whose hand guard is `true`. Refused "
                    "bound acts on all 21 tapes: 0 - no tape holds a world where any guard "
                    "was false, so the positive-only draft (the booleans that never varied) "
                    "overfits every real guard with the flags that happened to hold: "
