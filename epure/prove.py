@@ -160,6 +160,15 @@ def _load(tree: Quern | TreeStore, path: str) -> tuple[Node, list[tuple[str, lis
     node = get_node(tree, path)
     if node is None:
         raise ValueError(f"no node at '{path}'")
+    return compile_model(node, path)
+
+
+def compile_model(node: Node, where: str = "") -> tuple[Node, list[tuple[str, list[Any], Any]],
+                                                        list[_Action],
+                                                        list[tuple[str, str, Callable]]]:
+    """The same compilation from a model node already in hand — for a caller who holds the
+    Node rather than a tree and a path (the draft, measuring against the reachable set)."""
+    path = where or node.id
     if node.kind != "model":
         raise ValueError(f"'{path}' is a '{node.kind or '(bare)'}', not a model — "
                          "model/prove proves models")
@@ -292,7 +301,19 @@ def reachable(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP
     """Every reachable state of the model at `path`, as tuples over the variable order
     returned beside them — the same walk `prove` makes, without the invariants. The
     conduct natives ask it whether a world read off a tape is one the model can reach."""
-    _, variables, actions, _ = _load(tree, path)
+    return reachable_from(_load(tree, path), cap)
+
+
+def reachable_from_node(node: Node, cap: int = DEFAULT_CAP) -> tuple[list[str], set[tuple]]:
+    """`reachable` for a caller holding the model node — the draft, whose grid is the
+    reachable set and not the product of the domains."""
+    return reachable_from(compile_model(node), cap)
+
+
+def reachable_from(loaded: tuple[Node, list[tuple[str, list[Any], Any]], list[_Action],
+                                 list[tuple[str, str, Callable]]],
+                   cap: int = DEFAULT_CAP) -> tuple[list[str], set[tuple]]:
+    _, variables, actions, _ = loaded
     order = [name for name, _, _ in variables]
     domains = {name: dom for name, dom, _ in variables}
     init = tuple(i for _, _, i in variables)

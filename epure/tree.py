@@ -36,7 +36,8 @@ def build() -> Quern:
     quern = lib.effective(quern)
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
-                           _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _TEMPORAL_DEBT,
+                           _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _REACHABLE_GRID,
+                           _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
@@ -1279,6 +1280,89 @@ _ATTRIBUTION_HYPOTHESIS = Node(
 )
 
 
+_REACHABLE_GRID = Node(
+    id="equivalence-is-judged-where-the-world-can-be",
+    kind="decision",
+    name="The draft's equivalence is decided over the model's reachable states, narrowed for "
+         "an update to the states where its action is enabled - never the product of the "
+         "declared domains",
+    payload={
+        "rationale":
+            "The draft measures a drafted expression against a hand-written one by agreeing "
+            "at every point of a grid. Which grid is the whole question. The product of the "
+            "declared domains contains worlds the model can never be in: chores declares "
+            "`wash_pending` and `wash_day` separately, and on the reachable set they are one "
+            "fact - pending exactly when there is a day, 8 of the 16 combinations, the other "
+            "8 unreachable. A disagreement at such a point charges the draft for a world "
+            "that does not exist, and - worse - `--propose` then names it as the next flight "
+            "to fly. It named exactly that: take tick at today=1, wash_day=0 - 1, "
+            "wash_pending=true, a pending wash with no day, an errand nobody can run. So the "
+            "grid is the reachable set, from `epure.prove`'s own BFS - the same walk the "
+            "proof makes, so the draft and the proof mean one thing by 'a state'. Then the "
+            "same argument once more, to the guard: an update only ever runs where the guard "
+            "let the act through, so a world it refuses is no more a place to tell two "
+            "updates apart than an unreachable one. Reachability alone left the tick's "
+            "`wash_pending` different at today=6 - a Sunday tick, which `today < 6` refuses; "
+            "both narrowings, and the row is equivalent. A guard is judged on the reachable "
+            "set ONLY: narrowing its grid by itself would be circular.",
+        "consequence":
+            "Two equivalences now, counted apart and never merged: `domain`, agreeing "
+            "everywhere, and `enabled`/`reachable`, agreeing everywhere the model can be. "
+            "Both are honest; only the first is unconditional, and a row holding on the "
+            "restricted grid alone says so. The restriction can hide exactly one thing, so "
+            "that thing is counted out loud: a sampled pre-world the model cannot reach is "
+            "the app in a state the model calls impossible - a finding, not a rounding - and "
+            "`unreachable_pre` heads every run. It is 0 on both consumers. The price is the "
+            "walk: 35280 states for chores, once per measurement, ~9s.",
+    },
+    params={
+        "reachable_share": Quantity(
+            value=6.8, unit="percent", provenance="verified", grounded=True,
+            source="chores-model@0.24.0: 35280 states reachable of the 516096 in the product "
+                   "of the declared domains (epure.prove.reachable_from_node, 2026-08-23). "
+                   "The grid the draft used before was fourteen times too big, and the "
+                   "surplus was not neutral - it is where --propose was sending people"),
+        "rows_moved": Quantity(
+            value=1, unit="update", provenance="verified", grounded=True,
+            source="tick.wash_pending: different -> equivalent, and equivalent only where the "
+                   "model reaches the act enabled. Measured as two changes with two numbers: "
+                   "reachability alone moved 0 of the 5 different rows, and moved 1 of the 15 "
+                   "named experiments onto a flyable world (today=6, wash_day=4, replacing "
+                   "the unreachable wash_day=0 - 1); the enabled narrowing then closed the "
+                   "row, today=6 being a Sunday tick that `today < 6` refuses. The hypothesis "
+                   "the proposal carried - that reachability alone would move it - is "
+                   "refuted, and the pair is what moved it"),
+    },
+    children=[
+        Node(id="alt-keep-the-domain-grid", kind="alternative",
+             name="Leave the grid as the product of the declared domains",
+             payload={"why":
+                      "It is the stricter equivalence and reads as the safer one, which is "
+                      "how it survived four measurements. But strictness against worlds that "
+                      "cannot occur is noise with a good reputation: it charged the draft for "
+                      "a row it had right, and sent whoever read --propose to fly a world the "
+                      "model forbids. A remainder nobody can work on measures nothing."}),
+        Node(id="alt-reachable-only", kind="alternative",
+             name="Restrict to the reachable set and stop there",
+             payload={"why":
+                      "Half the argument, and the half shows: the separating point for the "
+                      "tick's wash_pending moved from an unreachable world to a reachable one "
+                      "the tick's own guard refuses - flyable-looking and still unflyable. "
+                      "The guard is part of where an update lives, and leaving it out keeps "
+                      "the same class of unrunnable errand with better manners."}),
+        Node(id="alt-restrict-the-samples-instead", kind="alternative",
+             name="Judge equivalence on the sampled pre-worlds only",
+             payload={"why":
+                      "That is the fit the whole hypothesis exists to avoid. Equivalence on "
+                      "the samples is what the draft ALREADY has by construction - every "
+                      "candidate satisfies every sample - so the number would be 29 of 29 and "
+                      "would mean nothing. The grid has to be wider than the tapes; the "
+                      "question was only how much wider, and the answer is: as wide as the "
+                      "model can actually be."}),
+    ],
+)
+
+
 _DRAFT_HYPOTHESIS = Node(
     id="the-tapes-draft-the-arithmetic",
     kind="hypothesis",
@@ -1302,8 +1386,9 @@ _DRAFT_HYPOTHESIS = Node(
             "REFUSED, and a tape with no refusal of an act holds no world where its guard was "
             "false, so positives alone draft at most the necessary booleans. The draft is "
             "measured, never installed: each proposal is held EQUIVALENT to the hand-written "
-            "expression over the whole finite domain (the prover's domains, the grammar's own "
-            "evaluator), not merely on the samples that made it, so a constant that fits two "
+            "expression over every state the model can reach with the act enabled "
+            "([[equivalence-is-judged-where-the-world-can-be]]), not on the samples that "
+            "made it, so a constant that fits two "
             "samples of the same day is counted as different from the argument the person "
             "meant. Two consumers make the number a measurement and not a fit.",
         "the_loop_closed_once":
@@ -1331,15 +1416,28 @@ _DRAFT_HYPOTHESIS = Node(
                    "first measurement (2026-08-21, chores-model@0.20.0 over 20 tapes, "
                    "health-model@0.1.0), with different arithmetic behind five of them"),
         "updates_drafted_equivalent": Quantity(
-            value=24, unit="update", provenance="verified", grounded=True,
-            source="2026-08-22, late: 24 of 29 - chores 20 of 25, health 4 of 4 - after the "
+            value=25, unit="update", provenance="verified", grounded=True,
+            source="2026-08-23: 25 of 29 - chores 21 of 25, health 4 of 4 - after the GRID "
+                   "was narrowed to where the world can be "
+                   "([[equivalence-is-judged-where-the-world-can-be]]): the tick's "
+                   "wash_pending, whose separating world was a pending wash with no day, is "
+                   "equivalent everywhere the model reaches a tick enabled, and the "
+                   "measurement says which - 1 of the 25 holds on the restricted grid only, "
+                   "24 hold over the whole domain. Health unchanged at 4 of 4, 0 restricted. "
+                   "Sampled pre-worlds the model cannot reach, both consumers: 0 - the tapes "
+                   "stay inside the drawing, which is what makes the narrowing safe to make. "
+                   "Four different remain: the tick's wash_by_hand and skip-wash's "
+                   "(placed-wash paths no tape takes), skip-bins' two from one sample. "
+                   "Earlier, 2026-08-22, late: 24 of 29 - chores 20 of 25, health 4 of 4 - "
+                   "after the "
                    "RICHER GRAMMAR (a boolean as the simplest separating predicate, an int as a "
                    "conditional in the hand's own form: wash_day and done-bins' flag drafted "
                    "equivalent) and the FLIGHT IT NAMED (the-placed-turns, on the separating "
                    "worlds --propose printed one variable from a sampled one: two more tick "
                    "corrections, two acts witnessed; 0 partial, 0 unresolved, 0 unwitnessed). "
-                   "Five different remain: the tick's wash_pending (the separating world is one "
-                   "the model cannot reach - the generator does not know reachability yet), two "
+                   "Five different remained: the tick's wash_pending (the separating world was "
+                   "one the model cannot reach - the generator did not know reachability, "
+                   "which is what the next day fixed), two "
                    "placed-wash paths no tape takes, skip-bins' two from one sample. Earlier the "
                    "same day, the second measurement, three moves apart so each is its own "
                    "number. THE HARNESS: chores' flights read the clock and the board after "

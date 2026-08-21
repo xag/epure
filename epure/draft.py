@@ -34,6 +34,17 @@ consumers make the number a measurement rather than a fit. A drafted expression 
 hypothesis about the app, exactly as partial as the tapes that made it: a path no tape took
 is a case it cannot see, which is why the draft is compared and counted, never installed.
 
+Equivalence is judged where the world can BE. The domains say what a variable could hold;
+the model's own actions say what it can hold while the others hold what they hold, and a
+guard says when an act runs at all. So the grid is the reachable set (`epure.prove`'s own
+walk), narrowed for an update to the states where its action is enabled - because an update
+is arithmetic that never runs in a world its guard refuses. The two equivalences are told
+apart and counted apart: `domain`, agreeing everywhere, and `enabled`/`reachable`, agreeing
+everywhere the model can be. Both are honest; only the first is unconditional. The same
+restriction is what makes `--propose` name an experiment somebody can actually fly, and a
+sampled pre-world the model cannot reach is counted out loud rather than quietly dropped -
+it is the app in a state the model calls impossible, which is a finding, not a rounding.
+
     python -m epure.draft --model chores_model.package:MODEL --tapes tests/flights
     python -m epure.draft --model health_model.package:MODEL --tapes scenarios/flights --json
     python -m epure.draft --model ... --tapes ... --propose   # the discriminating flights
@@ -55,7 +66,7 @@ from quern import Node, Quern
 
 from epure.behavior import _LITERALS, _Worlds
 from epure.conformance import _normalize
-from epure.prove import _compile, _domain
+from epure.prove import _compile, _domain, reachable_from_node
 from epure.tape import import_scenario
 
 GRID_CAP = 4096   # beyond this many points the grid is sampled, deterministically
@@ -408,22 +419,110 @@ def _mentions(src: str, names: dict[str, list[Any]]) -> list[str]:
     return sorted({t for t in _IDENT.findall(src.replace("'", " ")) if t in names})
 
 
-def equivalent(a: str, b: str, names: dict[str, list[Any]], *, boolean: bool = False) -> bool:
-    """Two expressions agree at every point of the grid over the variables and arguments
-    either mentions - the whole finite domain, sampled past GRID_CAP."""
-    fa, fb = _compile(a or "true", "draft"), _compile(b or "true", "hand")
-    free = sorted(set(_mentions(a, names)) | set(_mentions(b, names)))
-    doms = [names[n] for n in free]
-    total = 1
+class Reach:
+    """The model's own reachable states, as the grid the draft is measured over.
+
+    The domains say what a variable COULD hold; the model's actions say what it can hold
+    while the others hold what they hold. A disagreement at a point the model cannot reach
+    is a disagreement no flight can put on tape - naming it as the experiment sends a person
+    to fly the unflyable, and counting it as a difference charges the draft for a world that
+    does not exist. So the grid is the reachable set, and the two equivalences are told
+    apart rather than merged: `domain` when the expressions agree everywhere, `reachable`
+    when they agree on every state the model reaches and part somewhere it does not.
+
+    An argument is not restricted: it is an input, free over its declared domain in every
+    world. The restriction is on the state."""
+
+    def __init__(self, order: list[str], states: set[tuple]) -> None:
+        self.order = order
+        self.index = {n: i for i, n in enumerate(order)}
+        self.states = states
+        self._proj: dict[tuple[str, ...], set[tuple]] = {}
+        self._where: dict[str, "Reach"] = {}
+
+    @classmethod
+    def of(cls, model: Node) -> "Reach":
+        order, states = reachable_from_node(model)
+        return cls(order, states)
+
+    def project(self, names: list[str]) -> set[tuple]:
+        """The distinct values the named variables take TOGETHER over the reachable set."""
+        key = tuple(names)
+        if key not in self._proj:
+            idx = [self.index[n] for n in names]
+            self._proj[key] = {tuple(s[i] for i in idx) for s in self.states}
+        return self._proj[key]
+
+    def holds(self, world: dict) -> bool:
+        """Is this world - however partial, a projection reads what the doors showed - one
+        the model reaches? A world of no known variables is vacuously reachable."""
+        known = [n for n in world if n in self.index]
+        if not known:
+            return True
+        return tuple(world[n] for n in known) in self.project(known)
+
+    def where(self, guard: str, names: dict[str, list[Any]]) -> "Reach":
+        """The reachable states this guard admits - where the action is ENABLED.
+
+        An update is arithmetic that only ever runs when the guard let the act through, so
+        a world the guard refuses is no more a place the two expressions can be told apart
+        than an unreachable one. A guard over arguments as well as state (`day >= today`)
+        restricts no state on its own: some binding may satisfy it, and a state is excluded
+        only when nothing decides it in."""
+        if not guard.strip():
+            return self
+        if guard in self._where:
+            return self._where[guard]
+        mention = [n for n in _mentions(guard, names) if n in self.index]
+        if not mention:
+            return self
+        f = _compile(guard, "guard")
+        ok = set()
+        for combo in self.project(mention):
+            env = {**_LITERALS, **dict(zip(mention, combo))}
+            try:
+                admitted = bool(f(env))
+            except Exception:
+                admitted = True   # the guard needs an argument to decide: not a refusal
+            if admitted:
+                ok.add(combo)
+        idx = [self.index[n] for n in mention]
+        kept = Reach(self.order, {s for s in self.states if tuple(s[i] for i in idx) in ok})
+        self._where[guard] = kept
+        return kept
+
+
+def _grid(free: list[str], names: dict[str, list[Any]], reach: Reach | None
+          ) -> Any:
+    """The points to try, as environments over `free`: the reachable combinations of the
+    state variables among them crossed with the full domains of the arguments, or the whole
+    product when there is no reachable set to restrict it. Sampled deterministically past
+    GRID_CAP, so a big grid is a sample and never a silent truncation of the first N."""
+    state = [n for n in free if reach is not None and n in reach.index]
+    rest = [n for n in free if n not in state]
+    bases = sorted(reach.project(state), key=repr) if reach is not None else [()]
+    doms = [names[n] for n in rest]
+    total = len(bases)
     for d in doms:
         total *= len(d)
     if total <= GRID_CAP:
-        points = itertools.product(*doms)
+        combos = ((b, t) for b in bases for t in itertools.product(*doms))
     else:
         rng = random.Random(0)
-        points = ([rng.choice(d) for d in doms] for _ in range(GRID_CAP))
-    for pt in points:
-        env = {**_LITERALS, **dict(zip(free, pt))}
+        combos = ((rng.choice(bases), [rng.choice(d) for d in doms]) for _ in range(GRID_CAP))
+    for base, tail in combos:
+        yield {**dict(zip(state, base)), **dict(zip(rest, tail))}
+
+
+def equivalent(a: str, b: str, names: dict[str, list[Any]], *, boolean: bool = False,
+               reach: Reach | None = None) -> bool:
+    """Two expressions agree at every point of the grid over the variables and arguments
+    either mentions - the whole finite domain, or, given `reach`, the states the model can
+    actually be in; sampled past GRID_CAP either way."""
+    fa, fb = _compile(a or "true", "draft"), _compile(b or "true", "hand")
+    free = sorted(set(_mentions(a, names)) | set(_mentions(b, names)))
+    for pt in _grid(free, names, reach):
+        env = {**_LITERALS, **pt}
         try:
             x, y = fa(env), fb(env)
         except Exception:
@@ -437,22 +536,41 @@ def equivalent(a: str, b: str, names: dict[str, list[Any]], *, boolean: bool = F
     return True
 
 
+def _verdict(draft: str, hand: str, names: dict[str, list[Any]], reach: Reach | None,
+             *, boolean: bool = False, scope: str = "reachable") -> tuple[str, str]:
+    """(verdict, scope): equivalent everywhere - `domain` - or equivalent only over the
+    restricted grid `reach` stands for, which the caller names, because the restriction is
+    not the same one twice: an update is judged where the model reaches AND the act is
+    enabled, a guard only where the model reaches. `different` then means a world exists
+    that a flight could actually fly."""
+    if equivalent(draft, hand, names, boolean=boolean):
+        return "equivalent", "domain"
+    if reach is not None and equivalent(draft, hand, names, boolean=boolean, reach=reach):
+        return "equivalent", scope
+    return "different", "domain" if reach is None else scope
+
+
 # --- the measurement --------------------------------------------------------------------------
 
 
-def measure(model: Node, samples: Samples) -> dict[str, Any]:
+def measure(model: Node, samples: Samples, *, reach: Reach | None = None) -> dict[str, Any]:
     variables = {c.id: _domain(c.payload, f"state-var '{c.id}'")
                  for c in model.children if c.kind == "state-var"}
     projected = {c.id for c in model.children
                  if c.kind == "state-var" and c.payload.get("shown")}
+    if reach is None:
+        reach = Reach.of(model)
     report: dict[str, Any] = {"tapes": samples.tapes, "acts": samples.acts,
-                              "refusals": sum(samples.refusals.values()), "actions": [],
-                              "proposals": []}
+                              "refusals": sum(samples.refusals.values()),
+                              "reachable": len(reach.states), "unreachable_pre": 0,
+                              "actions": [], "proposals": []}
     tally = {"updates": 0, "updates_equivalent": 0, "updates_different": 0,
              "updates_unwitnessed": 0, "updates_unresolved": 0, "updates_partial": 0,
+             "updates_equivalent_enabled": 0,
              "frames": 0, "frames_agreed": 0, "frames_disputed": 0, "frames_unwitnessed": 0,
              "frames_partial": 0,
              "guards": 0, "guards_equivalent": 0, "guards_different": 0,
+             "guards_equivalent_reachable": 0,
              "guards_unwitnessed": 0, "unguarded": 0, "unguarded_drafted": 0}
     for c in model.children:
         if c.kind != "action":
@@ -460,9 +578,18 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
         args = {n: _domain(spec, f"arg '{n}'") for n, spec in (c.payload.get("args") or {}).items()}
         names = {**variables, **args}
         hand = {u["var"]: str(u["expr"]) for u in c.payload.get("updates") or []}
+        guard = str(c.payload.get("guard") or "")
+        # the updates are judged where the act can actually be taken: reachable AND enabled
+        enabled = reach.where(guard, names)
         rows = samples.by_action.get(c.id, [])
+        # a sampled pre-world the model cannot reach is not a rounding error: it is the app
+        # in a state the model says is impossible, and it is exactly what restricting the
+        # grid to the reachable set would otherwise hide. Counted, per run, out loud.
+        unreachable = sum(1 for pre, _, _ in rows if not reach.holds(pre))
+        report["unreachable_pre"] += unreachable
         row: dict[str, Any] = {"id": c.id, "samples": len(rows),
                                "refusals": samples.refusals.get(c.id, 0),
+                               "unreachable_pre": unreachable,
                                "updates": {}, "frames": {}}
         where = samples.where.get(c.id, [])
         empty = samples.empty.get(c.id, [])
@@ -471,15 +598,19 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                                                          list(variables), names)
             if var in hand:
                 tally["updates"] += 1
+                scope = "domain"
                 if status in ("unwitnessed", "partial"):
                     verdict = status
                 elif expr is None:
                     verdict = "unresolved" if status == "unresolved" else "different"
                 else:
-                    verdict = ("equivalent" if equivalent(expr, hand[var], names)
-                               else "different")
+                    verdict, scope = _verdict(expr, hand[var], names, enabled,
+                                              scope="enabled")
                 tally[f"updates_{verdict}"] += 1
-                entry = {"hand": hand[var], "draft": expr, "status": status, "verdict": verdict}
+                if verdict == "equivalent" and scope == "enabled":
+                    tally["updates_equivalent_enabled"] += 1
+                entry = {"hand": hand[var], "draft": expr, "status": status,
+                         "verdict": verdict, "scope": scope}
                 if unsettled:
                     entry["unsettled"] = [
                         {"tape": where[i][0], "act": where[i][1], "span": where[i][2],
@@ -491,7 +622,7 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                 if verdict in ("different", "partial", "unresolved"):
                     report["proposals"].append(_propose(c.id, var, hand[var], expr, verdict,
                                                         entry.get("unsettled"), rows, args,
-                                                        names))
+                                                        names, enabled))
             else:
                 tally["frames"] += 1
                 verdict = ("unwitnessed" if status == "unwitnessed"
@@ -501,7 +632,6 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                 tally[f"frames_{verdict}"] += 1
                 if verdict == "disputed":
                     row["frames"][var] = {"draft": expr, "status": status, "verdict": verdict}
-        guard = str(c.payload.get("guard") or "")
         refused = samples.refused.get(c.id, [])
         drafted = draft_guard([pre for pre, _, _ in rows], variables,
                               refused=[pre for pre, _ in refused], args=args,
@@ -511,13 +641,16 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
                         "from": "refusals" if refused else "positives only"}
         if guard:
             tally["guards"] += 1
+            scope = "domain"
             if not rows:
                 verdict = "unwitnessed"
             else:
-                verdict = "equivalent" if equivalent(drafted, guard, names, boolean=True) \
-                    else "different"
+                verdict, scope = _verdict(drafted, guard, names, reach, boolean=True)
             tally[f"guards_{verdict}"] += 1
+            if verdict == "equivalent" and scope == "reachable":
+                tally["guards_equivalent_reachable"] += 1
             row["guard"]["verdict"] = verdict
+            row["guard"]["scope"] = scope
             if verdict == "different" and not refused and guard.strip() != "true":
                 report["proposals"].append({
                     "action": c.id, "var": None, "hand": guard, "draft": drafted,
@@ -536,8 +669,8 @@ def measure(model: Node, samples: Samples) -> dict[str, Any]:
 
 def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
              unsettled: list[dict] | None, rows: list[tuple[dict, dict, dict]],
-             args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None
-             ) -> dict[str, Any]:
+             args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None,
+             reach: Reach | None = None) -> dict[str, Any]:
     """The observation that separates the draft from the hand, for one row of the
     measurement: for a partial draft, the act that was taken with an operand unread (read it
     around that act next time); for a different draft, a point near the sampled worlds
@@ -561,7 +694,7 @@ def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
         out["unsettled"] = unsettled
     elif verdict == "different" and draft is not None:
         out["experiment"] = f"take {action} where `{draft}` and `{hand}` differ"
-        out["separating"] = _separating_point(draft, hand, rows, args, names)
+        out["separating"] = _separating_point(draft, hand, rows, args, names, reach)
     elif verdict == "different":
         out["experiment"] = (f"the tapes say frame; take {action} in a world where `{hand}` "
                              "moves the variable")
@@ -572,14 +705,15 @@ def _propose(action: str, var: str, hand: str, draft: str | None, verdict: str,
 
 
 def _separating_point(draft: str, hand: str, rows: list[tuple[dict, dict, dict]],
-                      args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None
-                      ) -> dict[str, Any] | None:
+                      args: dict[str, list[Any]], names: dict[str, list[Any]] | None = None,
+                      reach: Reach | None = None) -> dict[str, Any] | None:
     """A point where the two expressions disagree, as near as the grammar can find to a
     world the tapes held: first the sampled pre-worlds with the arguments swept over their
     domains; failing that - a draft that fits every sample differs from the hand only
-    elsewhere - the whole finite domain of the names either mentions, the disagreement
-    fewest variables away from some sampled world. The experiment named is then one
-    change to a flight that exists."""
+    elsewhere - the reachable states of the names either mentions, the disagreement fewest
+    variables away from some sampled world. The experiment named is then one change to a
+    flight that exists, in a world the model can be in - never a point off the reachable
+    set, which is an errand nobody can run."""
     fa, fb = _compile(draft, "draft"), _compile(hand, "hand")
 
     def disagree(env: dict) -> tuple[Any, Any] | None:
@@ -590,6 +724,8 @@ def _separating_point(draft: str, hand: str, rows: list[tuple[dict, dict, dict]]
         return None if x == y else (x, y)
 
     for pre, _, _ in rows:
+        if reach is not None and not reach.holds(pre):
+            continue
         for combo in (itertools.product(*[args[a] for a in args]) if args else [()]):
             binding = dict(zip(args, combo))
             if (d := disagree({**pre, **binding})) is not None:
@@ -597,18 +733,8 @@ def _separating_point(draft: str, hand: str, rows: list[tuple[dict, dict, dict]]
     if not names:
         return None
     free = sorted(set(_mentions(draft, names)) | set(_mentions(hand, names)))
-    doms = [names[n] for n in free]
-    total = 1
-    for d in doms:
-        total *= len(d)
-    if total <= GRID_CAP:
-        points = itertools.product(*doms)
-    else:
-        rng = random.Random(0)
-        points = ([rng.choice(d) for d in doms] for _ in range(GRID_CAP))
     best: dict[str, Any] | None = None
-    for pt in points:
-        env = dict(zip(free, pt))
+    for env in _grid(free, names, reach):
         if (d := disagree(env)) is None:
             continue
         dist = min((sum(1 for n in free if n in pre and pre[n] != env[n]) for pre, _, _ in rows),
@@ -623,14 +749,18 @@ def _separating_point(draft: str, hand: str, rows: list[tuple[dict, dict, dict]]
 def render(report: dict[str, Any]) -> str:
     t = report["tally"]
     out = [f"{report['tapes']} tape(s), {report['acts']} bound act(s), "
-           f"{report['refusals']} refused"]
+           f"{report['refusals']} refused; measured over "
+           f"{report.get('reachable', 0)} reachable state(s), "
+           f"{report.get('unreachable_pre', 0)} sampled pre-world(s) the model cannot reach"]
     for a in report["actions"]:
         if not (a["samples"] or a["updates"] or a["guard"]["hand"]):
             continue  # nothing by hand, nothing on the tapes: nothing to compare
         out.append(f"  {a['id']} ({a['samples']} sample(s), {a['refusals']} refused)")
         for var, u in a["updates"].items():
+            mark = (" where the act is enabled"
+                    if u.get("scope") == "enabled" and u["verdict"] == "equivalent" else "")
             out.append(f"     {var:<18} hand {u['hand']!s:<28} draft {u['draft']!s:<24} "
-                       f"{u['verdict']} ({u['status']})")
+                       f"{u['verdict']}{mark} ({u['status']})")
         for var, f in a["frames"].items():
             out.append(f"     {var:<18} hand (frame)                     draft {f['draft']!s:<24} "
                        f"{f['verdict']} ({f['status']})")
@@ -639,13 +769,16 @@ def render(report: dict[str, Any]) -> str:
             out.append(f"     guard              hand {g['hand']!s:<28} draft {g['draft']!s:<24} "
                        f"{g.get('verdict', 'none by hand')} ({g['from']})")
     out.append("")
-    out.append(f"updates: {t['updates']} by hand - {t['updates_equivalent']} drafted equivalent, "
+    out.append(f"updates: {t['updates']} by hand - {t['updates_equivalent']} drafted equivalent "
+               f"({t.get('updates_equivalent_enabled', 0)} of them only where the model reaches "
+               f"the act enabled), "
                f"{t['updates_different']} different, {t['updates_partial']} partial, "
                f"{t['updates_unresolved']} unresolved, {t['updates_unwitnessed']} unwitnessed")
     out.append(f"frames: {t['frames']} by hand - {t['frames_agreed']} agreed, "
                f"{t['frames_partial']} partial, {t['frames_disputed']} disputed, "
                f"{t['frames_unwitnessed']} unwitnessed")
-    out.append(f"guards: {t['guards']} by hand - {t['guards_equivalent']} drafted equivalent, "
+    out.append(f"guards: {t['guards']} by hand - {t['guards_equivalent']} drafted equivalent "
+               f"({t.get('guards_equivalent_reachable', 0)} of them on the reachable set only), "
                f"{t['guards_different']} different, {t['guards_unwitnessed']} unwitnessed; "
                f"{t['unguarded']} unguarded, {t['unguarded_drafted']} of them drafted a guard")
     return "\n".join(out)

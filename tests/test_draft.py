@@ -130,3 +130,42 @@ def test_the_richer_grammar_drafts_a_predicate_and_a_conditional():
     assert all(f({**_LITERALS, **pre}) == post["d"] for pre, _, post in rows)
     # without the domains, the richer grammar is not tried
     assert draft_update_where("d", list(range(-1, 7)), rows, [], ["n", "d"])[1] == "unresolved"
+
+
+def test_equivalence_is_judged_where_the_world_can_be():
+    # the cloakroom's `lit` is derived from `held`: the sign is on exactly while a coat
+    # hangs. The two are separate variables, so the domain holds four combinations and the
+    # model reaches two - and an expression that reads one is the same as one that reads
+    # the other everywhere the model can actually be
+    from epure.draft import Reach
+    names = {"held": [0, 1], "lit": [False, True]}
+    R = Reach.of(spec.cloakroom())
+    assert not equivalent("lit", "held == 1", names, boolean=True)
+    assert equivalent("lit", "held == 1", names, boolean=True, reach=R)
+    assert R.holds({"held": 1, "lit": True}) and not R.holds({"held": 1, "lit": False})
+    # and an UPDATE is judged where its act is enabled: check-coat's guard is `held == 0`,
+    # so `held + 1` and `1` are one expression there and two anywhere else - a world the
+    # guard refuses is no more a place to tell them apart than one the model cannot reach
+    enabled = R.where("held == 0", names)
+    assert not equivalent("held + 1", "1", names)
+    assert equivalent("held + 1", "1", names, reach=enabled)
+    assert not enabled.holds({"held": 1})
+
+
+def test_the_separating_point_is_one_a_flight_could_fly():
+    # the measurement carries both counts apart: what agrees everywhere, and what agrees
+    # only where the model reaches the act enabled - the second is an equivalence, and
+    # saying which one it is is the whole difference between honest and flattering
+    S = _samples(spec.AGREES, spec.RETAGGED, spec.COMMUTES)
+    report = measure(spec.cloakroom(), S)
+    assert report["unreachable_pre"] == 0        # the tapes stay inside the model
+    assert report["reachable"] > 0
+    t = report["tally"]
+    assert t["updates_equivalent"] >= t["updates_equivalent_enabled"]
+    # every point --propose names sits in the reachable set: an experiment in a world the
+    # model cannot be in is an errand nobody can run
+    from epure.draft import Reach
+    R = Reach.of(spec.cloakroom())
+    for p in report["proposals"]:
+        if sp := p.get("separating"):
+            assert R.holds(sp["pre"]), (p["action"], sp["pre"])
