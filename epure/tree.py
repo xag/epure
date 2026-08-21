@@ -673,7 +673,7 @@ _INHERITANCE = Node(
              name="Make effect declaration a rule of semantic-model itself",
              payload={"why":
                       "Every existing model in the estate goes red the day the package is "
-                      "repinned — chores' model first — for a demand it never opted into. "
+                      "repinned — the first consumer's model first — for a demand it never opted into. "
                       "The demand belongs to the conduct catalogue, adopted deliberately, "
                       "exactly as craft@'s laws are adopted by the apps they judge."}),
     ],
@@ -754,7 +754,7 @@ _DOORS = Node(
             "what the read returned — Hughes's postcondition read literally, with no "
             "app-specific navigation in the checker. The same door shape narrows by argument "
             "(`where`) where a name alone would admit too much, which is exactly the cut "
-            "chores' licenses asked for and could not get.",
+            "the first consumer's licenses asked for and could not get.",
         "consequence":
             "The natives are generic and the binding is per action, as declarations — "
             "templates stay out of the laws. A door is a claim the model makes about the "
@@ -882,8 +882,8 @@ _TWO_STRETCHES_DEBT = Node(
                  "condition":
                      "A native per family, each arriving when a tape in the estate can "
                      "witness it — shown-once-shown-until-touched first, since every read "
-                     "through the same door after the witnessing read is already on chores' "
-                     "flights. Whoever writes one grounds the param above with the count that "
+                     "through the same door after the witnessing read is already on the first "
+                     "consumer's flights. Whoever writes one grounds the param above with the count that "
                      "then holds.",
              }),
     ],
@@ -938,7 +938,7 @@ _DERIVED_DECISION = Node(
              name="Keep views unprojected and held by presence, as the census counts them",
              payload={"why":
                       "Then every promise over a pending flag judges 0/0 on every tape "
-                      "(chores-model@0.17.0 measured it) and liveness stays a model-only "
+                      "(the first consumer measured it, 2026-08-21) and liveness stays a model-only "
                       "property; the vocabulary's asymptote is reached by adding the word, "
                       "not by declaring the gap permanent."}),
     ],
@@ -1074,8 +1074,8 @@ _VALIDATOR_DEBT = Node(
     id="no-kind-names-a-validator",
     kind="debt",
     name="No kind named an entity's version stamp or a precondition on it, so RFC 9110's "
-         "validator and conditional-request properties bound to nothing — although chores "
-         "already stamps `rev` on every change. Discharged 2026-08-20: the `validator` kind, "
+         "validator and conditional-request properties bound to nothing — although the first "
+         "consumer already stamped a `rev` on every change. Discharged 2026-08-20: the `validator` kind, "
          "`requires`, conduct/stamped and conduct/conditional",
     params={
         "validator_kinds": Quantity(value=1, unit="kind", provenance="verified",
@@ -1089,7 +1089,7 @@ _VALIDATOR_DEBT = Node(
             "Nine of the census's items. The strong-validator half is cheap once the stamp "
             "is a door: every act with an effect must also pass through the validator door. "
             "The conditional half needs an act to carry an expected version as an argument "
-            "and refuse on mismatch — chores has no such act yet.",
+            "and refuse on mismatch — the first consumer had no such act then.",
     },
     children=[
         Node(id="the-stamp-becomes-a-door", kind="discharge",
@@ -1155,8 +1155,8 @@ _DOOR_CENSUS_DEBT = Node(
              payload={"condition":
                       "A native over (model, boundary declaration): every function the "
                       "boundary records as a write is matched by a door of some action. "
-                      "Grounded with the count that then holds; chores first, where the "
-                      "boundary is app/flight.py."}),
+                      "Grounded with the count that then holds; the first consumer first, where "
+                      "the boundary is one declared module."}),
     ],
 )
 
