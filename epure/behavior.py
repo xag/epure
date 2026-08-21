@@ -184,14 +184,24 @@ def _carried(event: dict[str, Any]) -> list[Any]:
 
 def _subsumes(hay: Any, needle: Any) -> bool:
     """`needle` is a structural subset of `hay`: every key with its value (recursively),
-    every list member somewhere in the list, scalars equal."""
+    every list member somewhere in the list, scalars equal - and a JSON text the write
+    carried is shown by the value it parses to: a store that deserializes what it was handed
+    (a Redis client with automatic deserialization, a document store's JSON column) still
+    shows the document."""
     if isinstance(needle, dict):
         return isinstance(hay, dict) and all(
             k in hay and _subsumes(hay[k], v) for k, v in needle.items())
     if isinstance(needle, list):
         return isinstance(hay, list) and all(
             any(_subsumes(h, n) for h in hay) for n in needle)
-    return hay == needle
+    if hay == needle:
+        return True
+    if isinstance(needle, str) and isinstance(hay, (dict, list)):
+        try:
+            return json.loads(needle) == hay
+        except ValueError:
+            return False
+    return False
 
 
 def _within(hay: Any, needle: Any) -> bool:
@@ -283,9 +293,13 @@ def _weekday(when: Any, absent: Any = None) -> Any:
     text = str(when).strip()
     if isinstance(when, bool):
         return absent
-    if isinstance(when, (int, float)) or text.lstrip("-").isdigit():
-        return float(datetime.fromtimestamp(float(text) / 1000.0, tz=timezone.utc).weekday())
-    return float(date.fromisoformat(text[:10]).weekday())
+    if isinstance(when, (int, float)):
+        return float(datetime.fromtimestamp(float(when) / 1000.0, tz=timezone.utc).weekday())
+    try:
+        ms = float(text)   # "1777878000062" or "1777878000062.7": a store that keeps numbers
+    except ValueError:     # as text, a clock that answers fractions - both are an epoch
+        return float(date.fromisoformat(text[:10]).weekday())
+    return float(datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc).weekday())
 
 
 def _projection_env(res: Any) -> dict[str, Any]:

@@ -293,6 +293,14 @@ def test_projection_helpers_read_a_log():
     assert _weekday(1785830400000) == 1.0 and _weekday("1785830400000") == 1.0
     assert _weekday(1785830400000 + 15.5 * 3600 * 1000) == 1.0
     assert _weekday("", -1) == -1
+    assert _weekday("1785830400062.6995") == 1.0   # a clock that answers fractions, stored as text
+
+
+def test_a_read_shows_the_json_text_a_write_carried_once_the_store_parsed_it():
+    from epure.behavior import _subsumes
+    assert _subsumes({"id": "p1", "rows": [{"id": "a"}]}, {"id": "p1", "rows": '[{"id": "a"}]'})
+    assert not _subsumes({"id": "p1", "rows": [{"id": "b"}]}, {"id": "p1", "rows": '[{"id": "a"}]'})
+    assert not _subsumes({"rows": [1]}, {"rows": "not json"})
 
 
 # --- the call is an act ----------------------------------------------------------------
