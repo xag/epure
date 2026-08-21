@@ -1,4 +1,4 @@
-"""semantic-model@0.11.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.12.0 — the meta-vocabulary a semantic model is written in.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -221,9 +221,11 @@ VOCABULARY = [
     KindDef(
         kind="validator",
         description="A child of `model`: the stamp that stands for the world's version - RFC "
-        "9110's validator (an ETag, a Last-Modified, chores' `rev`). Payload: `door` and "
+        "9110's validator (an ETag, a Last-Modified, a document's `rev`). Payload: `door` and "
         "`expr`, exactly a projection's: the read that shows the stamp and the expression "
-        "that turns the read into its value. Not a state-var - its value is opaque and "
+        "that turns the read into its value. It stands for the STORED representation: a "
+        "derived view (0.11.0) moving with the clock is not a change it must record, and "
+        "conduct/stamped does not count one. Not a state-var - its value is opaque and "
         "unbounded, and the laws compare it for equality and change only. A STRONG validator "
         "moves whenever any projected variable moves and never otherwise; conduct/stamped "
         "holds both directions on a tape, act by act. An action may carry `requires`: "
@@ -706,7 +708,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.11.0",
+    version="0.12.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
@@ -756,7 +758,7 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "have something on the example to demonstrate against. 0.8.0 closes the "
                 "census: the `merges` effect (another world absorbed, arriving as "
                 "arguments, left-biased through `either`), the `validator` kind (the stamp "
-                "that stands for the world's version - RFC 9110's ETag, chores' rev) and "
+                "that stands for the world's version - RFC 9110's ETag, a document's rev) and "
                 "`requires` on an action (If-Match: conditional on the stamp). The cloakroom "
                 "gains a register revision, a conditional retag and an import that merges "
                 "another register. 0.9.0 adds `boundary`: the write functions the app's "
@@ -770,7 +772,10 @@ SEMANTIC_MODEL_PACKAGE = Package(
                 "cloakroom promises a checked coat is reclaimed within three acts. 0.11.0 adds the "
                 "DERIVED view: a state-var the app recomputes projects from the point where "
                 "the app states it (`derived_from` names what it is a function of, so the "
-                "read goes stale with their writes) - the cloakroom's OCCUPIED sign.",
+                "read goes stale with their writes) - the cloakroom's OCCUPIED sign. 0.12.0: a "
+                "derived view is not a change a validator stands for - the stamp is the stored "
+                "representation's version and a view moves with the clock, nothing written - "
+                "stated on the validator kind; and the vocabulary's prose names no client.",
     publisher="poietic.studio",
     vocabulary=VOCABULARY,
     rules=RULES,

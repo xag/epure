@@ -1322,16 +1322,21 @@ def stamped(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     """a-change-moves-the-validator: whenever an act moved a projected variable, the
     validator read after the act differs from the one read before it. RFC 9110's strong
     validator, the direction the RFC states; a stamp that moves without a change is not
-    forbidden by the source and is not counted here."""
+    forbidden by the source and is not counted here. A DERIVED view is not a change the
+    stamp stands for: the validator is the stored representation's version (an ETag, a
+    document's rev), and a view recomputed from the clock and the stored variables moves
+    when the day does, with nothing written - RFC 9110 §8.8.1 speaks of the representation
+    changing, and the representation is what is stored."""
     def judge(W: _Worlds, diagnostics, notes) -> int:
         if not W.validators:
             notes.append(f"{path}: the model declares no validator — nothing stamped")
             return 0
         judged = 0
+        stored = [v for v, p in W.projections.items() if not p.derived_from]
         for w in W.worlds:
             if w.action is None or w.act.is_call:
                 continue
-            moved = [v for v in W.projections if v in w.pre and v in w.post
+            moved = [v for v in stored if v in w.pre and v in w.post
                      and w.pre[v] != w.post[v]]
             if not moved:
                 continue

@@ -460,7 +460,8 @@ CONDUCT_LAWS = [
                     "safe method to a target resource."),
                    _hughes("prop FindNil k = find k nil === Nothing", "Appendix A")],
         note="The frame law at its sharpest, cited on its own because RFC 9110 states it on "
-             "its own. chores declares seven such acts; the frame native convicts any write "
+             "its own. A model declares its reads as acts that touch nothing; the frame native "
+             "convicts any write "
              "inside one — and conduct/doors holds, on the model, that every write function "
              "the recorder knows is some action's door, which is what makes the RFC's WHOLE "
              "state the frame's whole state.",
@@ -545,11 +546,13 @@ CONDUCT_LAWS = [
                    (RFC_VALIDATORS, RFC9110_URL,
                     "A \"weak validator\" is representation metadata that might not change "
                     "for every change to the representation data.")],
-        note="chores stamps `rev` on every household change — a strong validator in the "
+        note="A document's `rev` stamped on every write is a strong validator in the "
              "RFC's sense. The RFC states one direction (a strong validator changes whenever "
              "the representation does) and this law states only that; a stamp that moves "
              "without a change is not forbidden by the source, and an earlier wording that "
-             "said it was has been withdrawn.",
+             "said it was has been withdrawn. The representation is what is STORED: a derived "
+             "view (semantic-model@0.11.0) moves with the clock and nothing is written, so "
+             "the native does not count it (0.10.0).",
         native="conduct/stamped",
     ),
     _law(
@@ -843,7 +846,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.9.0",
+    version="0.10.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -897,14 +900,17 @@ CONDUCT_PACKAGE = Package(
                 "third source, covered. 0.9.0: the natives read semantic-model@0.11.0's "
                 "DERIVED view - a state-var the app recomputes, projected from the point "
                 "where the app states it - so the value laws and the promises reach the "
-                "views a rhythm derives; no new law, the same laws seeing more.",
+                "views a rhythm derives; no new law, the same laws seeing more. 0.10.0: conduct/stamped "
+                "does not count a derived view as a change - the first real run convicted a "
+                "day's tick for moving the views without bumping a stored document's stamp, "
+                "which the RFC does not ask - and the catalogue's prose names no client.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.11.0"),
+        PackageRef(name="semantic-model", version="0.12.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,
