@@ -1297,6 +1297,7 @@ _ATTRIBUTION_HYPOTHESIS = Node(
 _ADJUDICATION_DEBT = Node(
     id="no-kind-records-an-adjudication",
     kind="debt",
+    links={"rests_on": ["a-draft-disagreement-is-adjudicated-before-it-reaches-a-person"]},
     name="The draft's remainder is routed by a decision and by nothing else: no kind records "
          "that a drafted expression was judged, so a verdict leaves no trace a rule can hold",
     payload={
