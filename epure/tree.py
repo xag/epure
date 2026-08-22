@@ -37,7 +37,7 @@ def build() -> Quern:
     quern.root.children = [_NAME, _DIST_NAME, _TWO_OBLIGATIONS, _NATIVES_FIRST,
                            _OBSERVATION_CHILD, _EXPLICIT_STATE_SUFFICES,
                            _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _DRAFT_ROUTING, _REACHABLE_GRID,
-                           _BETWEEN_LOOKS_ONE_WAY,
+                           _BETWEEN_LOOKS_ONE_WAY, _ADJUDICATION_DEBT,
                            _TEMPORAL_DEBT,
                            _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
@@ -1290,6 +1290,58 @@ _ATTRIBUTION_HYPOTHESIS = Node(
                     "where it is, not where it was hoped to be.",
             },
         ),
+    ],
+)
+
+
+_ADJUDICATION_DEBT = Node(
+    id="no-kind-records-an-adjudication",
+    kind="debt",
+    name="The draft's remainder is routed by a decision and by nothing else: no kind records "
+         "that a drafted expression was judged, so a verdict leaves no trace a rule can hold",
+    payload={
+        "what_it_costs":
+            "[[a-draft-disagreement-is-adjudicated-before-it-reaches-a-person]] says the "
+            "middle track is a verdict recorded as an act - who or what judged, when, the two "
+            "expressions, the tapes and acts it rested on, and whether it was settled against "
+            "evidence or escalated because intent decides. semantic-model has no kind for it. "
+            "So today the remainder is re-derived every measurement: 4 different rows and 15 "
+            "guards are printed again, whoever reads them reasons about them again, and "
+            "nothing anywhere says that a row was looked at and answered. The number the "
+            "hypothesis rests on cannot distinguish a row nobody has judged from a row judged "
+            "and left alone, which is the difference between an open question and a settled "
+            "one.",
+        "why_it_is_not_paid":
+            "It is a vocabulary change, and vocabulary travels pinned: a kind, a rule that "
+            "goes red when the samples a verdict rested on no longer exist on any tape, a "
+            "demonstration on the cloakroom for the gate, and a walk of the pin chain. It "
+            "shares that publish with [[the-act-between-is-only-looked-for-forwards]], which "
+            "needs the cloakroom to grow a read-only action - so the two want doing together "
+            "or the chain is walked twice for one reason.",
+    },
+    params={
+        "rows_unrecorded": Quantity(
+            value=19, unit="row", provenance="verified", grounded=True,
+            source="python -m epure.draft over both consumers, 2026-08-22: 4 updates "
+                   "different (chores' tick.wash_by_hand, skip-wash.wash_by_hand and "
+                   "skip-bins' two) and 15 guards different of 16 by hand. Every one has been "
+                   "read by somebody at least once and none of them says so"),
+    },
+    children=[
+        Node(id="discharge-the-confirmed-kind", kind="discharge",
+             name="A kind for the verdict, a rule that outlives its evidence, and the first "
+                  "real adjudication",
+             payload={
+                 "route":
+                     "semantic-model gains the kind - the child of an action's update, "
+                     "carrying the verdict, its author, the drafted and hand expressions, and "
+                     "the tapes and acts beneath it - with a rule that reds when those "
+                     "samples are gone, so a verdict cannot quietly outlive what justified "
+                     "it. The natives cite it when that update goes red. Then the first "
+                     "adjudication over the rows above, which is the test of whether the "
+                     "middle track holds at all: a verdict defensible against the evidence, "
+                     "or an escalation because intent decides and no tape answers.",
+             }),
     ],
 )
 
