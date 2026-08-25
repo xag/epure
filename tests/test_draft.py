@@ -169,3 +169,59 @@ def test_the_separating_point_is_one_a_flight_could_fly():
     for p in report["proposals"]:
         if sp := p.get("separating"):
             assert R.holds(sp["pre"]), (p["action"], sp["pre"])
+
+
+def _adjudicated_cloakroom(hand_expr="level", tapes=("t1",)):
+    from quern import Node
+    from quern.provenance import Quantity
+
+    model = spec.cloakroom()
+    shelve = next(c for c in model.children if c.id == "shelve-coat")
+    shelve.children.insert(0, Node(
+        id="shelf-update-adjudicated", kind="adjudication",
+        payload={"subject": "update:shelf", "verdict": "hand-stands",
+                 "author": "the test", "when": "2026-08-25",
+                 "drafted": "'high'", "hand": hand_expr,
+                 "rested_on": {"tapes": list(tapes), "acts": 3},
+                 "because": "the tapes only ever shelved high; the hand expression "
+                            "is the argument, which the reach defends"},
+        params={"rested": Quantity(value=3, unit="act", provenance="verified",
+                                   grounded=True, source="the three shelvings")}))
+    return model
+
+
+def test_an_adjudicated_row_is_settled_not_open():
+    # the debt's own cost: nothing could distinguish a row nobody judged from a row
+    # judged and left alone. Now the record does, and the remainder shrinks by it.
+    S = _samples(spec.AGREES, spec.RETAGGED, spec.COMMUTES)
+    report = measure(_adjudicated_cloakroom(), S)
+    by = {a["id"]: a for a in report["actions"]}
+    entry = by["shelve-coat"]["updates"]["shelf"]
+    assert entry["verdict"] == "different"
+    assert entry["adjudicated"]["stands"] is True
+    assert not any(p["action"] == "shelve-coat" and p.get("var") == "shelf"
+                   for p in report["proposals"])
+    # 2: this test's update verdict, plus the guard adjudication the published
+    # cloakroom itself carries as the kind's demonstration
+    assert report["tally"]["adjudicated_settled"] == 2
+
+
+def test_a_verdict_whose_row_changed_does_not_carry():
+    S = _samples(spec.AGREES, spec.RETAGGED, spec.COMMUTES)
+    report = measure(_adjudicated_cloakroom(hand_expr="somethingelse"), S)
+    ps = [p for p in report["proposals"]
+          if p["action"] == "shelve-coat" and p.get("var") == "shelf"]
+    assert ps and ps[0]["fallen_verdict"]["red"] == "stale"
+    assert report["tally"]["adjudications_stale"] == 1
+
+
+def test_a_verdict_whose_tapes_are_gone_does_not_stand():
+    S = _samples(spec.AGREES, spec.RETAGGED, spec.COMMUTES)
+    S.names = ["some-other-tape"]
+    report = measure(_adjudicated_cloakroom(tapes=("vanished-tape",)), S)
+    ps = [p for p in report["proposals"]
+          if p["action"] == "shelve-coat" and p.get("var") == "shelf"]
+    assert ps and ps[0]["fallen_verdict"]["red"] == "orphaned"
+    # the package's own guard demo orphans too: its tapes are equally absent
+    # from this measurement's names
+    assert report["tally"]["adjudications_orphaned"] == 2

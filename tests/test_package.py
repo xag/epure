@@ -37,7 +37,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     import epure.prove  # noqa: F401
     import epure.reach  # noqa: F401
     log = validate_package(SEMANTIC_MODEL_PACKAGE, tmp_path)
-    assert any("3 rule(s) exercised" in line for line in log), log
+    assert any("4 rule(s) exercised" in line for line in log), log
     assert any("refuted by their counter-example" in line for line in log), log
 
 

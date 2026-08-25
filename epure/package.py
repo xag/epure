@@ -1,4 +1,11 @@
-"""semantic-model@0.16.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.17.0 — the meta-vocabulary a semantic model is written in.
+
+0.17.0: the `adjudication` kind - a verdict on a drafted-versus-hand disagreement,
+recorded as data on the action it judged, carrying both expressions, its author, and
+what it rested on; held by a-verdict-rests-on-samples (a verdict resting on nothing is
+refused) and read by epure.draft, which now tells a row nobody judged from a row
+judged and left alone. The adjudication debt (no-kind-records-an-adjudication) is
+discharged by it.
 
 0.16.0: a promise may say `under` {"weak": [action ids]} — the fairness assumptions it
 holds under, which is what lets its tape half bind the program and release the people:
@@ -47,6 +54,7 @@ from __future__ import annotations
 
 from quern import KindDef, Node, OperationDef, Rule, SolverDef
 from quern.library import CounterExample, Package
+from quern.provenance import Quantity
 
 VOCABULARY = [
     KindDef(
@@ -309,6 +317,28 @@ VOCABULARY = [
         "consumer yet and stays undeclared until one arrives.",
     ),
     KindDef(
+        kind="adjudication",
+        description="A child of `action` (0.17.0): the record that a drafted expression "
+        "was JUDGED against the hand-written one, so a verdict leaves a trace a rule can "
+        "hold instead of evaporating as a read line. Payload: `subject` "
+        "(\"update:<var>\" or \"guard\" — which row of the action was judged), `verdict` "
+        "(\"hand-stands\" | \"draft-adopted\" | \"escalated\"), `author` (who or what "
+        "judged), `when` (the date), `drafted` and `hand` (both expressions, verbatim, so "
+        "the disagreement survives its own settlement), `rested_on` ({\"tapes\": [names], "
+        "\"acts\": n} — the samples the verdict rested on), and `because` — the "
+        "defensible account, or for `escalated` the intent question no tape answers. "
+        "Params: `rested` (Quantity: how many sampled acts the verdict rested on, "
+        "grounded when they were verified present), held by the rule below: a verdict "
+        "resting on nothing is a confident opinion, which is the thing an adjudication "
+        "exists to refuse. `escalated` is a full verdict, not a failure: where intent "
+        "decides and no tape answers, the honest record is the question, and `rested` "
+        "then counts the samples that LOCATED the question. The draft "
+        "(`epure.draft`) reads these to tell a row nobody has judged from a row judged "
+        "and left alone — the difference between an open question and a settled one — "
+        "and reds a verdict whose tapes are gone: evidence outlives the verdict, or "
+        "the verdict does not stand.",
+    ),
+    KindDef(
         kind="invariant",
         description="A predicate over state-vars that must hold in every reachable state of "
         "the model — proven exhaustively by `model/prove` at design time, and re-checked at "
@@ -347,6 +377,16 @@ RULES = [
         "is exactly where a proven model quietly stops describing the system. Every action "
         "names the testimony that instantiates it, or it does not enter.",
         expr="len(nodes('observation', self)) >= 1",
+    ),
+    Rule(
+        name="a-verdict-rests-on-samples",
+        kind="adjudication",
+        description="An adjudication that rested on nothing is a confident opinion wearing "
+        "a verdict — indistinguishable, in the record, from a row genuinely settled "
+        "against evidence, which is exactly the confusion the kind exists to end. Every "
+        "verdict counts the sampled acts beneath it; an escalation counts the samples "
+        "that located the intent question it records.",
+        expr="rested >= 1",
     ),
 ]
 
@@ -587,6 +627,27 @@ EXAMPLES = [
                           "updates": [{"var": "shelf", "expr": "level"}],
                           "args": {"level": {"type": "enum", "domain": ["high", "low"]}}},
                  children=[
+                     Node(id="shelve-coat-guard-adjudicated", kind="adjudication",
+                          payload={"subject": "guard",
+                                   "verdict": "hand-stands",
+                                   "author": "the cloakroom's own example, as the kind's "
+                                             "demonstration",
+                                   "when": "2026-08-25",
+                                   "drafted": "held == 1 and tag != 'none'",
+                                   "hand": "held == 1",
+                                   "rested_on": {"tapes": ["visit-kept", "visit-broken"],
+                                                 "acts": 3},
+                                   "because": "every sampled shelving happened after a "
+                                              "tagging, so the draft overfits the tapes: "
+                                              "the model's own reach shows an untagged "
+                                              "coat can be shelved, and the hand guard "
+                                              "is the one the reachable set defends"},
+                          params={"rested": Quantity(
+                              value=3, unit="act", provenance="verified", grounded=True,
+                              source="the three shelving acts on the two sampled tapes "
+                                     "named in rested_on")},
+                          name="the guard was judged: the draft's extra conjunct is "
+                               "the tapes' bias, not the world's rule"),
                      Node(id="shelve-coat-witness", kind="observation",
                           payload={"event": "shelving"}),
                      Node(id="shelve-coat-mutates", kind="mutates",
@@ -709,6 +770,23 @@ COUNTER_EXAMPLES = [
         ),
     ),
     CounterExample(
+        rule="a-verdict-rests-on-samples",
+        because="a verdict that rested on nothing - no tape, no act - is a confident "
+                "opinion in the record's clothing, indistinguishable from a row "
+                "genuinely settled; the rule refuses it",
+        node=Node(
+            id="settled-by-assertion", kind="adjudication",
+            name="A guard declared judged, with nothing beneath the verdict",
+            payload={"subject": "guard", "verdict": "hand-stands",
+                     "author": "nobody checked", "when": "2026-08-25",
+                     "drafted": "x == 1", "hand": "true",
+                     "because": "it looked fine"},
+            params={"rested": Quantity(
+                value=0, unit="act", provenance="asserted", grounded=False,
+                source="no samples were consulted")},
+        ),
+    ),
+    CounterExample(
         rule="an-event-kind-carries-a-license",
         because="testimony with no evidence requirement — the code could claim it forever "
                 "and no tape could ever convict the claim",
@@ -767,7 +845,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.16.0",
+    version="0.17.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

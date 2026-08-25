@@ -80,6 +80,7 @@ def test_the_rules_are_the_pinned_packages_own():
         "a-model-declares-its-alphabet",
         "an-event-kind-carries-a-license",
         "an-action-is-observable",
+            "a-verdict-rests-on-samples",
     }, ("the effective rules are not the twelve ledger@0.6.0 + four conduct@0.3.0 + "
         "three semantic-model@0.5.0 ship — has one been redefined here?")
 

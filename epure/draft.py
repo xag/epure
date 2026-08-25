@@ -89,6 +89,8 @@ class Samples:
         # projection said the store says nothing, where the model's init says something.
         self.empty: dict[str, list[set[str]]] = {}
         self.tapes = 0
+        self.names: list[str] = []      # the tape stems actually read, for the
+        #                                 verdict-outlives-its-evidence check
         self.acts = 0
         # refused acts that bind an action, with the world read before each: the only
         # evidence a guard can be drafted from, since a guard is what is refused
@@ -146,6 +148,7 @@ def collect(model: Node, tapes: list[Path], link: str) -> Samples:
         tree = Quern()
         tree.root.children = [model.model_copy(deep=True), session]
         out.add(_Worlds(tree, tape.stem, "model"), tape.stem)
+        out.names.append(tape.stem)
     return out
 
 
@@ -572,9 +575,43 @@ def measure(model: Node, samples: Samples, *, reach: Reach | None = None) -> dic
              "guards": 0, "guards_equivalent": 0, "guards_different": 0,
              "guards_equivalent_reachable": 0,
              "guards_unwitnessed": 0, "unguarded": 0, "unguarded_drafted": 0}
+    tally_adj = {"settled": 0, "stale": 0, "orphaned": 0}
+    tape_names = set(getattr(samples, "names", []) or [])
     for c in model.children:
         if c.kind != "action":
             continue
+        # the adjudications this action carries (semantic-model@0.17.0): a row judged
+        # and left alone is a settled question, not an open one - and a verdict whose
+        # hand expression drifted or whose tapes are gone does NOT stand: it returns
+        # to the remainder wearing its red, because evidence outlives the verdict or
+        # the verdict does not
+        adjudications = {str(a.payload.get("subject", "")): a
+                        for a in c.children if a.kind == "adjudication"}
+
+        def _standing(subject, current_hand, _adj=adjudications, _tally=tally_adj):
+            adj = _adj.get(subject)
+            if adj is None:
+                return None
+            rec = adj.payload or {}
+            if str(rec.get("hand", "")) != current_hand:
+                _tally["stale"] += 1
+                return {"stands": False, "red": "stale",
+                        "why": f"the verdict recorded hand {rec.get('hand')!r} and the "
+                              f"action now says {current_hand!r} - the row changed "
+                              "since it was judged, and the verdict does not carry"}
+            rested = (rec.get("rested_on") or {}).get("tapes") or []
+            gone = [n for n in rested if tape_names and n not in tape_names]
+            if gone:
+                _tally["orphaned"] += 1
+                return {"stands": False, "red": "orphaned",
+                        "why": f"the verdict rested on tape(s) {gone} and no tape of "
+                              "that name is in this measurement - evidence outlives "
+                              "the verdict, or the verdict does not stand"}
+            _tally["settled"] += 1
+            return {"stands": True, "verdict": rec.get("verdict"),
+                    "author": rec.get("author"), "when": rec.get("when"),
+                    "because": rec.get("because")}
+
         args = {n: _domain(spec, f"arg '{n}'") for n, spec in (c.payload.get("args") or {}).items()}
         names = {**variables, **args}
         hand = {u["var"]: str(u["expr"]) for u in c.payload.get("updates") or []}
@@ -620,9 +657,17 @@ def measure(model: Node, samples: Samples, *, reach: Reach | None = None) -> dic
                         for i, need in unsettled if i < len(where)]
                 row["updates"][var] = entry
                 if verdict in ("different", "partial", "unresolved"):
-                    report["proposals"].append(_propose(c.id, var, hand[var], expr, verdict,
-                                                        entry.get("unsettled"), rows, args,
-                                                        names, enabled))
+                    standing = _standing(f"update:{var}", hand[var])
+                    if standing is not None and standing["stands"]:
+                        entry["adjudicated"] = standing
+                    else:
+                        proposal = _propose(c.id, var, hand[var], expr, verdict,
+                                            entry.get("unsettled"), rows, args,
+                                            names, enabled)
+                        if standing is not None:
+                            entry["adjudicated"] = standing
+                            proposal["fallen_verdict"] = standing
+                        report["proposals"].append(proposal)
             else:
                 tally["frames"] += 1
                 verdict = ("unwitnessed" if status == "unwitnessed"
@@ -652,17 +697,28 @@ def measure(model: Node, samples: Samples, *, reach: Reach | None = None) -> dic
             row["guard"]["verdict"] = verdict
             row["guard"]["scope"] = scope
             if verdict == "different" and not refused and guard.strip() != "true":
-                report["proposals"].append({
-                    "action": c.id, "var": None, "hand": guard, "draft": drafted,
-                    "verdict": "different", "kind": "guard",
-                    "experiment": f"take {c.id} in a world where `{guard}` is false: the app "
-                                  "refusing puts the first negative on tape, the app "
-                                  "proceeding refutes the hand guard"})
+                standing = _standing("guard", guard)
+                if standing is not None and standing["stands"]:
+                    row["guard"]["adjudicated"] = standing
+                else:
+                    proposal = {
+                        "action": c.id, "var": None, "hand": guard, "draft": drafted,
+                        "verdict": "different", "kind": "guard",
+                        "experiment": f"take {c.id} in a world where `{guard}` is false: the app "
+                                      "refusing puts the first negative on tape, the app "
+                                      "proceeding refutes the hand guard"}
+                    if standing is not None:
+                        row["guard"]["adjudicated"] = standing
+                        proposal["fallen_verdict"] = standing
+                    report["proposals"].append(proposal)
         else:
             tally["unguarded"] += 1
             if drafted:
                 tally["unguarded_drafted"] += 1
         report["actions"].append(row)
+    tally["adjudicated_settled"] = tally_adj["settled"]
+    tally["adjudications_stale"] = tally_adj["stale"]
+    tally["adjudications_orphaned"] = tally_adj["orphaned"]
     report["tally"] = tally
     return report
 
@@ -787,13 +843,22 @@ def render(report: dict[str, Any]) -> str:
 def render_proposals(report: dict[str, Any]) -> str:
     """One line per row the draft could not settle: the experiment that would."""
     ps = report["proposals"]
+    settled = report.get("tally", {}).get("adjudicated_settled", 0)
+    settled_line = (f" ({settled} row(s) adjudicated and standing - settled, not open)"
+                    if settled else "")
     if not ps:
-        return "nothing to propose: every drafted row is equivalent or unwitnessed"
-    out = [f"{len(ps)} proposal(s) - the observation that separates draft from hand:"]
+        return ("nothing to propose: every drafted row is equivalent, unwitnessed, "
+                "or adjudicated" + settled_line)
+    out = [f"{len(ps)} proposal(s) - the observation that separates draft from "
+           f"hand{settled_line}:"]
     for p in ps:
         target = f"{p['action']}.{p['var']}" if p["var"] else f"{p['action']} guard"
         out.append(f"  {target:<30} hand {p['hand']!s:<24} draft {p['draft']!s:<20} {p['verdict']}")
         out.append(f"     -> {p['experiment']}")
+        if p.get("fallen_verdict"):
+            f = p["fallen_verdict"]
+            out.append(f"     RED a recorded verdict does not stand "
+                       f"({f['red']}): {f['why']}")
         if p.get("separating"):
             sp = p["separating"]
             away = f" ({sp['away']} variable(s) from a sampled world)" if "away" in sp else ""
