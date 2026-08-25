@@ -440,3 +440,34 @@ def test_every_two_stretch_red_names_a_culprit_in_step():
             assert len(got.culprits) == got.violations, (name, law, got.culprits)
             for who, d in zip(got.culprits, got.diagnostics):
                 assert who in CULPRITS and f"culprit: {who} [" in d, (name, law, d)
+
+
+def test_the_mirror_fact_lands_the_stale_before_row_on_the_drawing():
+    """0.15.0: a door-bearing act between the read the world-BEFORE came from and the
+    act under judgment - the pre-value predates the neighbour's undeclared move, and
+    the read-act that follows it stops being named harness for the drawing's omission."""
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(),
+                          spec.SIGN_STALE_AT_THE_GLANCE.model_copy(deep=True)]
+    got = agrees(tree, "visit", "model")
+    assert got.violations == 2, got.diagnostics
+    assert got.culprits == ["model", "model"], got.diagnostics
+    assert "shelve-coat before" in got.diagnostics[1]
+    assert "the world-before was read before 'shelve-coat'" in got.diagnostics[1]
+
+
+def test_a_moved_clock_still_wins_over_the_mirror_fact():
+    """The before list yields to the clock branches: a statement made under a clock
+    that moved is the harness's own act, whatever else lies in the window."""
+    from epure.spec import EMPTY, _NEXT_DAY, _NOW, _act, _shelf_write, _sign, visit
+    tape = visit([*EMPTY, _sign(False), _NOW,
+                  *_act("shelving", {"level": "high"}, _shelf_write("high")),
+                  *_act("glancing", {}),
+                  _NEXT_DAY, _sign(True)])
+    tree = Quern()
+    tree.root.children = [spec.cloakroom(), tape]
+    got = agrees(tree, "visit", "model")
+    glance_rows = [(c, d) for c, d in zip(got.culprits, got.diagnostics)
+                   if "glance" in d]
+    assert glance_rows, got.diagnostics
+    assert glance_rows[0][0] == "harness", glance_rows[0][1]

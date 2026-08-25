@@ -194,6 +194,8 @@ def test_the_report_opens_with_what_the_model_declares():
     turnstile, cloakroom = EXAMPLES
     assert declared(turnstile) == {"projected": (0, 3), "effects": (2, 2), "bounded": (2, 2),
                                    "validators": (0, 1)}
+    # 0.15.0: the glance is an action with no effect on purpose - the read-act - so
+    # one action of seven declares none, and the coverage number says so honestly
     assert declared(cloakroom, tools=["deposit", "reclaim", "audit"]) == {
-        "projected": (4, 4), "effects": (6, 6), "bounded": (6, 6), "validators": (1, 1),
+        "projected": (4, 4), "effects": (6, 7), "bounded": (7, 7), "validators": (1, 1),
         "tools": (2, 3)}

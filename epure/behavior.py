@@ -1282,11 +1282,22 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
                if o.action is not None and not o.act.is_call
                and w.act.to < o.act.at and o.act.to < post_at
                and _has_doors(W, o.action["id"])]
+    # the mirror window (0.15.0): a door-bearing act between the read the world-BEFORE
+    # came from and this act - the pre-value predates that act's undeclared move, so the
+    # disagreement it caused lands on whoever runs next. The forward fact rescues the
+    # acts before the mover; this one rescues the acts after it, and it yields to the
+    # clock branches below: a moved clock is direct evidence of the harness and wins
+    pre_at = w.pre_at.get(var)
+    before = [o for o in W.worlds
+              if o.action is not None and not o.act.is_call
+              and pre_at is not None and pre_at < o.act.at and o.act.to < w.act.at
+              and _has_doors(W, o.action["id"])]
     facts = (f"{'derived' if derived else 'stored'}, "
              f"{'declared' if declared else 'undeclared'}, "
              f"{'written through its door' if wrote else 'no write through its doors'}, "
              f"{'clock moved between' if clock else 'clock still between'}"
-             + (f", {between[0].action['id']} between" if between else ""))
+             + (f", {between[0].action['id']} between" if between else "")
+             + (f", {before[0].action['id']} before" if before else ""))
     # first: an act with a door between this one and the read its world-after came from
     # makes that read THAT act's world, whatever else is true of this one (0.14.1: the
     # calibration set's set-today fault had gone to harness on the branches below, which
@@ -1309,6 +1320,12 @@ def _culprit(W: _Worlds, w: _World, var: str, declared: bool) -> tuple[str, str]
             return "model", (f"[{facts}] the view moved across an act that "
                              f"{'wrote through a door the model knows' if known else 'ran under a clock that moved'}"
                              " and declares no move of it: the drawing misses the update")
+        if before:
+            who = before[0].action["id"]
+            return "model", (f"[{facts}] the world-before was read before '{who}', which "
+                             f"declares no move of '{var}' - the pre-value predates that "
+                             "act's undeclared update and the disagreement lands on "
+                             "whoever runs next; the drawing omits that act's update")
         return "harness", (f"[{facts}] the view moved with no write through any door and the "
                            "clock still between the two statements: the statement came from "
                            "something not on the tape")

@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.14.1",
+    version="0.15.1",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -973,14 +973,23 @@ CONDUCT_PACKAGE = Package(
                 "only when nothing was written. 0.14.1: the act-between fact is asked first - a "
                 "neighbour with a door between the act and the read makes the read the "
                 "neighbour's world, whatever else is true; the set-today fault had gone to "
-                "harness on the branches below it.",
+                "harness on the branches below it. 0.15.0: the mirror - a `before` list "
+                "beside `between`: a door-bearing neighbour between the read the "
+                "world-BEFORE came from and the act makes the pre-value stale by that "
+                "neighbour's undeclared move, and the acts AFTER an undeclared mover stop "
+                "being named harness for the drawing's omission. Guarded by the clock "
+                "branches: a moved clock is direct evidence of the harness and still wins. "
+                "Witnessed on the cloakroom's new read-act (semantic-model@0.15.0), the "
+                "shape the bed had lacked - which is exactly why the fact's absence went "
+                "unseen; the set-today fault's remaining four rows are this, measured in "
+                "the first consumer.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.14.0"),
+        PackageRef(name="semantic-model", version="0.15.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

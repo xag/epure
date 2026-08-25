@@ -1,4 +1,9 @@
-"""semantic-model@0.14.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.15.0 — the meta-vocabulary a semantic model is written in.
+
+0.15.0: the cloakroom grows `glance`, the read-act - `updates: []`, `touches.via: []`,
+as every real consumer's board reads and clock reads are - because the mirror culprit
+fact is witnessable only by an act that writes nothing the model knows, and the spec
+bed lacked the shape, which is exactly why the fact's absence went unseen.
 
 A model authored in these kinds is the drawing the piece is proven against: the prover
 (`model/prove`) proves predicates over it once, exhaustively, and the conformance natives
@@ -512,6 +517,16 @@ EXAMPLES = [
                                    "note": "the claiming span encloses the raw "
                                            "removal from the hook's store"}),
                  ]),
+            Node(id="glancing", kind="event-kind",
+                 payload={"args": {}},
+                 children=[
+                     Node(id="glancing-license", kind="license",
+                          payload={"expr": "true",
+                                   "note": "a look claims nothing about the store, so "
+                                           "no evidence licenses it; what holds a "
+                                           "glance is the agrees law, through the "
+                                           "worlds read around it"}),
+                 ]),
             Node(id="check-coat", kind="action",
                  payload={"guard": "held == 0",
                           "updates": [{"var": "held", "expr": "1"},
@@ -600,6 +615,21 @@ EXAMPLES = [
                      Node(id="import-register-touches", kind="touches",
                           payload={"only": ["tag", "shelf"],
                                    "via": ["register.write", "tag.write", "shelf.write"]}),
+                 ]),
+            Node(id="glance", kind="action",
+                 payload={"guard": "true", "updates": [], "args": {}},
+                 children=[
+                     Node(id="glance-witness", kind="observation",
+                          payload={"event": "glancing"}),
+                     Node(id="glance-touches", kind="touches",
+                          payload={"only": [], "via": []},
+                          name="the read-act (0.15.0): the attendant looks and writes "
+                               "nothing - updates and doors both empty, as every real "
+                               "consumer's board reads and clock reads are. It exists "
+                               "because the mirror culprit fact is reachable only "
+                               "through an act that writes nothing the model knows, "
+                               "and the bed lacked the shape - which is exactly why "
+                               "the fact's absence went unseen"),
                  ]),
             Node(id="reclaim-coat", kind="action",
                  payload={"guard": "held == 1",
@@ -717,7 +747,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.14.0",
+    version="0.15.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

@@ -365,6 +365,18 @@ SIGN_WRONG_SAME_DAY = visit([*EMPTY, _sign(False), _NOW, *DEPOSIT, _NOW,
 # the hook reads empty only after the shelving that followed the deposit: the world-after was
 # read past an act that declares no move of `held`, so the drawing omits THAT act's update
 SHELVED_OFF_THE_HOOK = visit([*EMPTY, *DEPOSIT, *SHELVE_HIGH, *world(None, None, "high")])
+# the mirror (0.15.0): the sign stated dark, the shelving runs between that statement
+# and a GLANCE - the read-act, writing nothing - and the sign is stated lit after the
+# glance. The glance's world-before predates the shelving, whose move of the sign no
+# declaration carries (its only door is the shelf's, so the pre-statement survives);
+# before the mirror fact this row fell to "the statement came from something not on
+# the tape" - the harness named for the drawing's omission. The five-acts version of
+# exactly this is the calibration set's set-today fault, four rows of nine
+SIGN_STALE_AT_THE_GLANCE = visit([*EMPTY, _sign(False),
+                                  *_act("shelving", {"level": "high"},
+                                        _shelf_write("high")),
+                                  *_act("glancing", {}),
+                                  _sign(True)])
 SIGN_DARK_AT_CLOSING = visit([*EMPTY, _sign(False), *DEPOSIT, *world("red", None, None),
                               _sign(True), _NOW, *SHELVE_HIGH, _NEXT_DAY,
                               *world("red", None, "high"), _sign(False)])
@@ -718,6 +730,12 @@ AGREES_SPEC = [
       because="culprit model: the deposit's world-after was read past the shelving, which "
               "declares no move of the hook - a missing declaration hides a writer, and the "
               "red lands on the neighbour; the rule names the act between"),
+    c("agrees", visited(SIGN_STALE_AT_THE_GLANCE), ["visit", "model"], expect=2,
+      because="culprit model twice - the mirror (0.15.0): the glance's world-before was "
+              "read before the shelving, which declares no move of the sign, so the "
+              "pre-value is stale by an undeclared update and the read-act that follows "
+              "stops being named harness for the drawing's omission; the shelving's own "
+              "row is the known-door branch, as before"),
     c("agrees", visited(BYSTANDER_MOVED), ["visit", "model"], expect=1,
       because="culprit harness: the tag moved across shelving with no declared update and "
               "no write through any door the drawing says moves it - something the recorder "
