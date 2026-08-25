@@ -1311,8 +1311,9 @@ _ADJUDICATION_DEBT = Node(
     kind="debt",
     links={"rests_on": ["a-draft-disagreement-is-adjudicated-before-it-reaches-a-person"],
            "blocked_by": ["the-act-between-is-only-looked-for-forwards"]},
-    name="The draft's remainder is routed by a decision and by nothing else: no kind records "
-         "that a drafted expression was judged, so a verdict leaves no trace a rule can hold",
+    name="DISCHARGED 2026-08-25 - the adjudication kind ships in semantic-model@0.17.0 "
+         "and the first consumer's fourteen rows are judged or escalated on the record; "
+         "the draft reads the verdicts and its remainder prints empty",
     payload={
         "what_it_costs":
             "[[a-draft-disagreement-is-adjudicated-before-it-reaches-a-person]] says the "
@@ -1326,7 +1327,19 @@ _ADJUDICATION_DEBT = Node(
             "and left alone, which is the difference between an open question and a settled "
             "one.",
         "why_it_is_not_paid":
-            "It is a vocabulary change, and vocabulary travels pinned: a kind, a rule that "
+            "PAID exactly along the route below: the kind (a child of the action it "
+            "judged, both expressions verbatim, what it rested on), the rule "
+            "a-verdict-rests-on-samples with its counter-example at the gate, the "
+            "cloakroom demonstration, and the pin chain walked once "
+            "(semantic-model@0.17.0, conduct@0.16.1, chores-model@0.26.0). The first "
+            "real adjudication is the consumer's: thirteen hand-stands - the "
+            "positives-only drafts could not refute the hand guards, and the "
+            "single-sample constants lost to the neighbours' defended arithmetic - "
+            "and ONE escalation, the placed-wash-across-a-day question the routing "
+            "decision reserved for a person, recorded as the question. The draft now "
+            "tells a judged row from an unjudged one, which was the whole cost, and "
+            "reds a verdict whose hand drifts or whose tapes vanish. THE OLD ACCOUNT, "
+            "kept: It is a vocabulary change, and vocabulary travels pinned: a kind, a rule that "
             "goes red when the samples a verdict rested on no longer exist on any tape, a "
             "demonstration on the cloakroom for the gate, and a walk of the pin chain. It "
             "shares that publish with [[the-act-between-is-only-looked-for-forwards]], which "
