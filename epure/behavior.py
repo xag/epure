@@ -1879,7 +1879,8 @@ def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 then = _compile(str(c.payload.get("then", "")), f"promise '{c.id}' then")
                 unless_src = str(c.payload.get("unless", "")).strip()
                 unless = _compile(unless_src, f"promise '{c.id}' unless") if unless_src else None
-                promises.append((c.id, when, then, unless, c.payload.get("within")))
+                under = list((c.payload.get("under") or {}).get("weak") or [])
+                promises.append((c.id, when, then, unless, c.payload.get("within"), under))
         if not promises:
             notes.append(f"{path}: the model makes no promise — nothing to keep")
             return 0
@@ -1892,7 +1893,7 @@ def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
             except ValueError:
                 return None  # a variable the world did not show
 
-        for pid, when, then, unless, within in promises:
+        for pid, when, then, unless, within, under in promises:
             for i, w in enumerate(spans):
                 made = holds(when, w.post)
                 if not made:
@@ -1912,6 +1913,43 @@ def eventually(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                                  f"when the tape ends ({len(later)} act(s) later"
                                  f"{f', horizon {within}' if within else ', no horizon'}) — "
                                  "unwitnessed, not broken")
+                    continue
+                # the fairness escape (0.16.0, the fairness debt's discharge): a promise
+                # `under` weak fairness of an action binds the program only on runs fair
+                # to it. An assumed action that stayed ENABLED through the whole window
+                # and never fired makes the run unfair: the tape breaks the ASSUMPTION -
+                # which binds whoever takes that action - and not the promise. Fairness
+                # is excusing only when POSITIVELY established: an unreadable guard or a
+                # fired action leaves the conviction standing, so a thin world never
+                # silently releases the program.
+                unfair = ""
+                for aid in under:
+                    action = W.by_id.get(aid)
+                    if action is None:
+                        notes.append(f"{w.act.path}: '{pid}' assumes fairness of "
+                                     f"'{aid}', which the model does not declare — "
+                                     "the assumption is unreadable and excuses nothing")
+                        continue
+                    if any(x.action is not None and x.action["id"] == aid
+                           for x in window):
+                        continue
+                    try:
+                        enabled = all(bool(action["guard"]({**x.post, **_LITERALS}))
+                                      for x in [w, *window])
+                    except ValueError:
+                        continue
+                    if enabled:
+                        unfair = aid
+                        break
+                if unfair:
+                    judged += 1
+                    notes.append(
+                        f"{w.act.path}: '{pid}' is not kept within {within}, and the "
+                        f"run is not weakly fair to '{unfair}' — enabled through the "
+                        "whole window and never taken. The promise holds under that "
+                        "fairness: the tape breaks the assumption, which binds "
+                        f"whoever takes '{unfair}', and not the program the promise "
+                        "binds")
                     continue
                 judged += 1
                 diagnostics.append(

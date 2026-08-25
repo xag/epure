@@ -1,4 +1,10 @@
-"""semantic-model@0.15.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.16.0 — the meta-vocabulary a semantic model is written in.
+
+0.16.0: a promise may say `under` {"weak": [action ids]} — the fairness assumptions it
+holds under, which is what lets its tape half bind the program and release the people:
+a run that keeps an assumed action enabled through the window and never takes it breaks
+the ASSUMPTION (whoever takes the action), not the promise. The fairness debt
+(fairness-is-inexpressible) predicted this day in v0 and is discharged by it.
 
 0.15.0: the cloakroom grows `glance`, the read-act - `updates: []`, `touches.via: []`,
 as every real consumer's board reads and clock reads are - because the mirror culprit
@@ -286,7 +292,21 @@ VOCABULARY = [
         "`conduct/eventually` holds a tape to it — after an act leaves the projected world "
         "in `when`, some later world within `within` acts satisfies `then` or `unless`. "
         "Without `within` a finite tape can only note a promise still open, never refute it, "
-        "which is the honest shape of liveness on a recording.",
+        "which is the honest shape of liveness on a recording. Optionally `under` "
+        "(0.16.0): {\"weak\": [action ids]} — the FAIRNESS ASSUMPTIONS the promise holds "
+        "under, which is what lets a promise say WHOM it binds. A liveness claim proved "
+        "or held without fairness binds whoever acts on the tape — in a household app, "
+        "the household — and is kept true by writing obedient tapes, which is the "
+        "vacuity Lamport's fairness exists to name. With `under`, a run that keeps an "
+        "assumed action continuously enabled through the promise's window and never "
+        "takes it is UNFAIR: the tape breaks the assumption — which binds whoever takes "
+        "that action — and not the promise, so conduct/eventually reports the "
+        "assumption's breach as a note instead of convicting the program. Fairness "
+        "excuses only when positively established (every window world shows the guard "
+        "true and the action never fired); an unreadable guard or a fired-and-failed "
+        "action leaves the conviction standing. Weak fairness only, deliberately: "
+        "strong fairness (fired if enabled infinitely often, not continuously) has no "
+        "consumer yet and stays undeclared until one arrives.",
     ),
     KindDef(
         kind="invariant",
@@ -747,7 +767,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.15.0",
+    version="0.16.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

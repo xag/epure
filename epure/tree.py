@@ -502,14 +502,18 @@ _TOP_LEVEL_SPANS = Node(
 _FAIRNESS_DEBT = Node(
     id="fairness-is-inexpressible",
     kind="debt",
-    name="model/prove v0 has no fairness assumptions — and safety checking cannot miss them",
+    name="DISCHARGED 2026-08-25 - a promise says `under` weak fairness of named actions, "
+         "its tape half binds the program, and the unfair run breaks the assumption "
+         "instead of the promise",
     params={
-        # Ungrounded on purpose: nothing establishes that zero fairness vocabulary is
-        # enough; the explicit-state hypothesis carries the falsification that would.
         "fairness_kinds": Quantity(
-            value=0, unit="kind", provenance="asserted", grounded=False,
-            source="no weak/strong fairness can be declared on an action; irrelevant to "
-                   "safety verdicts, load-bearing the day a liveness predicate arrives"),
+            value=1, unit="kind", provenance="verified", grounded=True,
+            source="semantic-model@0.16.0: weak fairness, declared per promise as "
+                   "`under` {weak: [action ids]} and held by conduct/eventually - an "
+                   "assumed action enabled through the promise's whole window and never "
+                   "taken makes the run unfair, and the breach binds whoever takes the "
+                   "action. Strong fairness stays undeclared on purpose: no consumer "
+                   "needs it yet, and a kind nothing exercises is relocated guessing"),
     },
     payload={
         "note":
@@ -539,7 +543,15 @@ _FAIRNESS_DEBT = Node(
                      "with its first liveness predicate, and grounds the param above with "
                      "what can then be declared. OVERDUE since 2026-08-21: the backend "
                      "shipped without it, and a promise able to say `under weak fairness` is "
-                     "what lets a tape half bind the program and release the people.",
+                     "what lets a tape half bind the program and release the people. MET "
+                     "2026-08-25, four days overdue: semantic-model@0.16.0 and "
+                     "conduct@0.16.0, demonstrated both ways on the cloakroom - the unfair "
+                     "run excused with the assumption's breach named, the fair run's broken "
+                     "promise still convicting - and the vacuity the debt predicted "
+                     "(obedient tapes keeping a people-binding promise green) is resolved by "
+                     "declaration. The first consumer's adoption - the hoover promise under "
+                     "weak fairness of its completion act, and the rewritten flight "
+                     "un-rewritten - is the consumer's own move, on its own ledger.",
              }),
     ],
 )

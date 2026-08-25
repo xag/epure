@@ -907,6 +907,20 @@ BROKEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
 STILL_OPEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
                     *TAG_RED, *world("red", "red", None)])
 
+def cloakroom_under_weak_fairness() -> Node:
+    """The same model, its promise saying whom it binds: reclaim under weak fairness."""
+    model = cloakroom()
+    promise = next(c for c in model.children if c.id == "a-coat-is-reclaimed")
+    promise.payload = {**promise.payload, "under": {"weak": ["reclaim-coat"]}}
+    return model
+
+
+# the reclaim FIRES and the coat still shows: a fair run, a genuinely broken promise
+FAIR_AND_BROKEN = visit([*EMPTY, *DEPOSIT, *world("red", None, None),
+                         *RECLAIM, *world("red", None, None),
+                         *TAG_RED, *world("red", "red", None),
+                         *SHELVE_HIGH, *world("red", "red", "high")])
+
 EVENTUALLY = [
     c("eventually", visited(KEPT), ["visit", "model"], expect=0,
       because="the coat checked in is reclaimed two acts later: the promise kept within "
@@ -918,6 +932,22 @@ EVENTUALLY = [
     c("eventually", visited(STILL_OPEN), ["visit", "model"], expect=0,
       because="one act after the deposit the tape ends: the promise is open, not broken — "
               "noted, never counted"),
+    c("eventually",
+      [cloakroom_under_weak_fairness(), BROKEN.model_copy(deep=True)],
+      ["visit", "model"], expect=0,
+      because="the same broken tape, the promise now saying whom it binds (under: weak "
+              "[reclaim-coat]): the reclaim stayed enabled through the whole window and "
+              "was never taken, so the run breaks the fairness ASSUMPTION — which binds "
+              "whoever reclaims — and not the promise; the note says so and the program "
+              "is not convicted. This is the vacuity the fairness debt predicted, "
+              "resolved by declaration instead of by obedient tapes"),
+    c("eventually",
+      [cloakroom_under_weak_fairness(), FAIR_AND_BROKEN.model_copy(deep=True)],
+      ["visit", "model"], expect=1,
+      because="the reclaim FIRED and the coat still shows: the run was fair to the "
+              "assumption and the promise is genuinely broken — fairness excuses only "
+              "the runs that are actually unfair, and this conviction binds the "
+              "program"),
 ]
 
 

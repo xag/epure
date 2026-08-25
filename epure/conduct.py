@@ -873,7 +873,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.15.1",
+    version="0.16.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -982,14 +982,20 @@ CONDUCT_PACKAGE = Package(
                 "Witnessed on the cloakroom's new read-act (semantic-model@0.15.0), the "
                 "shape the bed had lacked - which is exactly why the fact's absence went "
                 "unseen; the set-today fault's remaining four rows are this, measured in "
-                "the first consumer.",
+                "the first consumer. 0.16.0: a promise may hold `under` weak fairness "
+                "of named actions (semantic-model@0.16.0), and conduct/eventually "
+                "reports an unfair run - the assumed action enabled through the whole "
+                "window and never taken - as the ASSUMPTION's breach, binding whoever "
+                "takes the action, instead of convicting the program; fairness excuses "
+                "only when positively established, and a fair run's broken promise "
+                "still convicts.",
     publisher="poietic.studio",
     requires=[
         # Pinned exactly, by doctrine: grounding@ for the authority provenance the laws
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.15.0"),
+        PackageRef(name="semantic-model", version="0.16.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,
