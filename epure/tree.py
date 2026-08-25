@@ -1351,9 +1351,10 @@ _ADJUDICATION_DEBT = Node(
 _BETWEEN_LOOKS_ONE_WAY = Node(
     id="the-act-between-is-only-looked-for-forwards",
     kind="debt",
-    name="The culprit rule asks whether a door-bearing act lies between an act and the read "
-         "its world-AFTER came from, and never the mirror question about the read its "
-         "world-BEFORE came from - so a view's stale statement lands on the wrong culprit",
+    name="DISCHARGED 2026-08-25 - the mirror fact ships in conduct@0.15.1, witnessed on "
+         "the cloakroom's new read-act, and the first consumer's calibration moved "
+         "exactly the four predicted rows: right 53 to 57, the set-today fault whole "
+         "at model, the clock rows still harness",
     payload={
         "what_it_costs":
             "A view is read rarely - a board statement, not every act - so one pair of "
@@ -1372,7 +1373,18 @@ _BETWEEN_LOOKS_ONE_WAY = Node(
             "up from 54, with no other row moved and 145 tests green. Then it was REVERTED, "
             "because it cannot pass the genericity gate yet.",
         "why_it_is_not_paid":
-            "The gate wants the fact demonstrated on the cloakroom, and the cloakroom cannot "
+            "PAID as the discharge route stated: semantic-model@0.15.0 grew the glance "
+            "(updates [], touches.via []), SIGN_STALE_AT_THE_GLANCE demonstrates both rows "
+            "among the 18 agrees demonstrations conduct@0.15.1 re-runs at publish and "
+            "sync, and the floor in the first consumer rose in the commit that says why. "
+            "TWO HONEST DEVIATIONS from the recorded expectation, both on the record "
+            "there: the baseline had drifted 73/61/54 to 69/60/53 at some earlier "
+            "unmeasured point (the consumer ledger carries "
+            "four-calibration-rows-vanished-unmeasured), so the floor rose to 57, not "
+            "58 - the same four rows, on a smaller set; and the first re-run measured "
+            "nothing because the consumer's epure rev still carried the old natives - "
+            "caught by reading the numbers, fixed by the rev pin. THE OLD ACCOUNT, kept "
+            "for the record: The gate wants the fact demonstrated on the cloakroom, and the cloakroom cannot "
             "witness it. The fallback the fact corrects is reached only by an act that writes "
             "NOTHING the model knows - a read-act - because any known write reaches `model` "
             "one branch earlier. Every cloakroom action writes a known door; the four chores "
