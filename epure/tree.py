@@ -417,10 +417,10 @@ _PRE_STATE = Node(
              name="Apply updates top to bottom, each seeing the previous one's writes",
              payload={"why":
                       "Makes the update list's ORDER load-bearing, invisibly: two models "
-                      "differing only in payload ordering would have different behaviors, "
-                      "and the difference survives every structural diff. Imperative "
-                      "intuition bought at the price of the checker's whole claim to be "
-                      "checking a mathematical object."}),
+                      "differing only in payload ordering would have different behaviors, and "
+                      "the difference survives every structural diff. It buys imperative "
+                      "intuition at the cost of the checker's claim to be checking a "
+                      "mathematical object."}),
     ],
 )
 
@@ -564,26 +564,25 @@ _WIDER_GAZE = Node(
          "looks for: evidence(pattern, scope), never a bare count over an ancestor's window",
     payload={
         "rationale":
-            "An emission's evidence is very often not inside it. A derived, instantaneous "
-            "act — 'the pick was shown', 'a day ticked over' — encloses nothing by "
-            "construction, and the read that justifies it happened in the act that produced "
-            "it, one level up. Under the v0 own-window-only contract the licensable set was "
-            "'testimony that did its own I/O', when the promise is 'testimony anchored to "
-            "evidence'; sibling acts derived from one read competed for the one innermost "
-            "span that owned it, and the winner was decided by nesting order, not evidence. "
-            "But the invariant that made v0 draw the cut tight still binds: silence is a "
-            "lie, and a license that licenses anything is the `true` expr with extra steps. "
-            "So the widening is asymmetric: `ctx('events')` stays exactly v0 (the own "
-            "window, where a bare count is an honest 'I did I/O'), and the only way to look "
-            "wider is `evidence(pattern, 'enclosing')` — a named pattern over the claim's "
-            "lineage (its own window plus every raw event a testimony ancestor directly "
-            "encloses). Naming is what keeps the check alive at width: unrelated ancestor "
-            "I/O matches no pattern, and a claim with no matching evidence anywhere along "
-            "its lineage is still convicted. Scopes are monotone (enclosing contains own), "
-            "so widening a license can never convict a claim the narrow scope acquits; "
-            "structural nodes contribute nothing to any lineage — a raw event parked on a "
-            "scenario is a totality violation, and behavior the model does not know exists "
-            "must never license a claim.",
+            "An emission's evidence is very often not inside it. A derived, instantaneous act — "
+            "'the pick was shown', 'a day ticked over' — encloses nothing by construction, and "
+            "the read that justifies it happened in the act that produced it, one level up. "
+            "Under the v0 own-window-only contract the licensable set was 'testimony that did "
+            "its own I/O', when the promise is 'testimony anchored to evidence'; sibling acts "
+            "derived from one read competed for the one innermost span that owned it, and the "
+            "winner was decided by nesting order, not evidence. But the invariant that made v0 "
+            "draw the cut tight still binds: a claim that passes unchecked is a false pass, and "
+            "a license that licenses anything is the `true` expr with extra steps. So the "
+            "widening is asymmetric: `ctx('events')` stays exactly v0 (the own window, where a "
+            "bare count is an honest 'I did I/O'), and the only way to look wider is "
+            "`evidence(pattern, 'enclosing')` — a named pattern over the claim's lineage (its "
+            "own window plus every raw event a testimony ancestor directly encloses). Naming is "
+            "what keeps the check alive at width: unrelated ancestor I/O matches no pattern, "
+            "and a claim with no matching evidence anywhere along its lineage is still "
+            "convicted. Scopes are monotone (enclosing contains own), so widening a license can "
+            "never convict a claim the narrow scope acquits; structural nodes contribute "
+            "nothing to any lineage — a raw event parked on a scenario is a totality violation, "
+            "and behavior the model does not know exists must never license a claim.",
         "consequence":
             "Points need no special casing: a point's own window is empty and its license "
             "names its evidence one level up — the delegation is written in the license, "
@@ -1477,12 +1476,12 @@ _DRAFT_ROUTING = Node(
             "Step 4's `confirmed` changes shape. It was drawn as a person accepting a drafted "
             "expression; it becomes an ADJUDICATION recorded as an act - the verdict, who or "
             "what made it, when, the drafted and hand expressions, and the tapes and acts it "
-            "rested on - carrying whether it was settled against evidence or escalated "
-            "because intent decides. The recording is the whole point: an adjudication with "
-            "no record of what it rested on is a confident opinion that evaporates, which is "
-            "the thing this repository exists to refuse. The rule already drawn for step 4 "
-            "still holds and now bites harder: a confirmation goes red when the samples it "
-            "rested on no longer exist on any tape.",
+            "rested on - carrying whether it was settled against evidence or escalated because "
+            "intent decides. The recording is the whole point: an adjudication with no record "
+            "of what it rested on is an opinion with nothing behind it, which is what this "
+            "repository exists to refuse. The rule already drawn for step 4 still holds and now "
+            "bites harder: a confirmation goes red when the samples it rested on no longer "
+            "exist on any tape.",
     },
     children=[
         Node(id="alt-every-disagreement-reaches-the-person", kind="alternative",
@@ -1491,8 +1490,8 @@ _DRAFT_ROUTING = Node(
              payload={"why":
                       "The largest class is absent evidence, which a person cannot supply by "
                       "reading - the flight can. Spending the one scarce reviewer on rows a "
-                      "tool settles is how a review track dies: it fills with work that did "
-                      "not need judgement until the judgement stops arriving."}),
+                      "tool settles is how a review track stops being used: it fills with work "
+                      "that did not need judgement until the judgement stops arriving."}),
         Node(id="alt-the-filter-decides-everything", kind="alternative",
              name="Let the adjudicator settle every row and escalate nothing",
              payload={"why":
