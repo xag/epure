@@ -1,8 +1,8 @@
 # epure
 
-**What does it mean, and will it always hold.**
+Prove a design once over every state it admits, then check on every execution that the running code still matches it.
 
-An *épure* is the stonecutter's full-scale working drawing. The mason does not cut the block and then wonder whether it fits: the geometry is settled on the drawing first, and the piece is cut to it and checked against it. That is the whole idea, and the trade had it four centuries before anyone wrote a model checker.
+An *épure* is the stonecutter's full-scale working drawing: the geometry is settled on the drawing first, and the piece is cut to it and checked against it. This repo applies that split to software. The naming decision, and the alternatives it rejected, are in the ledger.
 
 Here the drawing is a **semantic model** — a small, finite mathematical object: state variables, actions with guards and updates, invariants. The piece is a running program that **testifies**, on its own recording, which semantic acts it just performed — the recording being a [flight-recorder](https://github.com/xag/flight-recorder) *tape*: one file per request logging every database answer, HTTP response, clock read and random draw, with the app's named acts written in-stream above those raw events. Verification then splits into two obligations, and the point of the split is that they are not the same kind of thing at all:
 
@@ -47,9 +47,11 @@ uv run pytest                    # the tests
 
 Two practices are set up at inception here, not retrofitted once something hurts — retrofitting is how a project ends up debugging by guesswork with no tape to replay and no record of why the thing was built the way it was.
 
-**The ledger** (`epure/tree.py`) is this repo's design record as *data*, pinning `ledger@0.1.0` from the registry rather than re-authoring it. A decision that names no rejected alternative is red. A belief carrying no observation that would kill it is red. `epure.check` exits 1 while anything is red, and no red node can be discharged by editing the ledger — only by doing the work it names. A README can state a caveat perfectly and go on being true while the thing it warned about ships. **Prose does not fire.**
+**The ledger** (`epure/tree.py`) is this repo's design record as *data*, pinning `ledger@0.1.0` from the registry rather than re-authoring it. A decision that names no rejected alternative is red. A belief carrying no observation that would kill it is red. `epure.check` exits 1 while anything is red, and no red node can be discharged by editing the ledger — only by doing the work it names.
 
-**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism, thin as it currently is: publishing to a registry, reading packages back out of one, and reading tapes off the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the declaration is true by construction rather than by diligence. It is declared now, while it is three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
+That is the difference from prose. A README can state a caveat perfectly and go on being true while the thing it warned about ships; a red node cannot.
+
+**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism, thin as it is: publishing to a registry, reading packages back out of one, and reading tapes off the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the declaration is true by construction rather than by diligence. It is declared now, while it is three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
 
 ## What this depends on
 
