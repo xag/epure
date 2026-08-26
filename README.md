@@ -51,7 +51,7 @@ Two practices are set up at inception here, not retrofitted once something hurts
 
 That is the difference from prose. A README can state a caveat perfectly and go on being true while the thing it warned about ships; a red node cannot.
 
-**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism, thin as it is: publishing to a registry, reading packages back out of one, and reading tapes off the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the declaration is true by construction rather than by diligence. It is declared now, while it is three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
+**The boundary** (`epure/boundary.py`) declares this repo's own nondeterminism: publishing to a registry, reading packages back out of one, and reading tapes off the disk. Every tape read goes through one function (`epure.tape.read_tape`) so that the declaration is true by construction rather than by diligence. It is declared now, while it is three lines, because a boundary retrofitted after the IO has spread is an archaeology exercise.
 
 ## What this depends on
 
