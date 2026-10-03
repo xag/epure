@@ -377,6 +377,32 @@ CONDUCT_LAWS = [
         native="conduct/same-story",
     ),
     _law(
+        "the-cost-holds",
+        "An act spends no more than its action's cost allows at the sizes the tape shows",
+        _uncited(),
+        falsifier="A tape where an act's raw events through the boundary's read doors, "
+                  "counted as documents, or through its write doors, or the bytes that "
+                  "crossed, exceed the action's cost expr evaluated at the size-vars the "
+                  "tape's reads project.",
+        triggers=["an action declares a `cost` and the model a boundary with `reads` or "
+                  "`writes`"],
+        sightings=[
+            ("a language app, 2026-10-03",
+             "A script ran the server's own code over every account and used up the "
+             "database's daily read quota at 17:35 UTC; every learner's call failed until "
+             "the reset. Nothing on the drawing said what an account's first read may cost, "
+             "and an account with no summary rebuilt it from every word on every call."),
+        ],
+        note="Complexity, held on a recording: counts are deterministic where time is not. "
+             "The algorithmic literature states growth classes of algorithms; no source "
+             "found stating the obligation that a running system's every act carries its "
+             "declared cost.",
+        meta={"expected:a-law-cites-a-source":
+              "Growth classes are stated for algorithms (Knuth); the obligation on an act's "
+              "recorded cost is unsourced. Source it or keep carrying it red."},
+        native="conduct/cost",
+    ),
+    _law(
         "shown-once-shown-until-touched",
         "An effect once shown stays shown until something declares it changes",
         _uncited(),
@@ -688,6 +714,13 @@ CONDUCT_SOLVERS = [
         "never comes is a note, not a count.",
         params_doc={"rel": "the link from the scenario/session to the model"}),
     SolverDef(
+        name="conduct/cost", native=True,
+        description="(path, rel): count the acts under `path` that spent past their action's "
+        "cost at the sizes the tape shows - per stated dimension, documents read through the "
+        "boundary's read doors, writes through its write doors, bytes crossed; a size no "
+        "read witnessed leaves the act unjudged in it, as a note.",
+        params_doc={"rel": "the link from the scenario/session to the model"}),
+    SolverDef(
         name="conduct/faithful", native=True,
         description="(path, rel): count the effects under `path` whose `via` write does not "
         "carry every input the effect's `from` names, as the span testified them.",
@@ -873,7 +906,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.16.1",
+    version="0.17.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -995,7 +1028,7 @@ CONDUCT_PACKAGE = Package(
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.17.0"),
+        PackageRef(name="semantic-model", version="0.18.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

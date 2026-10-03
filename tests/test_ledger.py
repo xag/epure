@@ -27,7 +27,10 @@ def test_the_red_is_exactly_the_declared_red():
         (law, "a-law-cites-a-source")
         # conduct@0.3.0 cited three of the five from the paper's own formulas
         # ...and conduct@0.12.2 cited the fairness law from Lamport 2000's own sentence
-        for law in ("shown-once-shown-until-touched", "the-effect-is-checkable")}
+        for law in ("shown-once-shown-until-touched", "the-effect-is-checkable",
+                    # ...and conduct@0.17.0's cost law cites the algorithmic literature for
+                    # growth classes and nobody for the obligation on an act's recorded cost
+                    "the-cost-holds")}
 
 
 def test_the_founding_record_is_actually_there():
@@ -80,9 +83,11 @@ def test_the_rules_are_the_pinned_packages_own():
         "a-model-declares-its-alphabet",
         "an-event-kind-carries-a-license",
         "an-action-is-observable",
-            "a-verdict-rests-on-samples",
+        "a-verdict-rests-on-samples",
+        # semantic-model@0.18.0: an action states what it may spend, or it does not enter.
+        "an-action-states-its-cost",
     }, ("the effective rules are not the twelve ledger@0.6.0 + four conduct@0.3.0 + "
-        "three semantic-model@0.5.0 ship — has one been redefined here?")
+        "five semantic-model@0.18.0 ship — has one been redefined here?")
 
     fired = {r.rule for r in run_rules(tree)}
     assert "a-decision-names-what-it-rejected" in fired

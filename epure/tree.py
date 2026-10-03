@@ -19,6 +19,7 @@ import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's 
 import epure.behavior  # noqa: F401 -- conduct@'s contracts need their natives in-process
 import epure.conformance  # noqa: F401 -- consume() re-gates the synced closure, and
 import epure.reach  # noqa: F401 -- model/promised, the liveness half
+import epure.cost  # noqa: F401 -- model/cost and conduct/cost, the complexity layer
 import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
 from quern import Quern, Node
 from quern.library import consume
@@ -45,9 +46,148 @@ def build() -> Quern:
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
                            _DERIVED_DECISION,
                            _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, _DOOR_CENSUS_DEBT,
+                           _SIZE_VAR_KIND, _COST_AT_THE_DOORS, _COMPUTE_DEBT, _PATH_COST_DEBT,
+                           _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
                            census(),
                            *CONDUCT_LAWS]
     return quern
+
+
+# --- cost: the complexity layer, 2026-10-04 ----------------------------------------------
+
+_SIZE_VAR_KIND = Node(
+    id="a-size-is-its-own-kind-never-a-state-var",
+    kind="decision",
+    name="A dimension the data grows along is a `size-var`: projected from the store like a "
+         "state-var, a parameter of every cost expr, and never part of the state the prover "
+         "walks",
+    payload={
+        "rationale":
+            "The prover enumerates every state-var over its finite domain; a size has no "
+            "finite domain, and a bound invented for it would be fiction the walk then "
+            "proves things about. What a cost needs from a size is its name on the drawing "
+            "and its value on a tape - a projection, the same shape a state-var carries - and "
+            "nothing the explicit-state walk could use. So the kind carries `shown` and "
+            "`growth` and no domain, and model/cost reads the exprs symbolically instead of "
+            "enumerating anything.",
+    },
+    children=[
+        Node(id="alt-a-flag-on-state-var", kind="alternative",
+             name="A state-var with `size: true`, skipped by the prover",
+             payload={"why": "Every native that reads state-vars - projections, agrees, the "
+                             "frame - would need to learn the flag, and a state-var the prover "
+                             "skips is a contradiction in the kind's own prose: finite domains "
+                             "are the price of the proof."}),
+        Node(id="alt-names-on-the-model", kind="alternative",
+             name="A list of size names in the model's payload",
+             payload={"why": "No projection, so no tape could say what size it was recorded "
+                             "at, and conduct/cost would evaluate every expr at nothing."}),
+    ],
+)
+
+_COST_AT_THE_DOORS = Node(
+    id="a-cost-is-counted-at-the-boundarys-doors",
+    kind="decision",
+    name="A cost is documents read, writes made and bytes crossed through the boundary's read "
+         "and write doors, held on every tape to an expr evaluated at the sizes the tape "
+         "projects; growth is held per size-var on the drawing, symbolically, before any tape",
+    payload={
+        "rationale":
+            "Counts are deterministic: a replay asks the same questions in the same order, "
+            "so reads, writes and bytes are exact properties of (code, recorded world) where "
+            "a call's milliseconds are a symptom of the machine it ran on. The boundary "
+            "already names the writes; naming the reads beside them is what lets one native "
+            "count both without a second declaration. Growth is what matters and constants "
+            "are brittle: the drawing states each cost as an expr in the sizes, model/cost "
+            "reads its degree in each and holds it to the size-var's `growth`, and "
+            "conduct/cost compares the expr's value at the tape's sizes - so a tape recorded "
+            "small still convicts a cost that grows wrong, and a bigger store does not move "
+            "the goalposts.",
+    },
+    children=[
+        Node(id="alt-milliseconds", kind="alternative",
+             name="Hold each act to a time budget read off `call.ms`",
+             payload={"why": "Time varies with the machine, the network and the cache: a tape "
+                             "that fails on a slow afternoon convicts nothing, and one that "
+                             "passes hides growth behind a fast disk."}),
+        Node(id="alt-absolute-constants", kind="alternative",
+             name="A fixed count per action, no sizes",
+             payload={"why": "A constant that holds at the size the tape was recorded at says "
+                             "nothing about the next size; growth class is the claim, and a "
+                             "constant cannot state one."}),
+        Node(id="alt-count-in-production", kind="alternative",
+             name="Count in the running app and refuse past the budget",
+             payload={"why": "The counter would cost what it counts on every call; the tape "
+                             "already holds the events, and reading them later is free."}),
+    ],
+)
+
+
+def _cost_debt(id_, name, note, condition, unit="check", source=""):
+    return Node(
+        id=id_, kind="debt", name=name,
+        params={"done": Quantity(value=0, unit=unit, provenance="not built", grounded=False,
+                                 source=source or "named at the cost layer's first publish, "
+                                                  "2026-10-04; nothing holds it yet")},
+        payload={"note": note},
+        children=[Node(id=f"{id_}--discharge", kind="discharge",
+                       payload={"condition": condition})],
+    )
+
+
+_COMPUTE_DEBT = _cost_debt(
+    "compute-is-accepted-and-counted-by-nothing",
+    "A cost may state `compute` and no native holds it: instructions are counted at replay, "
+    "never in production, and that counter does not exist",
+    "The kind accepts the dimension now so a drawing can state it; a replay that counts "
+    "instructions per span and per code object, stamped with the code hash and the "
+    "interpreter version, is the recorder's half. Growth class across sizes is the claim, "
+    "never absolute counts, which are brittle across interpreters.",
+    "flight-recorder's replay writes an instruction count per span and per code object "
+    "beside the trace, and conduct/cost holds the `compute` expr to it the way it holds "
+    "reads to the doors.")
+
+_PATH_COST_DEBT = _cost_debt(
+    "model-cost-reads-each-action-alone",
+    "model/cost holds each action's cost on its own; it sums nothing along a path and "
+    "aggregates nothing over behaviors",
+    "Path costs as sums along joinings, and aggregates over behaviors by explicit-state "
+    "search with the sizes as parameters rather than fixed constants, are what the issue "
+    "that named this layer asked for next. One action at a time is enough to refuse an "
+    "action that reads the whole store; it says nothing about a round of ten.",
+    "model/cost answers for a path (the sum of its actions' costs) and for the reachable "
+    "set (the greatest cost of any path to each state), with sizes as parameters.")
+
+_GROWTH_DISCOVERY_DEBT = _cost_debt(
+    "undeclared-growth-is-invisible",
+    "A function whose work grows with a size, under a span whose cost names no size, passes "
+    "conduct/cost at every size the tapes happen to hold",
+    "The cost analogue of totality: replay the same scenario at two or more sizes and "
+    "profile every code object; a count that grows with a size must sit under a span whose "
+    "cost mentions that size, and growth nobody declared is red.",
+    "A replay-time profiler compares per-code-object counts across sized tapes and names "
+    "the code that grew under a span whose cost does not mention the size.")
+
+_WITNESS_DEBT = _cost_debt(
+    "an-unwitnessed-size-passes-by-vacuity",
+    "An (action, size-var) pair no scenario varies cannot show growth, and conduct/cost "
+    "notes it per tape without ever saying which pairs no tape has ever witnessed twice",
+    "A note on one tape is honest about that tape; the question is coverage: for each "
+    "action and each size it names, is the pair witnessed at two or more sizes anywhere? "
+    "Until it is, the pair is unwitnessed - never passing - and the report should say so "
+    "in one place.",
+    "A coverage report lists every (action, size-var) pair with the sizes the pinned tapes "
+    "witnessed it at, and a pair under two is red or carried as a debt naming why.")
+
+_COST_DRAFT_DEBT = _cost_debt(
+    "declaring-a-cost-is-typing",
+    "epure.draft proposes guards and updates from tapes and proposes no cost: every cost "
+    "expr is written by hand",
+    "Sized tapes determine most costs - constant, linear in one size, a sum - the way the "
+    "projected worlds determine most updates; the draft should propose them so declaring "
+    "ninety costs is a reading job, and a disagreement becomes an adjudication.",
+    "epure.draft proposes a cost expr per (action, dimension) from two or more sized tapes, "
+    "held to the hand-written one over every pinned tape.")
 
 
 _NAME = Node(

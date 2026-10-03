@@ -72,6 +72,7 @@ from epure.behavior import (agrees, commute, conditional, constructible, declare
                             effect, eventually, faithful, frame, last_write, merge, refusal,
                             same_story, stamped, twice, undo)
 from epure.conformance import licensed, refines, total
+from epure.cost import conduct_cost
 from epure.tape import import_scenario
 
 _CHECKS: tuple[tuple[str, Callable], ...] = (
@@ -80,10 +81,10 @@ _CHECKS: tuple[tuple[str, Callable], ...] = (
     ("agrees", agrees), ("twice", twice), ("last-write", last_write), ("commute", commute),
     ("undo", undo), ("durable", durable), ("same-story", same_story),
     ("constructible", constructible), ("merge", merge), ("stamped", stamped),
-    ("conditional", conditional), ("eventually", eventually))
+    ("conditional", conditional), ("eventually", eventually), ("cost", conduct_cost))
 _CONDUCT = ("effect", "faithful", "frame", "refusal", "agrees", "twice", "last-write",
             "commute", "undo", "durable", "same-story", "constructible", "merge", "stamped",
-            "conditional", "eventually")
+            "conditional", "eventually", "cost")
 _STRETCH = ("agrees", "twice", "last-write", "commute", "undo", "durable", "same-story",
             "constructible", "merge", "stamped", "conditional", "eventually")
 

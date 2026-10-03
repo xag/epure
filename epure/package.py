@@ -1,4 +1,16 @@
-"""semantic-model@0.17.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.18.0 — the meta-vocabulary a semantic model is written in.
+
+0.18.0: cost. Time is a symptom; complexity is what a drawing can hold, and reads, writes and
+payload bytes are exact properties of (code, recorded world) where milliseconds are not. Two
+kinds: `size-var` on the model - a dimension the data grows along, projected from the store
+like a state-var and never enumerated by the prover - and `cost` on the action - exprs over
+the size-vars for `reads`, `writes`, `bytes` and, optionally, `compute`. The rule
+an-action-states-its-cost refuses an action with none (the analogue of a decision with no
+rejected alternative); `model/cost` holds each expr's growth to what its size-var allows, on
+the drawing; `conduct/cost` counts what each act spent through the boundary's doors - which
+now name `reads` beside `writes` - and holds it to the expr evaluated at the sizes the tape
+shows. The cloakroom states every action's cost and sizes its register; the counter-example
+is an action that states none.
 
 0.17.0: the `adjudication` kind - a verdict on a drafted-versus-hand disagreement,
 recorded as data on the action it judged, carrying both expressions, its author, and
@@ -89,6 +101,14 @@ VOCABULARY = [
                 "data, guards and domains respected, every invariant re-checked at every "
                 "step — and counts divergences, naming the first divergent span.",
                 params_doc={"rel": "the link from the scenario to this model"}),
+            "cost": OperationDef(
+                contract="model/cost",
+                description="Every cost on the drawing is one a tape can be held to "
+                "(0.18.0): `solve('model/cost', self)` on the model node counts the cost "
+                "statements that are not - a dimension unstated, a variable no size-var "
+                "declares, growth past what the size-var allows - and notes a model whose "
+                "costs no boundary door could count.",
+                params_doc={}),
         },
     ),
     KindDef(
@@ -126,6 +146,20 @@ VOCABULARY = [
         "warning decides the shape: a projection that reimplements the operation tests "
         "nothing, while one that reads the app's own decision holds the model's arithmetic "
         "to the app's. A view that carries no projection is still counted by the census.",
+    ),
+    KindDef(
+        kind="size-var",
+        description="A child of `model` (0.18.0): one dimension the data grows along - the "
+        "words in a learner's memory, the rows of a bank, the members of a household - as a "
+        "named, unbounded parameter every `cost` expr may use. NEVER state: the prover "
+        "enumerates state-vars, and a size has no finite domain to enumerate, which is why "
+        "this is its own kind and not a flag on `state-var`. Payload: `shown` (optional - "
+        "{\"door\": <door>, \"expr\": <rule grammar>}, the read whose result, bound as "
+        "`res`, gives the size: the same projection a state-var carries, so a tape says what "
+        "size it was recorded at; a size nothing shows is unwitnessed, which conduct/cost "
+        "reports and never passes) and `growth` (\"constant\" | \"linear\" | \"any\", "
+        "default linear: the most any one action's cost may grow in this dimension, held "
+        "symbolically by model/cost).",
     ),
     KindDef(
         kind="event-kind",
@@ -266,7 +300,9 @@ VOCABULARY = [
         kind="boundary",
         description="A child of `model`: the write functions the app's recording boundary "
         "declares - the names that reach the tape as `fn` when the world is changed. Payload: "
-        "`writes` ([fnmatch patterns]). The boundary itself is flight-recorder's (the app "
+        "`writes` ([door specs]) and, since 0.18.0, `reads` ([door specs]: the functions that "
+        "read, which conduct/cost counts as documents and bytes). The boundary itself is "
+        "flight-recorder's (the app "
         "says which module functions it records); this says which of them WRITE, so the door "
         "census (conduct/doors) can hold every one to being a door of some action. Without "
         "it `touches.via: []` means 'no declared door', with it the whole state: a write "
@@ -339,6 +375,21 @@ VOCABULARY = [
         "the verdict does not stand.",
     ),
     KindDef(
+        kind="cost",
+        description="A child of `action` (0.18.0): what one occurrence of the action may "
+        "spend, as exprs over the model's size-vars and constants (the rule grammar's "
+        "arithmetic: + - * / min max). Payload: `reads` (documents read: a read through the "
+        "boundary's read doors counts the items it returned, at least one), `writes` (writes "
+        "through its write doors), `bytes` (what crossed: a read's result and a write's "
+        "arguments, as JSON), and optionally `compute` (instructions, counted at replay and "
+        "never in production - accepted here, checked by nothing yet, a named debt in the "
+        "authoring repo's ledger). Nothing that grows with the data goes unstated: reads, "
+        "writes and bytes are each stated, and model/cost reds a cost missing one. Every "
+        "action carries one - the rule below - because an action with no cost is a "
+        "transition whose price nobody drew, the way a decision with no rejected "
+        "alternative is a choice nobody weighed.",
+    ),
+    KindDef(
         kind="invariant",
         description="A predicate over state-vars that must hold in every reachable state of "
         "the model — proven exhaustively by `model/prove` at design time, and re-checked at "
@@ -377,6 +428,15 @@ RULES = [
         "is exactly where a proven model quietly stops describing the system. Every action "
         "names the testimony that instantiates it, or it does not enter.",
         expr="len(nodes('observation', self)) >= 1",
+    ),
+    Rule(
+        name="an-action-states-its-cost",
+        kind="action",
+        description="An action with no cost is a transition whose price nobody drew: the "
+        "prover explores it, a tape exhibits it, and nothing says whether it may grow with "
+        "the data. The analogue of a decision naming no rejected alternative - a choice "
+        "nobody weighed. Every action states what it may spend, or it does not enter.",
+        expr="len(nodes('cost', self)) >= 1",
     ),
     Rule(
         name="a-verdict-rests-on-samples",
@@ -449,6 +509,8 @@ EXAMPLES = [
                  children=[
                      Node(id="insert-coin-witness", kind="observation",
                           payload={"event": "coin"}),
+                     Node(id="insert-coin-cost", kind="cost",
+                          payload={"reads": "1", "writes": "0", "bytes": "64"}),
                      Node(id="insert-coin-mutates", kind="mutates",
                           payload={"entity": "coins", "from": []},
                           name="the coin count moves; no argument determines it, "
@@ -466,6 +528,8 @@ EXAMPLES = [
                  children=[
                      Node(id="push-through-witness", kind="observation",
                           payload={"event": "push"}),
+                     Node(id="push-through-cost", kind="cost",
+                          payload={"reads": "1", "writes": "0", "bytes": "64"}),
                      Node(id="push-through-mutates", kind="mutates",
                           payload={"entity": "entries", "from": []}),
                      Node(id="push-through-touches", kind="touches",
@@ -508,9 +572,16 @@ EXAMPLES = [
                       "written (0.11.0, the derived view)"),
             # the register's version stamp: every write of the register bumps it, nothing
             # else does, and a conditional retag is handed the stamp it expects
+            Node(id="register_entries", kind="size-var",
+                 payload={"shown": {"door": "register.read", "expr": "at('rev', 0)"},
+                          "growth": "linear"},
+                 name="how big the register is: the dimension an import's cost grows along, "
+                      "read off the register's stamp - a size the tape witnesses, never a "
+                      "state the prover walks"),
             Node(id="cloakroom-boundary", kind="boundary",
                  payload={"writes": ["hook.write", "hook.delete", "tag.write", "shelf.write",
-                                     "register.write"]},
+                                     "register.write"],
+                          "reads": ["hook.read", "tag.read", "shelf.read", "register.read"]},
                  name="every function the cloakroom's recorder knows as a write; each is a "
                       "door of some action below, which conduct/doors holds"),
             Node(id="register-rev", kind="validator",
@@ -595,6 +666,8 @@ EXAMPLES = [
                  children=[
                      Node(id="check-coat-witness", kind="observation",
                           payload={"event": "deposit"}),
+                     Node(id="check-coat-cost", kind="cost",
+                          payload={"reads": "0", "writes": "2", "bytes": "256"}),
                      Node(id="check-coat-creates", kind="creates",
                           payload={"entity": "held", "from": ["coat"],
                                    "via": "hook.write", "shown_by": "hook.read"},
@@ -613,6 +686,8 @@ EXAMPLES = [
                  children=[
                      Node(id="tag-coat-witness", kind="observation",
                           payload={"event": "tagging"}),
+                     Node(id="tag-coat-cost", kind="cost",
+                          payload={"reads": "0", "writes": "2", "bytes": "256"}),
                      Node(id="tag-coat-mutates", kind="mutates",
                           payload={"entity": "tag", "from": ["color"],
                                    "via": "tag.write", "shown_by": "tag.read"},
@@ -650,6 +725,8 @@ EXAMPLES = [
                                "the tapes' bias, not the world's rule"),
                      Node(id="shelve-coat-witness", kind="observation",
                           payload={"event": "shelving"}),
+                     Node(id="shelve-coat-cost", kind="cost",
+                          payload={"reads": "0", "writes": "2", "bytes": "256"}),
                      Node(id="shelve-coat-mutates", kind="mutates",
                           payload={"entity": "shelf", "from": ["level"],
                                    "via": "shelf.write", "shown_by": "shelf.read"}),
@@ -665,6 +742,8 @@ EXAMPLES = [
                  children=[
                      Node(id="retag-if-witness", kind="observation",
                           payload={"event": "retagging"}),
+                     Node(id="retag-if-cost", kind="cost",
+                          payload={"reads": "1", "writes": "2", "bytes": "256"}),
                      Node(id="retag-if-mutates", kind="mutates",
                           payload={"entity": "tag", "from": ["color"],
                                    "via": "tag.write", "shown_by": "tag.read"},
@@ -686,6 +765,8 @@ EXAMPLES = [
                  children=[
                      Node(id="import-register-witness", kind="observation",
                           payload={"event": "importing"}),
+                     Node(id="import-register-cost", kind="cost",
+                          payload={"reads": "1 + register_entries", "writes": "2", "bytes": "64 * (1 + register_entries)"}),
                      Node(id="import-register-merges", kind="merges",
                           payload={"other": {"tag": "other_tag", "shelf": "other_shelf"},
                                    "absent": {"tag": "none", "shelf": "floor"},
@@ -702,6 +783,8 @@ EXAMPLES = [
                  children=[
                      Node(id="glance-witness", kind="observation",
                           payload={"event": "glancing"}),
+                     Node(id="glance-cost", kind="cost",
+                          payload={"reads": "4", "writes": "0", "bytes": "512"}),
                      Node(id="glance-touches", kind="touches",
                           payload={"only": [], "via": []},
                           name="the read-act (0.15.0): the attendant looks and writes "
@@ -722,6 +805,8 @@ EXAMPLES = [
                  children=[
                      Node(id="reclaim-coat-witness", kind="observation",
                           payload={"event": "reclaim"}),
+                     Node(id="reclaim-coat-cost", kind="cost",
+                          payload={"reads": "0", "writes": "2", "bytes": "256"}),
                      Node(id="reclaim-coat-deletes", kind="deletes",
                           payload={"entity": "held",
                                    "via": "hook.delete", "shown_by": "hook.read"},
@@ -787,6 +872,18 @@ COUNTER_EXAMPLES = [
         ),
     ),
     CounterExample(
+        rule="an-action-states-its-cost",
+        because="a transition whose price nobody drew: observable, guarded, and silent on "
+                "whether it reads the whole store every time",
+        node=Node(
+            id="free-lunch", kind="action",
+            name="An action that states no cost",
+            payload={"guard": "1 == 1", "updates": [], "args": {}},
+            children=[Node(id="free-lunch-witness", kind="observation",
+                           payload={"event": "coin"})],
+        ),
+    ),
+    CounterExample(
         rule="an-event-kind-carries-a-license",
         because="testimony with no evidence requirement — the code could claim it forever "
                 "and no tape could ever convict the claim",
@@ -822,6 +919,12 @@ SOLVERS = [
         "state of the (finite) model at `path`; returns the count of refuted invariants. "
         "Design-time, once; the artifact a green run emits grounds evidence."),
     SolverDef(
+        name="model/cost", native=True,
+        description="(path): on the model at `path`, count the cost statements no tape could "
+        "be held to - a dimension unstated, a variable no size-var declares, an expr the "
+        "grammar will not read, or growth in a size-var past what it allows - read off the "
+        "exprs symbolically, on the drawing, before any tape."),
+    SolverDef(
         name="model/promised", native=True,
         description="count the `promise`s of the model at `path` with a reachable `when`-state "
         "from which no `then` (or `unless`) state is reachable — the model-side half of "
@@ -845,7 +948,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.17.0",
+    version="0.18.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

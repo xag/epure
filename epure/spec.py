@@ -209,6 +209,66 @@ def cloakroom() -> Node:
     return EXAMPLES[1].model_copy(deep=True)
 
 
+# --- model/cost: the drawing's costs, read symbolically ---------------------------------
+
+
+def cloakroom_overgrown() -> Node:
+    """The import's reads grow with the square of the register, past the linear growth the
+    size-var allows."""
+    model = cloakroom()
+    for a in model.children:
+        if a.id == "import-register":
+            for c in a.children:
+                if c.kind == "cost":
+                    c.payload = {**c.payload, "reads": "register_entries * register_entries"}
+    return model
+
+
+def cloakroom_unstated() -> Node:
+    """The glance states reads and writes and says nothing of bytes - a dimension that grows
+    with the data, unstated."""
+    model = cloakroom()
+    for a in model.children:
+        if a.id == "glance":
+            for c in a.children:
+                if c.kind == "cost":
+                    c.payload = {k: v for k, v in c.payload.items() if k != "bytes"}
+    return model
+
+
+def cloakroom_unsized() -> Node:
+    """The import's cost names a size no size-var declares."""
+    model = cloakroom()
+    for a in model.children:
+        if a.id == "import-register":
+            for c in a.children:
+                if c.kind == "cost":
+                    c.payload = {**c.payload, "reads": "1 + coats"}
+    return model
+
+
+COST_MODEL = [
+    d("cost", [cloakroom()], ["cloakroom"], expect=0,
+      because="every action states reads, writes and bytes; the import grows linearly in the "
+              "register, which its size-var allows"),
+    d("cost", [cloakroom_overgrown()], ["cloakroom"], expect=1,
+      because="the import's reads are quadratic in the register and the size-var allows "
+              "linear growth: superlinear on the drawing, red before any tape"),
+    d("cost", [cloakroom_unstated()], ["cloakroom"], expect=1,
+      because="a cost silent on bytes: nothing that grows with the data may go unstated"),
+    d("cost", [cloakroom_unsized()], ["cloakroom"], expect=1,
+      because="a cost in a variable no size-var declares: a parameter nothing projects, so "
+              "no tape could ever say what size it was recorded at"),
+    d("cost", [turnstile()], ["turnstile"], expect=0,
+      because="constant costs on a hardware model with no boundary: the drawing holds; the "
+              "model notes that no door could count them on a tape"),
+]
+
+
+SEMANTIC_MODEL_SPEC["model/cost"] = COST_MODEL
+
+
+
 def _sem(name: str, phase: str, sid: int, data: dict | None = None,
          outcome: str | None = None) -> dict[str, Any]:
     ev: dict[str, Any] = {"k": "sem", "name": name, "phase": phase, "sid": sid}
@@ -554,6 +614,45 @@ def c(contract: str, nodes: list[Node], args: list, because: str, **expect):
 
 def visited(tape: Node) -> list[Node]:
     return [cloakroom(), tape]
+
+
+# --- conduct/cost: what each act spent, against its cost at the tape's sizes --------------
+#
+# The deposit's cost allows no reads; a deposit that reads the hook three times has spent
+# past it. The import's reads grow with the register, so an import after a register read of
+# rev=2 may read three and no more; before any register read its size is unwitnessed.
+
+WITHIN_COST = visit([*world(None, None, None, 0), *DEPOSIT, _read({"coat": "red"})])
+OVERSPENT = visit([*world(None, None, None, 0),
+                   *_act("deposit", RED, _read(None), _read(None), _read(None), _write("red")),
+                   _read({"coat": "red"})])
+_IMPORT = {"other_tag": "blue", "other_shelf": "high"}
+IMPORT_WITHIN = visit([*world(None, None, None, 2),
+                       *_act("importing", _IMPORT, _rev_read(2), _read(None), _read(None),
+                             _write("blue"), _rev_write(3))])
+IMPORT_OVER = visit([*world(None, None, None, 2),
+                     *_act("importing", _IMPORT, _rev_read(2), _read(None), _read(None),
+                           _read(None), _write("blue"), _rev_write(3))])
+IMPORT_UNWITNESSED = visit([*_act("importing", _IMPORT, _read(None), _write("blue"),
+                                  _rev_write(1))])
+
+COST = [
+    c("cost", visited(WITHIN_COST), ["visit", "model"], expect=0,
+      because="the deposit wrote twice and read nothing: within its cost"),
+    c("cost", visited(OVERSPENT), ["visit", "model"], expect=1,
+      because="three hook reads inside a deposit whose cost allows none: the act is named "
+              "with the dimension, the count and the sizes"),
+    c("cost", visited(IMPORT_WITHIN), ["visit", "model"], expect=0,
+      because="the register showed rev=2, so the import may read 1 + 2 = 3; it read three"),
+    c("cost", visited(IMPORT_OVER), ["visit", "model"], expect=1,
+      because="at rev=2 the import may read three and read four: past its cost at that size"),
+    c("cost", visited(IMPORT_UNWITNESSED), ["visit", "model"], expect=0,
+      because="no register read at or before the import: its size is unwitnessed, the act "
+              "is unjudged in reads and bytes and the note says so - never a pass"),
+    c("cost", [cloakroom(), Node(id="visit", kind="session")], ["visit", "model"],
+      expect_error="links 'model' to 0",
+      because="a tape naming no model is unjudged, never green"),
+]
 
 
 EFFECT = [
@@ -978,6 +1077,7 @@ CONDUCT_SPEC = {
     "conduct/stamped": STAMPED_SPEC,
     "conduct/conditional": CONDITIONAL_SPEC,
     "conduct/effect": EFFECT,
+    "conduct/cost": COST,
     "conduct/faithful": FAITHFUL,
     "conduct/frame": FRAME,
     "conduct/refusal": REFUSAL,
