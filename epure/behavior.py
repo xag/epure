@@ -353,6 +353,10 @@ class _Projection:
     def __init__(self, var: str, spec: dict[str, Any], domain: list[Any]):
         self.var = var
         self.doors = doors(spec.get("door"))
+        # a STATEMENT door: the app's own word at a point, read as `data`. An act's statement
+        # is its world after; the next act's statement is that act's, never this one's
+        d = spec.get("door")
+        self.stated = isinstance(d, dict) and str(d.get("event", "")) == "sem"
         self.src = str(spec.get("expr", ""))
         if not self.doors or not self.src:
             raise ValueError(f"state-var '{var}': a projection names a door and an expr")
@@ -441,6 +445,9 @@ class _Model:
         # culprit rules read - a door the boundary does not record is the drawing's error
         self.boundary: list[str] = [str(w) for c in model.children if c.kind == "boundary"
                                     for w in (c.payload.get("writes") or [])]
+        # the event kinds some action is witnessed by: a point the model never named is no
+        # act to judge, and is not noted as one
+        self.witnessed: set[str] = {e for a in self.actions for e in a.events}
         # Every door the model knows as a write: the frame's universe.
         self.known: list[Door] = []
         for a in self.actions:
@@ -1128,18 +1135,33 @@ class _Worlds:
                 break
         return before, after
 
-    def _read_after(self, proj: _Projection, to: tuple):
+    def _read_after(self, proj: _Projection, to: tuple, at: tuple | None = None, act: "_Act | None" = None):
         """The first read of the variable after `to` — unless a write through one of the
         variable's own doors comes first, in which case the world after this act was never
-        read for this variable."""
+        read for this variable. For a statement, the act's own last word inside its window
+        (`at`, `to`]: what the act said of itself is its world after, and what the next act
+        says is the next act's."""
+        if proj.stated and at is not None:
+            own = [(pos, e) for pos, e in self.stream if at < pos <= to and _through(e, proj.doors)]
+            if own:
+                return own[-1]
         for pos, e in self.stream:
             if pos <= to:
                 continue
             if _through(e, self.writes_of.get(proj.var, [])):
                 return None
             if _through(e, proj.doors):
+                if proj.stated and act is not None and self._inside_another_act(pos, act):
+                    return None  # the next act's own word, not this act's world after
                 return pos, e
         return None
+
+    def _inside_another_act(self, pos: tuple, act: "_Act") -> bool:
+        """Whether a position falls inside the window of an act of the same level as `act`
+        that is not `act`: another call for a call, another top-level span for a span. A
+        call encloses its own spans, so a statement inside it is not another act's for them."""
+        return any(b is not act and b.is_call == act.is_call and b.at < pos <= b.to
+                   for b in self.acts)
 
     def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
         return [e for pos, e in self.stream if lo < pos < hi and _through(e, proj.doors)]
@@ -1223,7 +1245,7 @@ class _Worlds:
                     before = self._read_before(proj, act.at)
                     if before is not None and (v := proj.value(before[1])) is not None:
                         pre[var], pre_at[var] = v, before[0]
-                    after = self._read_after(proj, act.to)
+                    after = self._read_after(proj, act.to, act.at, act)
                     if after is not None and (v := proj.value(after[1])) is not None:
                         post[var], post_at[var] = v, after[0]
                 except ValueError as e:
@@ -1232,7 +1254,7 @@ class _Worlds:
                              for var, _ in self.by_id[a.id]["updates"]}
             stamps = self._stamps(act)
             for action, part in self._bind(act, pre, where):
-                if action is None:
+                if action is None and (act.is_call or act.span.kind in self.model.witnessed):
                     self.notes.append(f"{where} binds no single action - not judged")
 
                 def keep(d: dict, part=part) -> dict:

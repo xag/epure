@@ -71,3 +71,41 @@ def test_a_status_that_leaves_the_slot_held_disagrees_with_the_drain():
 def test_the_counter_part_is_noted_not_judged_when_its_variable_is_not_shown():
     out = agrees(_tree(drained=True), "s", "model")
     assert not any("new-day" in d for d in out.diagnostics)
+
+
+def test_an_acts_own_statement_is_its_world_after_and_the_next_acts_is_not():
+    """A call states what it answered; the drawing reads the statement as that call's world
+    after. The next call's statement belongs to the next call."""
+    model = Node(id="m", kind="model", children=[
+        Node(id="told", kind="state-var",
+             payload={"type": "bool", "init": False,
+                      "shown": {"door": {"event": "sem", "where": {"name": "said"}}, "expr": "at('done', false)"}}),
+        Node(id="status", kind="event-kind", payload={"args": {}},
+             children=[Node(id="status-license", kind="license", payload={"expr": "true", "note": ""})]),
+        Node(id="undo", kind="event-kind", payload={"args": {}},
+             children=[Node(id="undo-license", kind="license", payload={"expr": "true", "note": ""})]),
+        Node(id="quiet", kind="action", payload={"guard": "true", "updates": [{"var": "told", "expr": "false"}]},
+             children=[Node(id="quiet-by", kind="observation", payload={"event": "status"})]),
+        Node(id="done", kind="action", payload={"guard": "true", "updates": [{"var": "told", "expr": "true"}]},
+             children=[Node(id="done-by", kind="observation", payload={"event": "undo"})]),
+    ])
+
+    def said(done: bool, sid: int) -> dict:
+        return {"k": "sem", "name": "said", "phase": "point", "sid": sid, "data": {"done": done}}
+
+    calls = [
+        {"seq": 1, "fn": "status", "kwargs": {}, "events": [said(False, 1)]},
+        {"seq": 2, "fn": "undo", "kwargs": {}, "events": [said(True, 2)]},
+        {"seq": 3, "fn": "status", "kwargs": {}, "events": [said(False, 3)]},
+    ]
+    session = Node(id="s", kind="session", links={"model": ["m"]}, children=[_scenario(c) for c in calls])
+    t = Quern()
+    t.root.children = [model, session]
+    out = agrees(t, "s", "model")
+    assert out.violations == 0, out.diagnostics
+    # the status that claims done is convicted by its own word, not excused by the next call's
+    calls[2]["events"] = [said(True, 3)]
+    session = Node(id="s", kind="session", links={"model": ["m"]}, children=[_scenario(c) for c in calls])
+    t.root.children = [model, session]
+    out = agrees(t, "s", "model")
+    assert out.violations == 1 and "quiet" in out.diagnostics[0], out.diagnostics
