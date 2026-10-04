@@ -471,3 +471,14 @@ def test_a_moved_clock_still_wins_over_the_mirror_fact():
                    if "glance" in d]
     assert glance_rows, got.diagnostics
     assert glance_rows[0][0] == "harness", glance_rows[0][1]
+
+
+def test_a_star_on_a_list_finds_the_member_that_carries_the_path():
+    from epure.behavior import _at
+    docs = [{"id": "progress", "exists": False, "data": None},
+            {"id": "korean", "exists": True, "data": {"size": 40}}]
+    assert _at(docs, "*.data.size") == 40, "a batched read's order is not promised"
+    assert _at(docs, "*.id") == "progress", "with the path resolving at the first, the first"
+    assert _at(docs, "*.data.norms", -1) == -1
+    assert _at([], "*.data.size", -1) == -1
+    assert _at({"a": {"size": 1}}, "*.size") == 1

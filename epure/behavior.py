@@ -272,24 +272,31 @@ def _names(hay: Any, ident: str) -> bool:
 
 
 def _at(res: Any, path: str, default: Any = None) -> Any:
-    """A dotted path into a read's result; `*` takes the first value of a map or list."""
-    cur = res
-    for part in [p for p in str(path).split(".") if p]:
-        if isinstance(cur, dict):
+    """A dotted path into a read's result; `*` takes the first value of a map, and on a list
+    the first member under which the rest of the path resolves - a batched read hands its
+    documents back in no promised order, so `*.data.size` finds the one that carries a size
+    wherever the store put it."""
+    parts = [p for p in str(path).split(".") if p]
+    for i, part in enumerate(parts):
+        if isinstance(res, dict):
+            res = next(iter(res.values()), None) if part == "*" else res.get(part)
+        elif isinstance(res, list):
             if part == "*":
-                cur = next(iter(cur.values()), None)
-            else:
-                cur = cur.get(part)
-        elif isinstance(cur, list):
+                rest = ".".join(parts[i + 1:])
+                for member in res:
+                    found = _at(member, rest, None)
+                    if found is not None:
+                        return found
+                return default
             try:
-                cur = cur[0] if part == "*" else cur[int(part)]
+                res = res[int(part)]
             except (ValueError, IndexError):
-                cur = None
+                res = None
         else:
-            cur = None
-        if cur is None:
+            res = None
+        if res is None:
             return default
-    return cur
+    return res
 
 
 def _members(xs: Any, *filters: Any) -> list[dict[str, Any]]:
