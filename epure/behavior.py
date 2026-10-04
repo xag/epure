@@ -136,11 +136,24 @@ def _render(value: Any) -> str:
     return str(value)
 
 
+_DOORS: dict[str, Door] = {}
+
+
 def door(spec: Any) -> Door:
     """One door as a predicate over raw events: a name pattern, optionally narrowed by
     argument patterns. `{"event": "app.storage.put_field", "where": {"field": "done.*"}}`
     admits a field write to the completions map and nothing else; `{"event": "sem",
-    "where": {"name": "board-shown"}}` admits the app's own statement at a point."""
+    "where": {"name": "board-shown"}}` admits the app's own statement at a point. One
+    predicate per distinct spec: declarations that name the same door share it, and an
+    index of a tape by door is built once for all of them."""
+    key = json.dumps(spec, sort_keys=True, default=str)
+    if key in _DOORS:
+        return _DOORS[key]
+    _DOORS[key] = _door(spec)
+    return _DOORS[key]
+
+
+def _door(spec: Any) -> Door:
     if isinstance(spec, str):
         pattern, where = spec, {}
     elif isinstance(spec, dict):
@@ -1091,12 +1104,28 @@ class _Worlds:
         # through its door and of the writes through its doors. Every act asks for the read
         # before it and after it, and a scan of the whole stream per act per variable was
         # the cost of a tape (6 s on 450 events and 26 projections, 2026-10-05).
+        # Many variables share a door (every answer's statement, the profile document), so
+        # each distinct door is matched once against the stream and its hits are shared.
+        by_door: dict[int, list[tuple[tuple, dict]]] = {}
+
+        def hits_of(ds: list[Door]) -> list[tuple[tuple, dict]]:
+            out: list[tuple[tuple, dict]] = []
+            seen: set[tuple] = set()
+            for d in ds:
+                key = id(d)
+                if key not in by_door:
+                    by_door[key] = [(pos, e) for pos, e in self.stream if d(e)]
+                for pos, e in by_door[key]:
+                    if pos not in seen:
+                        seen.add(pos)
+                        out.append((pos, e))
+            out.sort(key=lambda t: t[0])
+            return out
+
         self._hits: dict[str, list[tuple[tuple, dict]]] = {
-            v: [(pos, e) for pos, e in self.stream if _through(e, proj.doors)]
-            for v, proj in self.projections.items()}
+            v: hits_of(proj.doors) for v, proj in self.projections.items()}
         self._writes_at: dict[str, list[tuple]] = {
-            v: [pos for pos, e in self.stream if _through(e, self.writes_of.get(v, []))]
-            for v in self.projections}
+            v: [pos for pos, _ in hits_of(self.writes_of.get(v, []))] for v in self.projections}
         self._parts_cache: list[set[str]] | None = None
         self._touched_cache: dict[str, set[str]] = {}
         self._compute()
