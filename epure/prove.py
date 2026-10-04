@@ -54,7 +54,7 @@ from quern import solver as _store
 # The rule grammar's reference evaluator, at the rev pyproject pins. Private on purpose —
 # nothing else should evaluate exprs — and reached here because the alternative is a second
 # implementation of the same grammar, which is how one text acquires two meanings.
-from quern.tree import _parse_or, _tokenize
+from quern.expr import compile_expr
 
 from epure import __version__
 
@@ -109,15 +109,12 @@ def _compile(src: str, where: str, env: dict[str, Any] = _ENV) -> Callable[..., 
     """One expr, tokenized once, evaluated many times — the walk's inner loop. A caller
     whose environment varies per evaluation (a license's ctx window) passes it at run time."""
     try:
-        tokens = _tokenize(src)
+        expr = compile_expr(src)
     except ValueError as e:
         raise ValueError(f"{where}: {e}") from e
 
     def run(variables: dict[str, Any], _env: dict[str, Any] | None = None) -> Any:
-        value, pos = _parse_or(tokens, 0, _env or env, variables)
-        if pos != len(tokens):
-            raise ValueError(f"{where}: unexpected '{tokens[pos][1]}'")
-        return value
+        return expr.evaluate(_env or env, variables)
 
     return run
 

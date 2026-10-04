@@ -40,7 +40,7 @@ def build() -> Quern:
                            _ATTRIBUTION_HYPOTHESIS, _DRAFT_HYPOTHESIS, _DRAFT_ROUTING, _REACHABLE_GRID,
                            _BETWEEN_LOOKS_ONE_WAY, _ADJUDICATION_DEBT,
                            _TEMPORAL_DEBT,
-                           _PUBLISH, _GATE, _ONE_EVALUATOR, _PRE_STATE, _OUT_OF_DOMAIN,
+                           _PUBLISH, _GATE, _ONE_EVALUATOR, _ONE_EVALUATOR_2, _PRE_STATE, _OUT_OF_DOMAIN,
                            _FAIRNESS_DEBT, _TOP_LEVEL_SPANS, _WIDER_GAZE, _DIRECTION_DEBT,
                            _INHERITANCE, _CONDUCT_PUBLISH, _DOORS, _CONDUCT_NATIVES,
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
@@ -533,6 +533,38 @@ _ONE_EVALUATOR = Node(
                       "environment (state variables, action args) would have to be smuggled "
                       "in as fake params — a contortion that obscures exactly the semantics "
                       "the checker exists to make plain."}),
+    ],
+)
+
+
+_ONE_EVALUATOR_2 = Node(
+    id="one-grammar-one-evaluator-2",
+    kind="decision",
+    name="model/prove evaluates guards, updates, invariants, projections and costs with "
+         "quern's public expr API (`quern.expr.compile_expr`, 0.1.2): one grammar, one "
+         "evaluator, reached through the surface the pin now offers",
+    links={"supersedes": ["one-grammar-one-evaluator"]},
+    payload={
+        "rationale":
+            "The point was always single evaluation semantics, never the underscore: quern "
+            "0.1.2 made the grammar an object (`compile_expr` parses once into an immutable "
+            "Expr, `Expr.evaluate` runs it against an env and variables), which is the API "
+            "the superseded decision said this import would move to the day it existed. "
+            "The private import went with the rev; nothing epure reads changed meaning, and "
+            "the suite that held under the private surface holds under the public one.",
+        "note":
+            "Integer literals now stay integers and true/false are literals of the grammar; "
+            "epure keeps binding them as variables too, which is harmless and lets a model "
+            "written for the older rev read the same.",
+    },
+    children=[
+        Node(id="alt-stay-on-the-private-surface", kind="alternative",
+             name="Keep pinning the rev that exposed `_tokenize`/`_parse_or`",
+             payload={"why":
+                      "The estate moved to 0.1.2 for the brief and the navigator; a consumer "
+                      "that pins both epure and a 0.1.2 tool cannot resolve two quern revs, "
+                      "so the private surface would have held epure out of every project "
+                      "that also runs the critic."}),
     ],
 )
 
