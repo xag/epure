@@ -99,6 +99,7 @@ from __future__ import annotations
 import inspect
 
 import json
+from types import SimpleNamespace
 from fnmatch import fnmatch
 from typing import Any, Callable, Iterable
 
@@ -377,6 +378,11 @@ class _Projection:
         if out not in self.domain:
             raise ValueError(f"the world shows '{self.var}' as {out!r}, outside its domain")
         return out
+
+
+def _names_in_src(src: str, names: set[str]) -> set[str]:
+    from epure.prove import _names_in
+    return _names_in(src, names)
 
 
 def _projections(model: Node) -> dict[str, _Projection]:
@@ -1138,15 +1144,76 @@ class _Worlds:
     def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
         return [e for pos, e in self.stream if lo < pos < hi and _through(e, proj.doors)]
 
+    def _parts(self) -> list[set[str]]:
+        """The model's independent parts (the prover's own decomposition): two variables are
+        coupled when one action or one invariant names both. A model that draws several
+        rules side by side is a product of parts, and a call that moves several of them is
+        judged part by part."""
+        from epure.prove import _components
+        names = {v for v, _, _ in self.variables}
+        actions = [SimpleNamespace(touched=self._touched(a.id)) for a in self.model.actions]
+        invariants = [(c.id, "", None, _names_in_src(c.payload.get("expr", ""), names))
+                      for c in self.model_node.children if c.kind == "invariant"]
+        return _components(self.variables, actions, invariants)
+
+    def _touched(self, action_id: str) -> set[str]:
+        names = {v for v, _, _ in self.variables}
+        out = _names_in_src(self.guard_src.get(action_id, ""), names)
+        for var, src in self.update_src.get(action_id, {}).items():
+            out |= {var} | _names_in_src(src, names)
+        return out
+
+    def _bind(self, act: _Act, pre: dict[str, Any], where: str) -> list[tuple[dict | None, set[str] | None]]:
+        """The actions this act is judged as, each with the part of the model it moves.
+
+        An event can witness several actions of one drawing - the status that finds a round
+        waiting and the status that finds none - and several drawings at once - the same
+        status moves the overlay's gate, the widget's snapshot and the round's slot. So the
+        act binds in two steps. Among the actions its event witnesses and its data
+        instantiates, those with no updates yield to those with some (a cost-only action is
+        a price, not a transition). The rest are taken part by part: in each part of the
+        model, the candidates whose guard the world before the act satisfies - judged where
+        every variable the guard reads is shown, kept where one is not - and a part with
+        exactly one left is judged as that action, over that part's variables. A part with
+        none or several is noted, not judged. With one candidate or none, the old rule."""
+        bound = self.model.bound(act.span)
+        moving = [a for a in bound if self.by_id[a.id]["updates"]]
+        if moving:
+            bound = moving
+        if len(bound) <= 1:
+            return [(self.by_id[bound[0].id] if bound else None, None)]
+        out: list[tuple[dict | None, set[str] | None]] = []
+        env = {**pre, **_LITERALS}
+        for part in self._parts():
+            here = [a for a in bound if self._touched(a.id) & part]
+            if not here:
+                continue
+            kept = []
+            for a in here:
+                guard_vars = _names_in_src(self.guard_src.get(a.id, ""), part)
+                if guard_vars <= set(pre):
+                    try:
+                        if not self.by_id[a.id]["guard"]({**env, **self._binding(act, self.by_id[a.id])}):
+                            continue
+                    except Exception:
+                        pass
+                kept.append(a)
+            if len(kept) == 1:
+                out.append((self.by_id[kept[0].id], part))
+            else:
+                self.notes.append(f"{where}: {len(kept)} of {len(here)} action(s) enabled in the "
+                                  f"part {sorted(part)} - not judged there")
+        return out or [(None, None)]
+
+    def _binding(self, act: _Act, action: dict | None) -> dict[str, Any]:
+        data = act.span.payload.get("data") or {}
+        return ({a: _normalize(data[a]) for a in action["args"] if a in data} if action else {})
+
     def _compute(self) -> None:
         for i, act in enumerate(self.acts):
             if act.span.payload.get("outcome") == "error":
                 continue
-            bound = self.model.bound(act.span)
             where = f"{act.path}: '{act.span.kind}'"
-            action = self.by_id[bound[0].id] if len(bound) == 1 else None
-            if action is None:
-                self.notes.append(f"{where} binds {len(bound)} action(s) — not judged")
             pre: dict[str, Any] = {}
             post: dict[str, Any] = {}
             pre_at: dict[str, tuple] = {}
@@ -1161,15 +1228,21 @@ class _Worlds:
                         post[var], post_at[var] = v, after[0]
                 except ValueError as e:
                     self.errors.append(f"{where}: {e}")
-            data = act.span.payload.get("data") or {}
-            binding = ({a: _normalize(data[a]) for a in action["args"] if a in data}
-                       if action else {})
-            w = _World(i, act, action, pre, post, binding)
-            w.pre_at, w.post_at = pre_at, post_at
-            w.inner_updates = {var for inner in act.inner for a in self.model.bound(inner.span)
-                               for var, _ in self.by_id[a.id]["updates"]}
-            w.stamp_before, w.stamp_after = self._stamps(act)
-            self.worlds.append(w)
+            inner_updates = {var for inner in act.inner for a in self.model.bound(inner.span)
+                             for var, _ in self.by_id[a.id]["updates"]}
+            stamps = self._stamps(act)
+            for action, part in self._bind(act, pre, where):
+                if action is None:
+                    self.notes.append(f"{where} binds no single action - not judged")
+
+                def keep(d: dict, part=part) -> dict:
+                    return {k: v for k, v in d.items() if k in part} if part else dict(d)
+
+                w = _World(i, act, action, keep(pre), keep(post), self._binding(act, action))
+                w.pre_at, w.post_at = keep(pre_at), keep(post_at)
+                w.inner_updates = inner_updates
+                w.stamp_before, w.stamp_after = stamps
+                self.worlds.append(w)
 
     def adjacent(self) -> list[tuple[_World, _World]]:
         """Pairs (w1, w2) where w2 is the first bound act that begins after w1 ends — no
