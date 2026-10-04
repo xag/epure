@@ -1,4 +1,15 @@
-"""semantic-model@0.21.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.22.0 — the meta-vocabulary a semantic model is written in.
+
+0.22.0: a property, and the laws' bites. A `property` is a child of `model` stating a law over
+finite domains of arguments - `over` (each a domain as a state-var's, or `{"from": code}` for
+one a witness enumerates), `calls` (names bound to `path.py::fn`, the witnesses), `holds` (an
+expr in the rule grammar over the arguments and the calls): `model/holds` evaluates it at every
+binding and counts the properties with a binding that refutes them. A property is how a
+drawing proves the VALUES a formula gives, on the grid it declares, and how it states the
+universal over a committed artifact. `model/bites` is the other new native: for every invariant
+of a model, a mutant of its actions - a guard dropped, an update dropped, a value swapped -
+that refutes it, or the invariant is counted vacuous; the demonstration a proof keeps beside
+it, generated from the drawing. Kinds and rules are otherwise 0.21.0's.
 
 0.21.0: a cost may be stated by reference. A `cost` whose payload says `as: <action id>` is the
 cost on that other action of the same model: for a drawing's transition - a line offered at a
@@ -119,7 +130,8 @@ VOCABULARY = [
         kind="model",
         description="The root of one semantic model: a small, finite mathematical object — "
         "state variables, actions with guards and updates, an alphabet of observable events, "
-        "invariants. Its children are `state-var`s, `action`s, `event-kind`s and `invariant`s. "
+        "invariants. Its children are `state-var`s, `action`s, `event-kind`s, `invariant`s "
+        "and, since 0.22.0, `property`s. "
         "A model is small ON PURPOSE: the tractability of every downstream check — exhaustive "
         "proof at design time, refinement/licensing/totality on every tape — is bought here, "
         "at authoring time, and nowhere else. A domain that resists a small finite model is "
@@ -475,6 +487,18 @@ VOCABULARY = [
         "vocabulary here yet, and that absence is carried as a debt in the authoring repo's "
         "ledger, not silently.",
     ),
+    KindDef(
+        kind="property",
+        description="A law over the values a function gives, or over the elements of a "
+        "committed artifact, proven at every binding of finite domains by `model/holds` "
+        "(0.22.0). Payload: `over` (argument name to domain: a state-var's domain spec, a "
+        "literal list, or `{\"from\": \"path.py::fn\"}` for a domain a witness enumerates), "
+        "`calls` (name to `path.py::fn`: the witnesses the expr may call, each a projection "
+        "from the binding onto the formula or the artifact), `holds` (rule grammar over the "
+        "arguments and the calls) and `note`. A formula over the reals is proven on the grid "
+        "declared here, and the grid is written where a reader can refuse it as too coarse; "
+        "a property with one binding is a test moved into the ledger, and the checker says so.",
+    ),
 ]
 
 RULES = [
@@ -619,6 +643,13 @@ EXAMPLES = [
                                   "accepted — never unlocked without a prior coin, stated "
                                   "as a pure state predicate so an explicit-state walk can "
                                   "settle it"}),
+            Node(id="the-tally-never-passes-its-domain", kind="property",
+                 payload={"over": {"entries": {"type": "int", "domain": {"min": 0, "max": 3}},
+                                   "coins": {"type": "int", "domain": {"min": 0, "max": 3}}},
+                          "holds": "entries + coins <= 6",
+                          "note": "a property of the turnstile's counts over their whole "
+                                  "domains, with no witness: the grammar states it, "
+                                  "model/holds settles it at every binding (0.22.0)"}),
         ],
     ),
     Node(
@@ -1028,6 +1059,18 @@ SOLVERS = [
         description="(path, rel): count the raw boundary events under `path` enclosed by "
         "no span — behavior the linked model does not know exists."),
     SolverDef(
+        name="model/bites", native=True,
+        description="(path): on the model at `path`, count the invariants no mutant of its "
+        "actions refutes - a guard dropped, an update dropped, an update's value swapped for "
+        "each other value of its domain - each mutant proven in the part of the model the "
+        "action moves. A law no mutant refutes is vacuous: true of every drawing, guarding "
+        "nothing. The demonstration a proof keeps beside it, generated (0.22.0)."),
+    SolverDef(
+        name="model/holds", native=True,
+        description="(path): on the model at `path`, count the properties with a binding of "
+        "their domains at which `holds` is false, the witnesses called live from the code "
+        "root; the refutation names the binding and the calls' values (0.22.0)."),
+    SolverDef(
         name="model/refines", native=True,
         description="(path, rel): 0 iff the top-level span trace under `path` is a legal "
         "path of the linked model; on divergence, 1, naming the first illegal step."),
@@ -1036,7 +1079,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.21.0",
+    version="0.22.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

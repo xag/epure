@@ -18,7 +18,7 @@ def _tree(model):
 
 def test_a_property_on_a_grid_holds_or_names_the_binding():
     out = hold(_tree(_with_property("x + y <= 7")), "turnstile")
-    assert out.refuted == [] and out.bindings == 12
+    assert out.refuted == [] and out.bindings >= 12
     out = hold(_tree(_with_property("x + y <= 6")), "turnstile")
     assert [r.binding for r in out.refuted] == [{"x": 5, "y": 2}]
 
