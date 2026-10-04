@@ -96,3 +96,19 @@ def test_an_action_with_no_cost_is_refused_by_the_rule(tmp_path):
     tree.rules = [r for r in SEMANTIC_MODEL_PACKAGE.rules if r.name == "an-action-states-its-cost"]
     red = [r for r in run_rules(tree) if not r.ok]
     assert [r.node for r in red] == ["cloakroom/glance"]
+
+
+def test_compute_is_held_through_the_boundarys_compute_door():
+    within = conduct_cost(_tree(spec.cloakroom(), spec.GLANCE_COUNTED), "visit", "model")
+    assert within.violations == 0 and within.judged == 4, within
+    over = conduct_cost(_tree(spec.cloakroom(), spec.GLANCE_OVERWORKED), "visit", "model")
+    assert over.violations == 1 and "spent 9000 compute" in over.diagnostics[0]
+
+
+def test_a_stated_compute_with_no_compute_door_is_noted_unheld():
+    model = spec.cloakroom()
+    for c in model.children:
+        if c.kind == "boundary":
+            del c.payload["compute"]
+    out = conduct_cost(_tree(model, spec.GLANCE_OVERWORKED), "visit", "model")
+    assert out.violations == 0 and any("unheld" in n for n in out.notes), out

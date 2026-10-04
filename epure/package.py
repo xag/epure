@@ -1,4 +1,12 @@
-"""semantic-model@0.18.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.19.0 — the meta-vocabulary a semantic model is written in.
+
+0.19.0: compute is held. The boundary may name `compute` doors - the raw events a recorder
+writes with an instruction count as `ops`, per call or per span - and conduct/cost sums what
+crossed them inside each act and holds it to the action's `compute` expr at the tape's sizes,
+the way it holds reads to the read doors. A cost stating compute on a model with no compute
+door is noted, unheld; nothing counts in production, and a count's meaning is the recorder's
+to state (which code, which interpreter). The cloakroom's glance states a compute cost and
+the counter-examples hold it over a recorded count.
 
 0.18.0: cost. Time is a symptom; complexity is what a drawing can hold, and reads, writes and
 payload bytes are exact properties of (code, recorded world) where milliseconds are not. Two
@@ -301,7 +309,9 @@ VOCABULARY = [
         description="A child of `model`: the write functions the app's recording boundary "
         "declares - the names that reach the tape as `fn` when the world is changed. Payload: "
         "`writes` ([door specs]) and, since 0.18.0, `reads` ([door specs]: the functions that "
-        "read, which conduct/cost counts as documents and bytes). The boundary itself is "
+        "read, which conduct/cost counts as documents and bytes); since 0.19.0 also `compute` "
+        "([door specs]: the events a recorder writes with an instruction count as `ops`, which "
+        "conduct/cost sums per act and holds to the cost's `compute`). The boundary itself is "
         "flight-recorder's (the app "
         "says which module functions it records); this says which of them WRITE, so the door "
         "census (conduct/doors) can hold every one to being a door of some action. Without "
@@ -381,9 +391,10 @@ VOCABULARY = [
         "arithmetic: + - * / min max). Payload: `reads` (documents read: a read through the "
         "boundary's read doors counts the items it returned, at least one), `writes` (writes "
         "through its write doors), `bytes` (what crossed: a read's result and a write's "
-        "arguments, as JSON), and optionally `compute` (instructions, counted at replay and "
-        "never in production - accepted here, checked by nothing yet, a named debt in the "
-        "authoring repo's ledger). Nothing that grows with the data goes unstated: reads, "
+        "arguments, as JSON), and optionally `compute` (instructions: the `ops` the events "
+        "through the boundary's `compute` doors carry, written by a recorder at record or "
+        "replay time and never counted in production; stated on a model with no compute "
+        "door, it is noted and unheld). Nothing that grows with the data goes unstated: reads, "
         "writes and bytes are each stated, and model/cost reds a cost missing one. Every "
         "action carries one - the rule below - because an action with no cost is a "
         "transition whose price nobody drew, the way a decision with no rejected "
@@ -581,7 +592,8 @@ EXAMPLES = [
             Node(id="cloakroom-boundary", kind="boundary",
                  payload={"writes": ["hook.write", "hook.delete", "tag.write", "shelf.write",
                                      "register.write"],
-                          "reads": ["hook.read", "tag.read", "shelf.read", "register.read"]},
+                          "reads": ["hook.read", "tag.read", "shelf.read", "register.read"],
+                          "compute": ["compute"]},
                  name="every function the cloakroom's recorder knows as a write; each is a "
                       "door of some action below, which conduct/doors holds"),
             Node(id="register-rev", kind="validator",
@@ -784,7 +796,8 @@ EXAMPLES = [
                      Node(id="glance-witness", kind="observation",
                           payload={"event": "glancing"}),
                      Node(id="glance-cost", kind="cost",
-                          payload={"reads": "4", "writes": "0", "bytes": "512"}),
+                          payload={"reads": "4", "writes": "0", "bytes": "512",
+                                   "compute": "5000"}),
                      Node(id="glance-touches", kind="touches",
                           payload={"only": [], "via": []},
                           name="the read-act (0.15.0): the attendant looks and writes "
@@ -948,7 +961,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.18.0",
+    version="0.19.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

@@ -635,6 +635,11 @@ IMPORT_OVER = visit([*world(None, None, None, 2),
                            _read(None), _write("blue"), _rev_write(3))])
 IMPORT_UNWITNESSED = visit([*_act("importing", _IMPORT, _read(None), _write("blue"),
                                   _rev_write(1))])
+# A glance that a recorder counted: within its compute, and past it.
+GLANCE_COUNTED = visit([*world(None, None, None, 0),
+                        *_act("glancing", {}, _read(None), {"k": "compute", "ops": 4000})])
+GLANCE_OVERWORKED = visit([*world(None, None, None, 0),
+                           *_act("glancing", {}, _read(None), {"k": "compute", "ops": 9000})])
 
 COST = [
     c("cost", visited(WITHIN_COST), ["visit", "model"], expect=0,
@@ -646,6 +651,11 @@ COST = [
       because="the register showed rev=2, so the import may read 1 + 2 = 3; it read three"),
     c("cost", visited(IMPORT_OVER), ["visit", "model"], expect=1,
       because="at rev=2 the import may read three and read four: past its cost at that size"),
+    c("cost", visited(GLANCE_COUNTED), ["visit", "model"], expect=0,
+      because="a glance the recorder counted at 4000 instructions, within the 5000 its cost "
+              "states: compute is held through the boundary's compute door"),
+    c("cost", visited(GLANCE_OVERWORKED), ["visit", "model"], expect=1,
+      because="the same glance at 9000: past its compute, named like a read past its reads"),
     c("cost", visited(IMPORT_UNWITNESSED), ["visit", "model"], expect=0,
       because="no register read at or before the import: its size is unwitnessed, the act "
               "is unjudged in reads and bytes and the note says so - never a pass"),

@@ -382,10 +382,10 @@ CONDUCT_LAWS = [
         _uncited(),
         falsifier="A tape where an act's raw events through the boundary's read doors, "
                   "counted as documents, or through its write doors, or the bytes that "
-                  "crossed, exceed the action's cost expr evaluated at the size-vars the "
-                  "tape's reads project.",
-        triggers=["an action declares a `cost` and the model a boundary with `reads` or "
-                  "`writes`"],
+                  "crossed, or the instructions its compute doors carry, exceed the action's "
+                  "cost expr evaluated at the size-vars the tape's reads project.",
+        triggers=["an action declares a `cost` and the model a boundary with `reads`, "
+                  "`writes` or `compute`"],
         sightings=[
             ("a language app, 2026-10-03",
              "A script ran the server's own code over every account and used up the "
@@ -906,7 +906,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.17.0",
+    version="0.18.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -1028,7 +1028,7 @@ CONDUCT_PACKAGE = Package(
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.18.0"),
+        PackageRef(name="semantic-model", version="0.19.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

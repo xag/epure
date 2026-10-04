@@ -46,7 +46,8 @@ def build() -> Quern:
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
                            _DERIVED_DECISION,
                            _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, _DOOR_CENSUS_DEBT,
-                           _SIZE_VAR_KIND, _COST_AT_THE_DOORS, _COMPUTE_DEBT, _PATH_COST_DEBT,
+                           _SIZE_VAR_KIND, _COST_AT_THE_DOORS, _COMPUTE_DEBT, _COMPUTE_DEBT_2,
+                           _PATH_COST_DEBT,
                            _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
                            census(),
                            *CONDUCT_LAWS]
@@ -146,6 +147,24 @@ _COMPUTE_DEBT = _cost_debt(
     "flight-recorder's replay writes an instruction count per span and per code object "
     "beside the trace, and conduct/cost holds the `compute` expr to it the way it holds "
     "reads to the doors.")
+
+# 0.19.0: conduct/cost holds compute through the boundary's compute doors; the count is a
+# harness's, written into the tape at record time, and the replay-time counter per span and
+# per code object is still owed. The old debt's claim - counted by nothing - is false now.
+_COMPUTE_DEBT_2 = _cost_debt(
+    "compute-is-held-to-a-recorders-count-not-replays",
+    "conduct/cost holds a cost's `compute` to the `ops` the boundary's compute doors carry, "
+    "and the only counter writing them is a client's harness at record time, per call; a "
+    "replay-time count per span and per code object, stamped with the code hash and the "
+    "interpreter, does not exist",
+    "A count per call at record time is enough to hold growth across sized tapes and to "
+    "refuse a rise at a deploy; it says nothing per span, and a tape recorded without a "
+    "counter has no compute to hold. Growth class across sizes is the claim, never absolute "
+    "counts, which are brittle across interpreters.",
+    "flight-recorder's replay writes an instruction count per span and per code object "
+    "beside the trace, stamped with the code hash and the interpreter version, and "
+    "conduct/cost reads it through the compute doors like a harness's count.")
+_COMPUTE_DEBT_2.links = {"supersedes": ["compute-is-accepted-and-counted-by-nothing"]}
 
 _PATH_COST_DEBT = _cost_debt(
     "model-cost-reads-each-action-alone",

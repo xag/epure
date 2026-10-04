@@ -23,9 +23,12 @@ them two ways, the same split as everything else here:
   dimension, the count and the sizes. A size no read witnessed is a note — unwitnessed, never
   a pass — which is what the witness-coverage debt in the ledger is about.
 
-`compute` is accepted on a cost and not counted here: instructions are counted at replay,
-never in production, and that counter is a named debt (epure/tree.py), not a check stretched
-until it answers.
+`compute` is held the same way when the boundary names `compute` doors (0.19.0): the events
+through them carry an instruction count as `ops` - a recorder's, written at record or replay
+time, never in production - and the act's sum is held to the `compute` expr. A model with no
+compute door leaves a stated compute unheld, and the check says so once. Whose instructions a
+count is (which code, which interpreter) is the recorder's to say; a replay-time counter per
+span and per code object is still a named debt (epure/tree.py).
 """
 
 from __future__ import annotations
@@ -191,6 +194,14 @@ def _bytes(event: dict[str, Any], read: bool) -> int:
         return 0
 
 
+def _ops(event: dict[str, Any]) -> int:
+    """The instruction count a compute event carries; a count that is not a number is 0."""
+    try:
+        return int(event.get("ops") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _sizes_at(sizes: dict[str, _Projection], stream: list, upto: tuple) -> dict[str, Any]:
     """Each size as the latest read at or before `upto` shows it; absent when none does."""
     out: dict[str, Any] = {}
@@ -220,29 +231,35 @@ def conduct_cost(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
     model = _Model(model_node)
     reads = _boundary_doors(model_node, "reads")
     writes = _boundary_doors(model_node, "writes")
+    compute = _boundary_doors(model_node, "compute")
     sizes = {sid: _Projection(sid, s.payload["shown"], None)
              for sid, s in _size_vars(model_node).items() if s.payload.get("shown")}
     unshown = [sid for sid in _size_vars(model_node) if sid not in sizes]
     costs = {a.id: c for a, c in _costs(model_node)}
     exprs: dict[tuple[str, str], Any] = {}
+    held = DIMENSIONS + (OPTIONAL if compute else ())
     for aid, c in costs.items():
-        for dim in DIMENSIONS:
+        for dim in held:
             if c.payload.get(dim) is not None:
                 exprs[(aid, dim)] = _compile(str(c.payload[dim]), f"cost of '{aid}' {dim}")
     acts, stream = _acts_and_stream(node, path, calls=True)
     diagnostics: list[str] = []
     notes: list[str] = []
     judged = 0
-    if not reads and not writes:
+    if not reads and not writes and not compute:
         notes.append(f"model '{model_node.id}': no boundary names the doors that read or "
                      "write — nothing counted")
         return Conformance(check="conduct/cost", violations=0, notes=notes)
+    unheld = [aid for aid, c in costs.items() if c.payload.get("compute") is not None]
+    if unheld and not compute:
+        notes.append(f"model '{model_node.id}': {len(unheld)} cost(s) state compute and no "
+                     "boundary names a compute door — stated, unheld")
     for act in acts:
         for action in model.bound(act.span):
             if action.id not in costs:
                 continue
             at = _sizes_at(sizes, stream, act.to)
-            counted = {"reads": 0, "writes": 0, "bytes": 0}
+            counted = {"reads": 0, "writes": 0, "bytes": 0, "compute": 0}
             for _, e in act.events:
                 if _through(e, reads):
                     counted["reads"] += _items(e)
@@ -250,7 +267,9 @@ def conduct_cost(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
                 elif _through(e, writes):
                     counted["writes"] += 1
                     counted["bytes"] += _bytes(e, read=False)
-            for dim in DIMENSIONS:
+                elif compute and _through(e, compute):
+                    counted["compute"] += _ops(e)
+            for dim in held:
                 run = exprs.get((action.id, dim))
                 if run is None:
                     continue
