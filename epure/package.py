@@ -1,4 +1,11 @@
-"""semantic-model@0.20.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.21.0 — the meta-vocabulary a semantic model is written in.
+
+0.21.0: a cost may be stated by reference. A `cost` whose payload says `as: <action id>` is the
+cost on that other action of the same model: for a drawing's transition - a line offered at a
+bank's door, a write counted against a budget - that an instrumented tool call carries, so the
+call's price is stated once, on the call's action, and the drawing reuses it rather than
+copying its constants. model/cost and conduct/cost read through the reference; an-action-
+states-its-cost is satisfied by the referring cost node. Kinds and rules are otherwise 0.20.0's.
 
 0.20.0: the class, proven. A `bound` on an action (or on the model, for a step no event
 names) claims the step's computational complexity along every dimension the drawing names -
@@ -432,7 +439,10 @@ VOCABULARY = [
         "writes and bytes are each stated, and model/cost reds a cost missing one. Every "
         "action carries one - the rule below - because an action with no cost is a "
         "transition whose price nobody drew, the way a decision with no rejected "
-        "alternative is a choice nobody weighed.",
+        "alternative is a choice nobody weighed. Since 0.21.0 a cost may say `as: <action "
+        "id>` instead: the cost on that other action of the same model, for a transition an "
+        "instrumented call carries - stated once, on the call's action, and read through the "
+        "reference by model/cost and conduct/cost.",
     ),
     KindDef(
         kind="bound",
@@ -1026,7 +1036,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.20.0",
+    version="0.21.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "

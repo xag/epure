@@ -906,7 +906,7 @@ CONDUCT_COUNTER_EXAMPLES = [
 
 CONDUCT_PACKAGE = Package(
     name="conduct",
-    version="0.19.0",
+    version="0.20.0",
     description="The behavior laws of operations, as checkable data: what a declared effect "
                 "promises under reading back (it happened, it matches its inputs, nothing "
                 "else moved), under algebra (repetition, inversion, refusal), and under time "
@@ -1028,7 +1028,7 @@ CONDUCT_PACKAGE = Package(
         # carry; semantic-model@0.5.0 for the effect kinds the triggers bind to and the doors the natives read — the
         # version where creates/mutates/deletes/touches first exist.
         PackageRef(name="grounding", version="1.2.0"),
-        PackageRef(name="semantic-model", version="0.20.0"),
+        PackageRef(name="semantic-model", version="0.21.0"),
     ],
     vocabulary=CONDUCT_VOCABULARY,
     rules=CONDUCT_RULES,

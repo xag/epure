@@ -103,8 +103,30 @@ def _size_vars(model: Node) -> dict[str, Node]:
 
 
 def _costs(model: Node) -> list[tuple[Node, Node]]:
-    return [(a, c) for a in model.children if a.kind == "action"
-            for c in a.children if c.kind == "cost"]
+    """Every action's cost. A cost that says `as: <action>` (semantic-model 0.21.0) is the
+    cost stated on that other action of the model: a drawing's transition that an
+    instrumented call carries - a line offered at a bank's door, a write counted against a
+    budget - spends what the call spends, stated once, on the call's own action. A reference
+    to an action with no cost of its own, or to no action, is left as it is: model/cost names
+    the dimension it then fails to state."""
+    by_id = {a.id: a for a in model.children if a.kind == "action"}
+    out: list[tuple[Node, Node]] = []
+    for a in model.children:
+        if a.kind != "action":
+            continue
+        for c in a.children:
+            if c.kind != "cost":
+                continue
+            seen: set[str] = set()
+            while c.payload.get("as") and c.payload["as"] not in seen:
+                seen.add(c.payload["as"])
+                other = by_id.get(c.payload["as"])
+                stated = next((k for k in (other.children if other else []) if k.kind == "cost"), None)
+                if stated is None:
+                    break
+                c = stated
+            out.append((a, c))
+    return out
 
 
 def _boundary_doors(model: Node, which: str) -> list:
