@@ -147,6 +147,45 @@ class _Action(BaseModel):
     guard: Callable[[dict[str, Any]], Any]
     updates: list[tuple[str, Callable[[dict[str, Any]], Any]]]
     bindings: list[dict[str, Any]]  # every assignment of args to their domains
+    touched: set[str] = Field(default_factory=set)  # the state-vars its guard and updates name
+
+
+def _names_in(src: str, names: set[str]) -> set[str]:
+    """The state variables an expression's source names (identifiers, whole words)."""
+    import re
+    return {m for m in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", src or "") if m in names}
+
+
+def _components(variables: list, actions: list, invariants: list) -> list[set[str]]:
+    """The model's independent parts: two variables are coupled when one action or one
+    invariant names both. A model that draws several rules side by side - a bank's door,
+    an account's budgets, an overlay's gate - is a product of parts that never read each
+    other, and its reachable states multiply where its proof should add: each part is
+    walked alone, and every invariant is judged in the part that holds its variables."""
+    names = [n for n, _, _ in variables]
+    parent = {n: n for n in names}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(group):
+        group = list(group)
+        for other in group[1:]:
+            parent[find(other)] = find(group[0])
+
+    for a in actions:
+        if a.touched:
+            union(a.touched)
+    for _, _, _, named in invariants:
+        if named:
+            union(named)
+    groups: dict[str, set[str]] = {}
+    for n in names:
+        groups.setdefault(find(n), set()).add(n)
+    return [groups[k] for k in sorted(groups, key=names.index)]
 
 
 def _load(tree: Quern | TreeStore, path: str) -> tuple[Node, list[tuple[str, list[Any], Any]],
@@ -193,6 +232,9 @@ def compile_model(node: Node, where: str = "") -> tuple[Node, list[tuple[str, li
         domains = [_domain(args[n], f"action '{c.id}' arg '{n}'") for n in names]
         bindings = [dict(zip(names, combo)) for combo in product(*domains)]
         guard_src = c.payload.get("guard", "")
+        touched = _names_in(guard_src, seen)
+        for u in c.payload.get("updates") or []:
+            touched |= {u["var"]} | _names_in(u.get("expr", ""), seen)
         actions.append(_Action(
             id=c.id,
             # an absent guard means always enabled: a transition with no precondition is a
@@ -201,14 +243,15 @@ def compile_model(node: Node, where: str = "") -> tuple[Node, list[tuple[str, li
                    else (lambda _env: True)),
             updates=[(u["var"], _compile(u["expr"], f"action '{c.id}' update of '{u['var']}'"))
                      for u in c.payload.get("updates") or []],
-            bindings=bindings))
+            bindings=bindings, touched=touched))
         for var, _ in actions[-1].updates:
             if var not in seen:
                 raise ValueError(f"action '{c.id}' updates '{var}', which no state-var "
                                  "declares — a transition cannot write outside the state")
 
     invariants = [(c.id, c.payload.get("note", ""),
-                   _compile(c.payload.get("expr", ""), f"invariant '{c.id}'"))
+                   _compile(c.payload.get("expr", ""), f"invariant '{c.id}'"),
+                   _names_in(c.payload.get("expr", ""), seen))
                   for c in node.children if c.kind == "invariant"]
     return node, variables, actions, invariants
 
@@ -221,13 +264,37 @@ def prove(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Proof:
     author deserves every refuted invariant in one run, each with its own shortest path.
     Exceeding `cap` raises; a partial walk must never be mistaken for a proof.
     """
-    node, variables, actions, invariants = _load(tree, path)
+    node, all_variables, all_actions, all_invariants = _load(tree, path)
+    refuted: dict[str, Violation] = {}
+    explored = 0
+    for part in _components(all_variables, all_actions, all_invariants):
+        variables = [v for v in all_variables if v[0] in part]
+        actions = [a for a in all_actions if a.touched & part]
+        invariants = [i for i in all_invariants if i[3] & part]
+        explored += _walk(variables, actions, invariants, refuted, cap)
+    # an invariant naming no variable is judged once, over the literals alone
+    for inv, note, expr, named in all_invariants:
+        if not named and inv not in refuted and not expr(dict(_LITERALS)):
+            refuted[inv] = Violation(invariant=inv, note=note, path=[], state={})
+
+    return Proof(
+        model=node.id,
+        model_sha256=_model_sha256(node),
+        states_explored=explored,
+        invariants=[inv for inv, _, _, _ in all_invariants],
+        verdict="refuted" if refuted else "proved",
+        violations=[refuted[inv] for inv, _, _, _ in all_invariants if inv in refuted])
+
+
+def _walk(variables: list, actions: list, invariants: list, refuted: dict, cap: int) -> int:
+    """BFS over one part's reachable states; the violations land in `refuted`, the count of
+    states explored comes back."""
     order = [name for name, _, _ in variables]
     domains = {name: dom for name, dom, _ in variables}
 
     def check(state: dict[str, Any], key: tuple) -> None:
         env = {**state, **_LITERALS}
-        for inv, note, expr in invariants:
+        for inv, note, expr, _named in invariants:
             if inv in refuted:
                 continue
             if not expr(env):
@@ -244,7 +311,6 @@ def prove(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Proof:
     init = {name: i for name, _, i in variables}
     init_key = tuple(init[n] for n in order)
     parents: dict[tuple, tuple | None] = {init_key: None}
-    refuted: dict[str, Violation] = {}
     frontier = [init_key]
     check(init, init_key)
 
@@ -283,14 +349,7 @@ def prove(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Proof:
                     check(succ, succ_key)
                     nxt.append(succ_key)
         frontier = nxt
-
-    return Proof(
-        model=node.id,
-        model_sha256=_model_sha256(node),
-        states_explored=explored,
-        invariants=[inv for inv, _, _ in invariants],
-        verdict="refuted" if refuted else "proved",
-        violations=[refuted[inv] for inv, _, _ in invariants if inv in refuted])
+    return explored
 
 
 def reachable(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP
