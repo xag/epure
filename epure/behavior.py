@@ -1087,6 +1087,18 @@ class _Worlds:
         self.notes: list[str] = []
         self.errors: list[str] = []
         self.worlds: list[_World] = []
+        # the stream, indexed once: for each projected variable the positions of the reads
+        # through its door and of the writes through its doors. Every act asks for the read
+        # before it and after it, and a scan of the whole stream per act per variable was
+        # the cost of a tape (6 s on 450 events and 26 projections, 2026-10-05).
+        self._hits: dict[str, list[tuple[tuple, dict]]] = {
+            v: [(pos, e) for pos, e in self.stream if _through(e, proj.doors)]
+            for v, proj in self.projections.items()}
+        self._writes_at: dict[str, list[tuple]] = {
+            v: [pos for pos, e in self.stream if _through(e, self.writes_of.get(v, []))]
+            for v in self.projections}
+        self._parts_cache: list[set[str]] | None = None
+        self._touched_cache: dict[str, set[str]] = {}
         self._compute()
         # the variables this tape can show at all: "the same world" means equal on these
         self.shown: set[str] = {v for v, proj in self.projections.items()
@@ -1096,14 +1108,17 @@ class _Worlds:
         """The latest read of the variable before `at` — unless a write through one of the
         variable's own doors came after it, in which case the read is stale and there is
         no pre-world for this variable."""
-        for pos, e in reversed(self.stream):
-            if pos >= at:
-                continue
-            if _through(e, self.writes_of.get(proj.var, [])):
-                return None
-            if _through(e, proj.doors):
-                return pos, e
-        return None
+        hits = self._hits.get(proj.var, [])
+        last = None
+        for pos, e in reversed(hits):
+            if pos < at:
+                last = (pos, e)
+                break
+        if last is None:
+            return None
+        if any(last[0] < w < at for w in self._writes_at.get(proj.var, [])):
+            return None  # written since: the read is stale, and there is no pre-world
+        return last
 
     def _stamps(self, act: _Act) -> tuple[Any, Any]:
         """The validator's value read before the act with no write since, and after it
@@ -1141,20 +1156,19 @@ class _Worlds:
         read for this variable. For a statement, the act's own last word inside its window
         (`at`, `to`]: what the act said of itself is its world after, and what the next act
         says is the next act's."""
+        hits = self._hits.get(proj.var, [])
         if proj.stated and at is not None:
-            own = [(pos, e) for pos, e in self.stream if at < pos <= to and _through(e, proj.doors)]
+            own = [(pos, e) for pos, e in hits if at < pos <= to]
             if own:
                 return own[-1]
-        for pos, e in self.stream:
-            if pos <= to:
-                continue
-            if _through(e, self.writes_of.get(proj.var, [])):
-                return None
-            if _through(e, proj.doors):
-                if proj.stated and act is not None and self._inside_another_act(pos, act):
-                    return None  # the next act's own word, not this act's world after
-                return pos, e
-        return None
+        nxt = next(((pos, e) for pos, e in hits if pos > to), None)
+        if nxt is None:
+            return None
+        if any(to < w < nxt[0] for w in self._writes_at.get(proj.var, [])):
+            return None  # written first: the world after this act was never read
+        if proj.stated and act is not None and self._inside_another_act(nxt[0], act):
+            return None  # the next act's own word, not this act's world after
+        return nxt
 
     def _inside_another_act(self, pos: tuple, act: "_Act") -> bool:
         """Whether a position falls inside the window of an act of the same level as `act`
@@ -1170,20 +1184,24 @@ class _Worlds:
         """The model's independent parts (the prover's own decomposition): two variables are
         coupled when one action or one invariant names both. A model that draws several
         rules side by side is a product of parts, and a call that moves several of them is
-        judged part by part."""
-        from epure.prove import _components
-        names = {v for v, _, _ in self.variables}
-        actions = [SimpleNamespace(touched=self._touched(a.id)) for a in self.model.actions]
-        invariants = [(c.id, "", None, _names_in_src(c.payload.get("expr", ""), names))
-                      for c in self.model_node.children if c.kind == "invariant"]
-        return _components(self.variables, actions, invariants)
+        judged part by part. Computed once per tape."""
+        if self._parts_cache is None:
+            from epure.prove import _components
+            names = {v for v, _, _ in self.variables}
+            actions = [SimpleNamespace(touched=self._touched(a.id)) for a in self.model.actions]
+            invariants = [(c.id, "", None, _names_in_src(c.payload.get("expr", ""), names))
+                          for c in self.model_node.children if c.kind == "invariant"]
+            self._parts_cache = _components(self.variables, actions, invariants)
+        return self._parts_cache
 
     def _touched(self, action_id: str) -> set[str]:
-        names = {v for v, _, _ in self.variables}
-        out = _names_in_src(self.guard_src.get(action_id, ""), names)
-        for var, src in self.update_src.get(action_id, {}).items():
-            out |= {var} | _names_in_src(src, names)
-        return out
+        if action_id not in self._touched_cache:
+            names = {v for v, _, _ in self.variables}
+            out = _names_in_src(self.guard_src.get(action_id, ""), names)
+            for var, src in self.update_src.get(action_id, {}).items():
+                out |= {var} | _names_in_src(src, names)
+            self._touched_cache[action_id] = out
+        return self._touched_cache[action_id]
 
     def _bind(self, act: _Act, pre: dict[str, Any], where: str) -> list[tuple[dict | None, set[str] | None]]:
         """The actions this act is judged as, each with the part of the model it moves.
