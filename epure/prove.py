@@ -141,6 +141,12 @@ def _domain(spec: dict[str, Any] | str, where: str) -> list[Any]:
                      "bounded int and enum, and nothing else is finite by declaration")
 
 
+def _ALWAYS(_env: dict[str, Any]) -> bool:
+    """The guard of an action with none: always enabled. One function, so a mutant that
+    drops a guard can tell it dropped something."""
+    return True
+
+
 class _Action(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
     id: str
@@ -240,7 +246,7 @@ def compile_model(node: Node, where: str = "") -> tuple[Node, list[tuple[str, li
             # an absent guard means always enabled: a transition with no precondition is a
             # legitimate model, and demanding '1 == 1' boilerplate invites copy-paste noise
             guard=(_compile(guard_src, f"action '{c.id}' guard") if guard_src
-                   else (lambda _env: True)),
+                   else _ALWAYS),
             updates=[(u["var"], _compile(u["expr"], f"action '{c.id}' update of '{u['var']}'"))
                      for u in c.payload.get("updates") or []],
             bindings=bindings, touched=touched))
@@ -438,6 +444,103 @@ def attest(tree: Quern | TreeStore, path: str, blob_dir: Path | str,
                          f"{proof.states_explored} reachable state(s), {proof.checker}")
 
 
+class Bites(BaseModel):
+    """Whether every invariant of a model bites: for each, the mutants of the drawing that
+    refute it. A law no mutant refutes is vacuous - true of every drawing, so true of
+    nothing - and is named here instead of counted as proven."""
+    model: str
+    mutants: int
+    refuted_by: dict[str, list[str]]
+    vacuous: list[str]
+
+
+def bites(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Bites:
+    """Mutate the drawing one action at a time - the guard dropped, each update dropped,
+    each update's value replaced by every other value of its variable's domain - and prove
+    each mutant in the part of the model the action moves. An invariant some mutant refutes
+    bites; one no mutant refutes is vacuous.
+
+    This is the demonstration a proof needs beside it, generated: a green `model/prove`
+    says the drawing satisfies its laws, and this says the laws can be dissatisfied, so the
+    green was earned. The mutants are the drawings a careless hand would write - a guard
+    forgotten, an update forgotten, a wrong value - and a law none of them breaks is not
+    guarding against anything a hand could do. The cheap mutants go first, part by part,
+    and a part's mutation stops once every law of it has a witness."""
+    node, variables, actions, invariants = _load(tree, path)
+    parts = _components(variables, actions, invariants)
+    domains = {name: dom for name, dom, _ in variables}
+    refuted_by: dict[str, list[str]] = {}
+    mutants = 0
+    for part in parts:
+        wanted = {i[0] for i in invariants if i[3] & part}
+        if not wanted:
+            continue
+        vars_ = [v for v in variables if v[0] in part]
+        acts = [a for a in actions if a.touched & part]
+        invs = [i for i in invariants if i[3] & part]
+        for action, label, mutant in _mutants(acts, domains):
+            if not wanted:
+                break
+            mutants += 1
+            trial = [mutant if a is action else a for a in acts]
+            refuted: dict[str, Violation] = {}
+            try:
+                _walk(vars_, trial, invs, refuted, cap)
+            except ValueError:
+                pass  # a mutant that leaves the domains, or the cap: what it refuted before counts
+            for inv in refuted:
+                refuted_by.setdefault(inv, []).append(f"{action.id} {label}")
+                wanted.discard(inv)
+    return Bites(model=node.id, mutants=mutants, refuted_by=refuted_by,
+                 vacuous=[inv for inv, _, _, _ in invariants if inv not in refuted_by])
+
+
+def _mutants(actions: list, domains: dict):
+    """(action, label, mutant) for every mutant of the actions, cheapest kind first: every
+    guard dropped, then every update dropped, then every update's value swapped."""
+    for action in actions:
+        if action.guard is not _ALWAYS:
+            yield action, "without its guard", action.model_copy(update={"guard": _ALWAYS})
+    for action in actions:
+        for k, (var, _) in enumerate(action.updates):
+            kept = [u for j, u in enumerate(action.updates) if j != k]
+            yield action, f"without its update of '{var}'", action.model_copy(update={"updates": kept})
+    for action in actions:
+        for k, (var, _) in enumerate(action.updates):
+            for value in domains[var]:
+                literal = (lambda v: (lambda _env: v))(value)
+                swapped = [u if j != k else (var, literal) for j, u in enumerate(action.updates)]
+                yield action, f"with '{var}' set to {value!r}", action.model_copy(update={"updates": swapped})
+
+
+def bites_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> float:
+    """The native: how many invariants of the model at `path` no mutant of its actions
+    refutes. A rule wants `== 0`: every law bites.
+
+    The verdict is a function of the drawing alone, so a model that names a `proofs`
+    directory in its payload keeps it there as `bites-<digest>.json`, keyed by the model's
+    content digest: the mutants run again only when the drawing moves, and the artifact
+    is the record of which mutant refuted which law. Stale artifacts of the same model are
+    removed as the new one is written."""
+    node = get_node(tree, path)
+    if node is None:
+        raise ValueError(f"no node at '{path}'")
+    proofs = node.payload.get("proofs") if node.kind == "model" else None
+    if not proofs:
+        return float(len(bites(tree, path, cap=int(cap)).vacuous))
+    digest = _model_sha256(node)[:16]
+    folder = Path(str(proofs))
+    kept = folder / f"bites-{node.id}-{digest}.json"
+    if kept.exists():
+        return float(len(json.loads(kept.read_text(encoding="utf-8"))["vacuous"]))
+    out = bites(tree, path, cap=int(cap))
+    folder.mkdir(parents=True, exist_ok=True)
+    for stale in folder.glob(f"bites-{node.id}-*.json"):
+        stale.unlink()
+    kept.write_text(json.dumps(out.model_dump(), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return float(len(out.vacuous))
+
+
 def prove_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> float:
     """The native: how many invariants of the model at `path` are refuted. Counts, not
     booleans — a rule wants `== 0`, a diagnostic wants to know how many."""
@@ -449,3 +552,4 @@ def prove_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> f
 from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
 
 register_native("model/prove", prove_count, SEMANTIC_MODEL_SPEC["model/prove"])
+register_native("model/bites", bites_count, SEMANTIC_MODEL_SPEC["model/bites"])

@@ -128,6 +128,50 @@ PROVE = [
 ]
 
 
+# --- model/bites: every law can be broken ------------------------------------------------
+
+def turnstile_with_a_vacuous_invariant() -> Node:
+    """The same model with a law its domains make true of every drawing: no mutant of any
+    action can refute `coins >= 0`, so it guards against nothing."""
+    model = turnstile()
+    model.children.append(Node(id="coins-are-counted", kind="invariant",
+                               payload={"expr": "coins >= 0", "note": "true by the domain"}))
+    return model
+
+
+BITES = [
+    d("bites", [turnstile()], ["turnstile"], expect=0,
+      because="the turnstile's one law bites: a push whose guard is dropped enters for free"),
+    d("bites", [turnstile_with_a_vacuous_invariant()], ["turnstile"], expect=1,
+      because="a law true by the domains is refuted by no mutant: vacuous, counted, named"),
+    d("bites", [LAWFUL], ["session"], expect_error="not a model",
+      because="model/bites mutates models: pointed at a recorded run it refuses"),
+]
+
+
+# --- model/holds: a property over every binding of its domains -------------------------
+
+def _with_property(expr: str) -> Node:
+    """The turnstile with a property over a declared grid, no witness needed: the grammar
+    alone states it, so a demonstration can stage it without a file."""
+    model = turnstile()
+    model.children.append(Node(id="the-grid", kind="property",
+                               payload={"over": {"x": {"type": "int", "domain": {"min": 0, "max": 5}},
+                                                 "y": {"type": "enum", "domain": [1, 2]}},
+                                        "holds": expr, "note": "stated on a grid"}))
+    return model
+
+
+HOLDS = [
+    d("holds", [_with_property("x + y <= 7")], ["turnstile"], expect=0,
+      because="a property true at every binding of its domains holds, and is counted proven"),
+    d("holds", [_with_property("x + y <= 6")], ["turnstile"], expect=1,
+      because="a property false at one binding is refuted, with the binding named"),
+    d("holds", [LAWFUL], ["session"], expect_error="not a model",
+      because="model/holds holds properties of models: pointed at a recorded run it refuses"),
+]
+
+
 # --- model/licensed: testimony is justified by evidence ---------------------------------
 
 LICENSED = [
@@ -188,6 +232,8 @@ REFINES = [
 
 SEMANTIC_MODEL_SPEC = {
     "model/prove": PROVE,
+    "model/bites": BITES,
+    "model/holds": HOLDS,
     "model/licensed": LICENSED,
     "model/total": TOTAL,
     "model/refines": REFINES,
