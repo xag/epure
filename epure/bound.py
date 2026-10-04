@@ -268,11 +268,26 @@ def constructs(fn: ast.AST) -> list[Construct]:
     return out
 
 
+_PARSED: dict[tuple[str, int, int], ast.Module] = {}
+
+
+def _module(path: Path) -> ast.Module:
+    """The file's syntax tree, parsed once per content. A drawing's bounds resolve the same
+    few files once per bound - 2,055 parses, 4.3 s of a 5 s check, on one ledger - and the
+    tree is read, never written, so one parse per (path, mtime, size) serves them all."""
+    st = path.stat()
+    key = (str(path), st.st_mtime_ns, st.st_size)
+    tree = _PARSED.get(key)
+    if tree is None:
+        tree = _PARSED[key] = ast.parse(path.read_text(encoding="utf-8"))
+    return tree
+
+
 def resolve(code: str, root: Path) -> ast.AST:
     """`path.py::name` or `path.py::Class.method`, parsed from `root`."""
     path, _, qual = str(code).partition("::")
     try:
-        tree = ast.parse((root / path).read_text(encoding="utf-8"))
+        tree = _module(root / path)
     except OSError as e:
         raise ValueError(f"{code}: cannot read {path} under {root} ({e})") from e
     scope: Any = tree
