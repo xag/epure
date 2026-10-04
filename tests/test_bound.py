@@ -142,3 +142,33 @@ def test_the_native_answers_in_the_rule_language():
     tree = _tree(spec.cloakroom())
     tree.rules = [Rule(name="bounded", kind="model", expr="solve('model/bound', self) == 0")]
     assert [r.ok for r in run_rules(tree) if r.rule == "bounded"] == [True]
+
+
+def test_an_amortized_loop_is_its_total_not_the_product(tmp_path):
+    (tmp_path / "scan.py").write_text(
+        "def scan(heads):\n"
+        "    for h in heads:\n"
+        "        for row in h.rows:\n"
+        "            touch(row)\n", encoding="utf-8")
+    model = Node(id="m", kind="model", payload={"code_root": str(tmp_path)}, children=[
+        Node(id="heads", kind="size-var", payload={"holds": ["heads"]}),
+        Node(id="rows", kind="size-var", payload={}),
+        Node(id="scan", kind="bound", payload={
+            "code": "scan.py::scan", "claims": {"compute": "heads + rows"},
+            "derivation": [{"at": "for h in heads", "size": "heads"},
+                           {"at": "for row in h.rows", "total": "rows",
+                            "because": "every row of every head, once"},
+                           {"calls": "touch", "bound": "1"}]}),
+    ])
+    out = model_bound(_tree(model), "m")
+    assert out.violations == 0, out.diagnostics
+    # a call's total, summed over the loops around it, the same way
+    model.children[-1].payload["derivation"][2] = {"calls": "touch", "total": {"reads": "rows"}}
+    model.children[-1].payload["claims"] = {"compute": "heads + rows", "reads": "rows"}
+    out = model_bound(_tree(model), "m")
+    assert out.violations == 0, out.diagnostics
+    model.children[-1].payload["derivation"][2] = {"calls": "touch", "bound": "1"}
+    model.children[-1].payload["claims"] = {"compute": "heads + rows"}
+    model.children[-1].payload["derivation"][1] = {"at": "for row in h.rows", "size": "rows"}
+    out = model_bound(_tree(model), "m")
+    assert out.violations == 1 and "derived heads * rows" in out.diagnostics[0]

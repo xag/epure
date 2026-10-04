@@ -9,7 +9,9 @@ makes the claim a proof rather than a measurement:
 
 - the step's code (`code`: `path.py::function`, or `source`: the text itself);
 - one derivation line per construct that costs: every loop and comprehension (`size`: how
-  many iterations, as an expr in the size-vars), every fold - sorted, sum, list, set, dict,
+  many iterations, as an expr in the size-vars; or `total`: the iterations summed over the
+  loops enclosing it, for a scan that visits each item once across them; a call may state
+  `total` the same way, its spending summed over the loops around it), every fold - sorted, sum, list, set, dict,
   join over an iterable - (`size` likewise), and every call that is not in the free table
   (`bound`: what one call spends per dimension, or `of`: another bound's claim).
 
@@ -165,12 +167,16 @@ FREE = {
     "split", "rsplit", "replace", "format", "isdigit", "isalpha", "encode", "decode",
     "partition", "count", "find", "index", "insert", "remove", "discard", "clear",
     "isoformat", "timestamp", "now", "utcnow", "time", "perf_counter", "monotonic",
+    "strftime", "strptime", "fromtimestamp", "utcfromtimestamp", "timedelta", "date",
+    "fromisoformat", "errstate", "seterr",
     "debug", "info", "warning", "error", "exception", "_log", "sqrt", "floor", "ceil",
     "exp", "log2", "log10", "pow", "match", "search", "fullmatch", "sub", "compile",
     "get_event_loop", "Lock", "RLock",
 }
 # `.get` is a dictionary lookup with arguments and a store read without: the arity decides.
-FREE_WITH_ARGS = {"get", "update", "copy"}
+# `.update` and `.copy` are not here: a dictionary update is linear in what it merges, and a
+# store update is a write - both need a line.
+FREE_WITH_ARGS = {"get"}
 
 
 def _callee(call: ast.Call) -> str:
@@ -225,6 +231,7 @@ def constructs(fn: ast.AST) -> list[Construct]:
             inner = list(loops)
             for g in node.generators:
                 key = _loop_key(g.target, g.iter)
+                g.lineno = node.lineno   # a generator has no line of its own
                 out.append(Construct("loop", key, g, inner))
                 visit(g.iter, inner)
                 inner = inner + [key]
@@ -239,10 +246,12 @@ def constructs(fn: ast.AST) -> list[Construct]:
         if isinstance(node, ast.Call):
             name = _callee(node)
             if name in FOLDS:
-                over = node.args[0] if node.args else None
-                # a fold over a comprehension is the comprehension's own loops
-                if over is not None and not isinstance(
-                        over, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+                # a fold is over ONE iterable; min(a, b) and max(a, b) compare scalars, and a
+                # fold over a comprehension is the comprehension's own loops - except a sort,
+                # whose logarithm the loop does not pay
+                over = node.args[0] if len(node.args) == 1 else None
+                comp = isinstance(over, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
+                if over is not None and (not comp or name in LOGGED):
                     out.append(Construct("fold", ast.unparse(node), node, loops))
             elif not (name in FREE or (name in FREE_WITH_ARGS and (node.args or node.keywords))):
                 out.append(Construct("call", ast.unparse(node), node, loops))
@@ -343,6 +352,12 @@ class _Derivation:
         return parse(str(src), set(self.sizes), where)
 
     def _line_bound(self, line: dict, where: str) -> dict[str, Bound]:
+        if "total" in line and isinstance(line["total"], (dict, str)):
+            # the call's spending summed over the loops enclosing it, stated once
+            b = line["total"]
+            if isinstance(b, str):
+                return {"compute": self._size(b, where)}
+            return {dim: self._size(src, f"{where} {dim}") for dim, src in b.items()}
         if "of" in line:
             target = self.bounds.get(str(line["of"]))
             if target is None:
@@ -370,9 +385,15 @@ class _Derivation:
             total: dict[str, Bound] = {}
             matched = [False] * len(lines)
 
+            amortized: set[str] = set()
+
             def spend(dim: str, b: Bound, loops: list[str]) -> None:
-                for k in loops:
+                # innermost first; an amortized loop's size is its total over everything
+                # outside it, so the loops outside it multiply nothing more
+                for k in reversed(loops):
                     b = mul(b, loop_size.get(k, ONE))
+                    if k in amortized:
+                        break
                 total[dim] = add(total.get(dim, ZERO), b)
 
             # loops first: their sizes scale what they enclose
@@ -388,16 +409,23 @@ class _Derivation:
                 ln = lines[hits[0]]
                 for i in hits:
                     matched[i] = True
-                if "size" not in ln:
+                if "size" not in ln and "total" not in ln:
                     self.diagnostics.append(f"{where}: the line for `{c.key}` states no size")
                     loop_size[c.key] = ONE
                     continue
-                size = self._size(ln["size"], f"{where} `{c.key}`")
+                if "total" in ln:
+                    # the iterations summed over every enclosing loop: a scan that visits
+                    # each row once across the heads it is nested under
+                    size = self._size(ln["total"], f"{where} `{c.key}`")
+                    amortized.add(c.key)
+                else:
+                    size = self._size(ln["size"], f"{where} `{c.key}`")
                 loop_size[c.key] = size
                 self._vouch(ln, c, size)
             for c in cs:
                 if c.kind == "loop":
-                    spend("compute", loop_size[c.key], c.loops)
+                    spend("compute", loop_size[c.key],
+                          [] if c.key in amortized else c.loops)
                     if isinstance(c.node, ast.comprehension):
                         pass   # the allocation is the enclosing comprehension's; the elt pays
                     continue
@@ -422,8 +450,9 @@ class _Derivation:
                         spend("memory", size, c.loops)
                     self._vouch(ln, c, size)
                 else:
+                    enclosing = [] if "total" in ln else c.loops
                     for dim, b in self._line_bound(ln, f"{where} `{c.key[:60]}`").items():
-                        spend(dim, b, c.loops)
+                        spend(dim, b, enclosing)
             # comprehensions allocate what they build
             for c in cs:
                 if c.kind == "loop" and isinstance(c.node, ast.comprehension):
