@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import epure.bound  # noqa: F401
 import epure.cost  # noqa: F401 — registers the natives
 from quern import Node, Quern, Rule, run_rules, validate_package
 

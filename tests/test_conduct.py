@@ -43,6 +43,7 @@ def test_the_package_still_demonstrates_itself(tmp_path):
     # in-process for its own re-validation beneath this one.
     import epure.behavior  # noqa: F401
     import epure.reach  # noqa: F401
+    import epure.bound  # noqa: F401
     import epure.cost  # noqa: F401
     import epure.conformance  # noqa: F401
     import epure.prove  # noqa: F401

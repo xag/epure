@@ -1,6 +1,6 @@
 {
   "name": "semantic-model",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "The meta-vocabulary a semantic model is written in: state variables over finite domains, actions with guards and updates, an alphabet of observable events each anchored to evidence by a license, and invariants a checker can settle exhaustively. A model in these kinds is what the prover proves predicates over, once, and what the conformance checks confront every tape with, forever. The package carries exprs and evaluates nothing — meaning travels first, pinned, and the machinery is built against the digest. Its rules refuse the three ways a model quietly stops describing a system: no alphabet, unlicensed testimony, unobservable actions. 0.2.0 pays the license KindDef's standing debt: an instantaneous act encloses nothing, so under the own-window-only contract it was unlicensable by construction — now a license reaches beyond its own window by NAMING its evidence (evidence(pattern, 'enclosing')), and only so: a bare count over an ancestor's window would license anything, which is no license at all. The turnstile grows the derived act (passage-counted) that exercises this; kinds and rules are otherwise 0.1.1's. 0.4.0 adds the conduct seam: an action may declare its effects as data — `creates`/`mutates`/`deletes` naming the entity and the inputs that determine it, `touches` naming the write boundary — so a behavior law is written once against the generic effect kind and every action that declares the effect inherits it, inheritance over template-stamping. No new rules: whether a model MUST declare effects is the conduct catalogue's demand, opt-in, not this vocabulary's. 0.5.0 pays 0.4.0's named debt: an effect declaration now carries its DOORS — `via`, the write that materializes it inside the act, and `shown_by`, the read through which the world shows it back — and `touches` carries `via`, the writes the act may make. A door is a name pattern over raw events, optionally narrowed by an argument, the same cut a license makes; it is what binds the model's abstract entity to what a tape can show, so the conduct natives (conduct@0.2.0) can hold the laws against executions. No new rules, still opt-in. The cloakroom example instantiates creates and deletes with doors and takes a `coat` argument so faithfulness has an input to check; the turnstile keeps mutates and touches WITHOUT doors — a hardware model with no store to read back from, which is exactly what conduct/checkable reports it as. 0.6.0 adds the PROJECTION: a state-var may say how the world shows its value (`shown`: a read door and an expr over its result) — Hoare's abstraction function, Hughes's toList, the family the paper ranks first and the conduct census had owed. The cloakroom projects both its variables and gains a ticket counter, so the value frame has a bystander to hold still. 0.6.1 documents two more projection helpers — `latest` and multi-pair `count` — and `weekday`'s `absent`: a log's last completion day and its completion count are what a real model's stored variables turned out to need. 0.7.0: the cloakroom's ticket counter gives way to a tag and a shelf — entities a repeat overwrites, an undo clears and that sit independently of each other — so the two-stretch laws (twice, last-write, commute, undo, durable, same-story, constructible) have something on the example to demonstrate against. 0.8.0 closes the census: the `merges` effect (another world absorbed, arriving as arguments, left-biased through `either`), the `validator` kind (the stamp that stands for the world's version - RFC 9110's ETag, a document's rev) and `requires` on an action (If-Match: conditional on the stamp). The cloakroom gains a register revision, a conditional retag and an import that merges another register. 0.9.0 adds `boundary`: the write functions the app's recorder declares, so the door census can hold every one to being some action's door - the word that makes an empty boundary mean the whole state - and a direction on `evidence()`: a license can now say the evidence came before the claim. 0.10.0 adds `promise`, the liveness predicate — Lamport's other half, the ledger's oldest debt: `when` a state holds, `then` another is reached, `unless` released, `within` a horizon; model/promised refutes the trap on the model, conduct/eventually the broken promise on a tape. The cloakroom promises a checked coat is reclaimed within three acts. 0.11.0 adds the DERIVED view: a state-var the app recomputes projects from the point where the app states it (`derived_from` names what it is a function of, so the read goes stale with their writes) - the cloakroom's OCCUPIED sign. 0.12.0: a derived view is not a change a validator stands for - the stamp is the stored representation's version and a view moves with the clock, nothing written - stated on the validator kind; and the vocabulary's prose names no client. 0.12.1: `weekday` reads an epoch in milliseconds as well as an ISO date - the second real store kept its dates as numbers. 0.13.0: a validator may say what it `covers` - the first consumer's clock lives in an index document its household stamp never versioned, and the harness that first read the clock back convicted every tick of a change that did not move the stamp. 0.14.0: a state-var may be the model's `clock`, so the attribution rule can tell a statement made under the machine's day from one made under the store's.",
   "publisher": "poietic.studio",
   "requires": [],
@@ -52,7 +52,7 @@
     },
     {
       "kind": "size-var",
-      "description": "A child of `model` (0.18.0): one dimension the data grows along - the words in a learner's memory, the rows of a bank, the members of a household - as a named, unbounded parameter every `cost` expr may use. NEVER state: the prover enumerates state-vars, and a size has no finite domain to enumerate, which is why this is its own kind and not a flag on `state-var`. Payload: `shown` (optional - {\"door\": <door>, \"expr\": <rule grammar>}, the read whose result, bound as `res`, gives the size: the same projection a state-var carries, so a tape says what size it was recorded at; a size nothing shows is unwitnessed, which conduct/cost reports and never passes) and `growth` (\"constant\" | \"linear\" | \"any\", default linear: the most any one action's cost may grow in this dimension, held symbolically by model/cost).",
+      "description": "A child of `model` (0.18.0): one dimension the data grows along - the words in a learner's memory, the rows of a bank, the members of a household - as a named, unbounded parameter every `cost` expr may use. NEVER state: the prover enumerates state-vars, and a size has no finite domain to enumerate, which is why this is its own kind and not a flag on `state-var`. Payload: `shown` (optional - {\"door\": <door>, \"expr\": <rule grammar>}, the read whose result, bound as `res`, gives the size: the same projection a state-var carries, so a tape says what size it was recorded at; a size nothing shows is unwitnessed, which conduct/cost reports and never passes) and `growth` (\"constant\" | \"linear\" | \"any\", default linear: the most any one action's cost may grow in this dimension, held symbolically by model/cost); since 0.20.0 also `holds` ([code texts]: the containers in the step's code whose size this is - `deck['norms']`, `corpus.items()` - so that a derivation line sizing a loop over one of them is vouched for by the drawing, where a line over any other iterable is an assertion model/bound counts).",
       "params": {},
       "links": {},
       "operations": {}
@@ -165,6 +165,13 @@
       "operations": {}
     },
     {
+      "kind": "bound",
+      "description": "A child of `action`, or of `model` for a step no event names (0.20.0): the step's computational complexity, claimed per dimension and proven over its code. Payload: `code` (`path.py::function`, resolved from the model's `code_root`) or `source` (the function's text); `claims` ({dimension: class expr} - a class is sizes, numbers, +, *, ** n and log(x): `deck_words * log(deck_words) + corpus_words`); `derivation` ([lines]: one per construct that costs - a loop or comprehension generator, matched by `at` (`for x in xs`, a prefix suffices) with its `size`; a fold - sorted, sum, any, all, min, max, list, set, dict, tuple, join over an iterable - matched by `at` with its `size`; a call not in the free table, matched by `at` (its text or callee) or `calls` (the callee's name) and `args` (its arity), with `bound` ({dimension: class} or one class for compute) or `of` (the code of another bound, whose claim it spends); `because`: why the size is what it is, when no size-var holds the iterable). model/bound derives the total - a loop costs its size in compute and scales what it encloses, a sort size log size, a list or set built over a size holds it in memory, a call its bound - and holds it to `claims` by domination; what no line covers is red, named with its line, which is the statement that the step's class is unproven. The free table (length, lookups, appends, string methods) and the per-call bounds are the trusted base, readable and refusable on the drawing.",
+      "params": {},
+      "links": {},
+      "operations": {}
+    },
+    {
       "kind": "invariant",
       "description": "A predicate over state-vars that must hold in every reachable state of the model — proven exhaustively by `model/prove` at design time, and re-checked at every step of every refined trace at runtime, for free. Payload: `expr` (rule grammar over the state-vars as variables) and `note` (prose: what holding means, in the domain's own words). Safety only in 0.1.0: liveness and temporal claims have no vocabulary here yet, and that absence is carried as a debt in the authoring repo's ledger, not silently.",
       "params": {},
@@ -208,6 +215,16 @@
     {
       "name": "model/prove",
       "description": "model |= invariants, established exhaustively over every reachable state of the (finite) model at `path`; returns the count of refuted invariants. Design-time, once; the artifact a green run emits grounds evidence.",
+      "blob": "",
+      "medium": "wasm",
+      "native": true,
+      "reads": [],
+      "params_doc": {},
+      "fuel": 500000000
+    },
+    {
+      "name": "model/bound",
+      "description": "(path): on the model at `path`, count the bounds not proven - a loop, fold or call no derivation line covers, a line no construct has, a size or class in a name no size-var declares, a circular `of`, or a derived total past the claim in any dimension - over the code, on the drawing, with no tape.",
       "blob": "",
       "medium": "wasm",
       "native": true,
@@ -687,7 +704,11 @@
               "door": "register.read",
               "expr": "at('rev', 0)"
             },
-            "growth": "linear"
+            "growth": "linear",
+            "holds": [
+              "register",
+              "register.entries"
+            ]
           },
           "children": []
         },
@@ -1548,6 +1569,39 @@
                 "writes": "0",
                 "bytes": "512",
                 "compute": "5000"
+              },
+              "children": []
+            },
+            {
+              "id": "glance-bound",
+              "kind": "bound",
+              "name": "a glance reads the register once and sorts it: linear in the register, with the sort's logarithm",
+              "params": {},
+              "links": {},
+              "meta": {},
+              "payload": {
+                "source": "\ndef glance(register, hooks):\n    taken = [h for h in register if h.taken]\n    order = sorted(register.entries)\n    hook = hooks.read()\n    return taken, order, hook\n",
+                "claims": {
+                  "compute": "register_entries * log(register_entries)",
+                  "memory": "register_entries",
+                  "reads": "1"
+                },
+                "derivation": [
+                  {
+                    "at": "for h in register",
+                    "size": "register_entries"
+                  },
+                  {
+                    "at": "sorted(register.entries)",
+                    "size": "register_entries"
+                  },
+                  {
+                    "calls": "read",
+                    "bound": {
+                      "reads": "1"
+                    }
+                  }
+                ]
               },
               "children": []
             },

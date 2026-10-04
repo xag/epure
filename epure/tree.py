@@ -19,6 +19,7 @@ import quern.grounding  # noqa: F401 -- the grounding natives, for the ledger's 
 import epure.behavior  # noqa: F401 -- conduct@'s contracts need their natives in-process
 import epure.conformance  # noqa: F401 -- consume() re-gates the synced closure, and
 import epure.reach  # noqa: F401 -- model/promised, the liveness half
+import epure.bound  # noqa: F401
 import epure.cost  # noqa: F401 -- model/cost and conduct/cost, the complexity layer
 import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
 from quern import Quern, Node
@@ -46,7 +47,8 @@ def build() -> Quern:
                            _TWO_STRETCHES_DEBT, _CENSUS_DECISION, _PROJECTION_DEBT,
                            _DERIVED_DECISION,
                            _MERGE_DEBT, _VALIDATOR_DEBT, _GENERATED_DEBT, _DOOR_CENSUS_DEBT,
-                           _SIZE_VAR_KIND, _COST_AT_THE_DOORS, _COMPUTE_DEBT, _COMPUTE_DEBT_2,
+                           _SIZE_VAR_KIND, _COST_AT_THE_DOORS, _CLASS_IS_PROVEN, _COMPUTE_DEBT,
+                           _COMPUTE_DEBT_2,
                            _PATH_COST_DEBT,
                            _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
                            census(),
@@ -83,6 +85,53 @@ _SIZE_VAR_KIND = Node(
              name="A list of size names in the model's payload",
              payload={"why": "No projection, so no tape could say what size it was recorded "
                              "at, and conduct/cost would evaluate every expr at nothing."}),
+    ],
+)
+
+_CLASS_IS_PROVEN = Node(
+    id="the-class-is-proven-over-the-code-the-constants-on-the-tape",
+    kind="decision",
+    name="A step's computational complexity is a `bound`: a class per dimension, O(f) in the "
+         "size-vars, proven by model/bound over the step's own code from a derivation of one "
+         "line per loop, fold and call - in an instant, with no tape; a `cost` keeps stating "
+         "the constants a tape witnesses at its sizes, and the two never substitute for each "
+         "other",
+    links={"rests_on": ["a-cost-is-counted-at-the-boundarys-doors"]},
+    payload={
+        "rationale":
+            "A tape witnesses a cost at the sizes recorded and no other: two sizes cannot "
+            "prove a class, and re-recording a script at a gate to compare constants is a "
+            "simulation, six minutes where the owner asked for a proof (the first client, "
+            "2026-10-04). The class is a property of the code's shape - which loops enclose "
+            "which calls, over containers of which size - and that shape is on the syntax "
+            "tree, readable without running anything. The derivation is written by a reader "
+            "and checked by the native: every construct must be covered, every line must "
+            "exist in the code, the composition is arithmetic, and the claim is held by "
+            "domination; what is not derived is red by name. The free table and the per-call "
+            "bounds are the axioms, on the drawing where they can be refused.",
+        "note":
+            "Sizes are vouched for where a size-var `holds` the iterable's text and counted "
+            "as assertions elsewhere; dataflow (a name assigned from a held container) is not "
+            "followed, by choice: the line's `because` carries it, and the count of assertions "
+            "is what a later rule tightens.",
+    },
+    children=[
+        Node(id="alt-infer-the-class-from-sized-tapes", kind="alternative",
+             name="Fit the exponent over tapes at several sizes",
+             payload={"why": "A measurement at three sizes distinguishes nothing above the "
+                             "noise of constants, costs minutes per run, and says nothing "
+                             "about the sizes the tapes do not vary."}),
+        Node(id="alt-a-full-static-analyser", kind="alternative",
+             name="Derive the class automatically, with dataflow and interprocedural analysis",
+             payload={"why": "Dynamic dispatch, library calls and data-dependent loops make "
+                             "the automatic answer either unsound or 'unknown' almost "
+                             "everywhere; a checked derivation puts the reader's knowledge "
+                             "where the analyser has none and refuses what the reader forgot."}),
+        Node(id="alt-annotations-in-the-code", kind="alternative",
+             name="Comments on loops and calls stating their bounds",
+             payload={"why": "A comment is trusted by nothing and drifts with the code; a line "
+                             "on the drawing is matched to the construct and refused when the "
+                             "construct is gone."}),
     ],
 )
 

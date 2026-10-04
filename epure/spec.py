@@ -268,6 +268,47 @@ COST_MODEL = [
 SEMANTIC_MODEL_SPEC["model/cost"] = COST_MODEL
 
 
+# --- model/bound: the class, derived over the code --------------------------------------
+
+def _glance_with(**changes) -> Node:
+    """The cloakroom with glance's bound altered: a claim too small, a line dropped, a size
+    in a name the drawing does not declare."""
+    from .package import GLANCE_BOUND
+    model = cloakroom()
+    for a in model.children:
+        if a.id == "glance":
+            for b in a.children:
+                if b.kind == "bound":
+                    b.payload = {**GLANCE_BOUND, **changes}
+    return model
+
+
+BOUND_MODEL = [
+    d("bound", [cloakroom()], ["cloakroom"], expect=0,
+      because="glance: a comprehension over the register, a sort of its entries, one read - "
+              "derived register log register in compute, register in memory, one read; the "
+              "claim holds and the sizes are vouched for by what the size-var holds"),
+    d("bound", [_glance_with(claims={"compute": "register_entries", "memory": "register_entries",
+                                      "reads": "1"})], ["cloakroom"], expect=1,
+      because="the sort costs register log register and the claim says linear: derived past "
+              "the claim, red on the drawing"),
+    d("bound", [_glance_with(derivation=[{"at": "for h in register", "size": "register_entries"},
+                                          {"calls": "read", "bound": {"reads": "1"}}])],
+      ["cloakroom"], expect=1,
+      because="the sort has no line: an uncovered fold is named with its line, and the class "
+              "is unproven, never assumed"),
+    d("bound", [_glance_with(derivation=[{"at": "for h in register", "size": "coats"},
+                                          {"at": "sorted(register.entries)", "size": "register_entries"},
+                                          {"calls": "read", "bound": {"reads": "1"}}])],
+      ["cloakroom"], expect=1,
+      because="a size in a name no size-var declares: the drawing cannot vouch for it"),
+    d("bound", [turnstile()], ["turnstile"], expect=0,
+      because="a model with no bound derives nothing and says so in a note"),
+]
+
+SEMANTIC_MODEL_SPEC["model/bound"] = BOUND_MODEL
+
+
 
 def _sem(name: str, phase: str, sid: int, data: dict | None = None,
          outcome: str | None = None) -> dict[str, Any]:

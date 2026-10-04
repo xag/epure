@@ -1,4 +1,15 @@
-"""semantic-model@0.19.0 — the meta-vocabulary a semantic model is written in.
+"""semantic-model@0.20.0 — the meta-vocabulary a semantic model is written in.
+
+0.20.0: the class, proven. A `bound` on an action (or on the model, for a step no event
+names) claims the step's computational complexity along every dimension the drawing names -
+compute, documents read, documents written, bytes across the store, memory, the device's
+fetches - as O(f) in the size-vars, and carries the derivation: the step's code and one line
+per construct that costs, each with its size or its per-call bound. `model/bound` reads the
+code, refuses a construct no line covers and a line no construct has, composes the lines
+(nesting multiplies, sequence adds) and holds the total to the claim by asymptotic
+domination, in an instant and with no tape: where `cost` states what one call spends at a
+tape's sizes, `bound` proves the class for every size. A size-var may name the containers it
+`holds`, so a loop's size is vouched for by the drawing rather than asserted by a line.
 
 0.19.0: compute is held. The boundary may name `compute` doors - the raw events a recorder
 writes with an instruction count as `ops`, per call or per span - and conduct/cost sums what
@@ -75,6 +86,26 @@ from __future__ import annotations
 from quern import KindDef, Node, OperationDef, Rule, SolverDef
 from quern.library import CounterExample, Package
 from quern.provenance import Quantity
+
+GLANCE_SOURCE = """
+def glance(register, hooks):
+    taken = [h for h in register if h.taken]
+    order = sorted(register.entries)
+    hook = hooks.read()
+    return taken, order, hook
+"""
+GLANCE_BOUND = {
+    "source": GLANCE_SOURCE,
+    "claims": {"compute": "register_entries * log(register_entries)",
+               "memory": "register_entries", "reads": "1"},
+    "derivation": [
+        {"at": "for h in register", "size": "register_entries"},
+        {"at": "sorted(register.entries)", "size": "register_entries"},
+        {"calls": "read", "bound": {"reads": "1"}},
+    ],
+}
+
+
 
 VOCABULARY = [
     KindDef(
@@ -167,7 +198,10 @@ VOCABULARY = [
         "size it was recorded at; a size nothing shows is unwitnessed, which conduct/cost "
         "reports and never passes) and `growth` (\"constant\" | \"linear\" | \"any\", "
         "default linear: the most any one action's cost may grow in this dimension, held "
-        "symbolically by model/cost).",
+        "symbolically by model/cost); since 0.20.0 also `holds` ([code texts]: the "
+        "containers in the step's code whose size this is - `deck['norms']`, `corpus.items()` "
+        "- so that a derivation line sizing a loop over one of them is vouched for by the "
+        "drawing, where a line over any other iterable is an assertion model/bound counts).",
     ),
     KindDef(
         kind="event-kind",
@@ -401,6 +435,27 @@ VOCABULARY = [
         "alternative is a choice nobody weighed.",
     ),
     KindDef(
+        kind="bound",
+        description="A child of `action`, or of `model` for a step no event names (0.20.0): "
+        "the step's computational complexity, claimed per dimension and proven over its "
+        "code. Payload: `code` (`path.py::function`, resolved from the model's `code_root`) "
+        "or `source` (the function's text); `claims` ({dimension: class expr} - a class is "
+        "sizes, numbers, +, *, ** n and log(x): `deck_words * log(deck_words) + corpus_words`); "
+        "`derivation` ([lines]: one per construct that costs - a loop or comprehension "
+        "generator, matched by `at` (`for x in xs`, a prefix suffices) with its `size`; a "
+        "fold - sorted, sum, any, all, min, max, list, set, dict, tuple, join over an "
+        "iterable - matched by `at` with its `size`; a call not in the free table, matched by "
+        "`at` (its text or callee) or `calls` (the callee's name) and `args` (its arity), with "
+        "`bound` ({dimension: class} or one class for compute) or `of` (the code of another "
+        "bound, whose claim it spends); `because`: why the size is what it is, when no size-var "
+        "holds the iterable). model/bound derives the total - a loop costs its size in compute "
+        "and scales what it encloses, a sort size log size, a list or set built over a size "
+        "holds it in memory, a call its bound - and holds it to `claims` by domination; what "
+        "no line covers is red, named with its line, which is the statement that the step's "
+        "class is unproven. The free table (length, lookups, appends, string methods) and the "
+        "per-call bounds are the trusted base, readable and refusable on the drawing.",
+    ),
+    KindDef(
         kind="invariant",
         description="A predicate over state-vars that must hold in every reachable state of "
         "the model — proven exhaustively by `model/prove` at design time, and re-checked at "
@@ -585,7 +640,7 @@ EXAMPLES = [
             # else does, and a conditional retag is handed the stamp it expects
             Node(id="register_entries", kind="size-var",
                  payload={"shown": {"door": "register.read", "expr": "at('rev', 0)"},
-                          "growth": "linear"},
+                          "growth": "linear", "holds": ["register", "register.entries"]},
                  name="how big the register is: the dimension an import's cost grows along, "
                       "read off the register's stamp - a size the tape witnesses, never a "
                       "state the prover walks"),
@@ -798,6 +853,10 @@ EXAMPLES = [
                      Node(id="glance-cost", kind="cost",
                           payload={"reads": "4", "writes": "0", "bytes": "512",
                                    "compute": "5000"}),
+                     Node(id="glance-bound", kind="bound",
+                          name="a glance reads the register once and sorts it: linear in the "
+                               "register, with the sort's logarithm",
+                          payload=GLANCE_BOUND),
                      Node(id="glance-touches", kind="touches",
                           payload={"only": [], "via": []},
                           name="the read-act (0.15.0): the attendant looks and writes "
@@ -932,6 +991,12 @@ SOLVERS = [
         "state of the (finite) model at `path`; returns the count of refuted invariants. "
         "Design-time, once; the artifact a green run emits grounds evidence."),
     SolverDef(
+        name="model/bound", native=True,
+        description="(path): on the model at `path`, count the bounds not proven - a loop, "
+        "fold or call no derivation line covers, a line no construct has, a size or class "
+        "in a name no size-var declares, a circular `of`, or a derived total past the claim "
+        "in any dimension - over the code, on the drawing, with no tape."),
+    SolverDef(
         name="model/cost", native=True,
         description="(path): on the model at `path`, count the cost statements no tape could "
         "be held to - a dimension unstated, a variable no size-var declares, an expr the "
@@ -961,7 +1026,7 @@ SOLVERS = [
 
 SEMANTIC_MODEL_PACKAGE = Package(
     name="semantic-model",
-    version="0.19.0",
+    version="0.20.0",
     description="The meta-vocabulary a semantic model is written in: state variables over "
                 "finite domains, actions with guards and updates, an alphabet of observable "
                 "events each anchored to evidence by a license, and invariants a checker can "
