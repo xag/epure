@@ -157,9 +157,11 @@ class _Action(BaseModel):
 
 
 def _names_in(src: str, names: set[str]) -> set[str]:
-    """The state variables an expression's source names (identifiers, whole words)."""
+    """The state variables an expression's source names (identifiers, whole words, outside
+    its string literals: `plan == 'premium'` names plan, and not a variable called premium)."""
     import re
-    return {m for m in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", src or "") if m in names}
+    bare = re.sub(r"'[^']*'", "''", src or "")
+    return {m for m in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", bare) if m in names}
 
 
 def _components(variables: list, actions: list, invariants: list) -> list[set[str]]:
@@ -486,8 +488,12 @@ def bites(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> Bites:
             refuted: dict[str, Violation] = {}
             try:
                 _walk(vars_, trial, invs, refuted, cap)
-            except ValueError:
-                pass  # a mutant that leaves the domains, or the cap: what it refuted before counts
+            except ValueError as e:
+                # a mutant that leaves the domains, or the cap: what it refuted before counts.
+                # Any other refusal is the drawing's own fault - a law naming no variable of
+                # the model - and is raised, never read as a law no mutant can break
+                if "outside its domain" not in str(e) and "state space exceeds" not in str(e):
+                    raise
             for inv in refuted:
                 refuted_by.setdefault(inv, []).append(f"{action.id} {label}")
                 wanted.discard(inv)
