@@ -869,6 +869,21 @@ CHECKABLE = [
       because="pointed at a tape it refuses: declarations live on the model"),
 ]
 
+# a tag read on an empty hook: a world the cloakroom's law `no-tag-without-a-coat` forbids
+TAG_ON_NOTHING = visit([*EMPTY, *DEPOSIT, *world(None, "red", None)])
+
+INVARIANT_SPEC = [
+    c("invariant", visited(AGREES), ["visit", "model"], expect=0,
+      because="every world the visit shows - empty, a coat, a coat with a tag - is one the "
+              "cloakroom's laws admit"),
+    c("invariant", visited(TAG_ON_NOTHING), ["visit", "model"], expect=1,
+      because="the world after the deposit shows a red tag on an empty hook: a state the "
+              "prover established unreachable, read off the tape - the drawing's law held by "
+              "value, whichever action the act was"),
+    c("invariant", judged(LAWFUL), ["session", "model"], expect=0,
+      because="the turnstile projects nothing: nothing to hold, and a note says so"),
+]
+
 AGREES_SPEC = [
     c("agrees", visited(AGREES), ["visit", "model"], expect=0,
       because="hook empty before; the deposit's own update says held 1, the tag's says "
@@ -1180,6 +1195,7 @@ CONDUCT_SPEC = {
     "conduct/refusal": REFUSAL,
     "conduct/checkable": CHECKABLE,
     "conduct/agrees": AGREES_SPEC,
+    "conduct/invariant": INVARIANT_SPEC,
     "conduct/twice": TWICE,
     "conduct/last-write": LAST_WRITE,
     "conduct/commute": COMMUTE,

@@ -2144,6 +2144,66 @@ def checkable_count(tree, path) -> float:
     return float(checkable(tree, path).violations)
 
 
+# --- conduct/invariant: the drawing's laws hold on every world the tape shows ------------
+
+
+def invariant(tree: Quern | TreeStore, path: str, rel: str) -> Conformance:
+    """How many (act, side, invariant) triples under `path` show a world the drawing's laws
+    forbid.
+
+    The runtime half of `model/prove`, by value: the prover establishes every invariant on
+    every state the drawing reaches, and this asks the same question of every world a tape
+    shows - the projected variables as read before and after each act - wherever an
+    invariant's variables are all shown there. No action need bind: a law over the chosen
+    language and the language served is judged on each status that shows both, whichever
+    action the status was. A world that shows only some of a law's variables is unjudged for
+    it, noted once per law; nothing is passed for want of a read."""
+    W = _Worlds(tree, path, rel)
+    diagnostics: list[str] = list(W.errors)
+    notes: list[str] = list(W.notes)
+    if not W.projections:
+        notes.append(f"{path}: the model projects no state-var — nothing to hold")
+        return Conformance(check="conduct/invariant", violations=0, notes=notes)
+    names = {v for v, _, _ in W.variables}
+    laws = [(c.id, c.payload.get("note", ""), str(c.payload.get("expr", "")),
+             _compile(str(c.payload.get("expr", "")), f"invariant '{c.id}'"),
+             _names_in_src(str(c.payload.get("expr", "")), names))
+            for c in W.model_node.children if c.kind == "invariant"]
+    laws = [l for l in laws if l[4] and l[4] <= set(W.projections)]
+    if not laws:
+        notes.append(f"{path}: no invariant has all its variables projected — nothing to hold")
+        return Conformance(check="conduct/invariant", violations=0, notes=notes)
+    # one world per act and side: the parts' worlds of one act are disjoint and add up
+    by_act: dict[int, tuple[dict, dict, _World]] = {}
+    for w in W.worlds:
+        pre, post, _ = by_act.setdefault(w.index, ({}, {}, w))
+        pre.update(w.pre)
+        post.update(w.post)
+    judged = 0
+    unjudged: dict[str, int] = {}
+    for index in sorted(by_act):
+        pre, post, w = by_act[index]
+        for side, world in (("before", pre), ("after", post)):
+            for inv, note, src, expr, named in laws:
+                if not named <= set(world):
+                    unjudged[inv] = unjudged.get(inv, 0) + 1
+                    continue
+                judged += 1
+                if not expr({**world, **_LITERALS}):
+                    shown = {v: world[v] for v in sorted(named)}
+                    diagnostics.append(
+                        f"{w.act.path}: the world {side} '{w.kind}' breaks '{inv}' ({src}): "
+                        f"it shows {shown}" + (f" — {note}" if note else ""))
+    for inv, n in sorted(unjudged.items()):
+        notes.append(f"'{inv}': {n} world(s) show only some of its variables — unjudged there")
+    return Conformance(check="conduct/invariant", violations=len(diagnostics),
+                       diagnostics=diagnostics, notes=notes, judged=judged)
+
+
+def invariant_count(tree, path, rel) -> float:
+    return float(invariant(tree, path, rel).violations)
+
+
 def agrees_count(tree, path, rel) -> float:
     return float(agrees(tree, path, rel).violations)
 
@@ -2160,6 +2220,7 @@ register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"])
 register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"])
 register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"])
 register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])
+register_native("conduct/invariant", invariant_count, CONDUCT_SPEC["conduct/invariant"])
 register_native("conduct/doors", doors_count, CONDUCT_SPEC["conduct/doors"])
 for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
                    ("undo", undo), ("durable", durable), ("same-story", same_story),
