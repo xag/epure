@@ -38,6 +38,7 @@ import json
 from typing import Any
 
 from quern import Node, Quern, TreeStore, register_native
+from quern.cache import OPENS_ONLY
 
 from epure.behavior import _Act, _Model, _Projection, _acts_and_stream, _through, doors
 from epure.conformance import Conformance, _confront, get_node
@@ -323,5 +324,5 @@ def conduct_cost_count(tree, path, rel) -> float:
 
 from .spec import CONDUCT_SPEC, SEMANTIC_MODEL_SPEC  # noqa: E402
 
-register_native("model/cost", model_cost_count, SEMANTIC_MODEL_SPEC["model/cost"])
-register_native("conduct/cost", conduct_cost_count, CONDUCT_SPEC["conduct/cost"])
+register_native("model/cost", model_cost_count, SEMANTIC_MODEL_SPEC["model/cost"], reads=OPENS_ONLY)
+register_native("conduct/cost", conduct_cost_count, CONDUCT_SPEC["conduct/cost"], reads=OPENS_ONLY)

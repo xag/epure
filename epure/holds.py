@@ -160,6 +160,73 @@ def holds_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> f
     return float(len(hold(tree, path, cap=int(cap)).refuted))
 
 
+def _import_closure(root: Path, path: str) -> set[Path]:
+    """The project's own files a witness module runs: its file, and every module under
+    `root` it imports, at any depth, read from the source."""
+    import ast
+    seen: set[Path] = set()
+    todo = [(root / path).resolve()]
+    while todo:
+        f = todo.pop()
+        if f in seen or not f.is_file():
+            continue
+        seen.add(f)
+        try:
+            tree = ast.parse(f.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError, ValueError):
+            continue
+        package = f.parent
+        for n in ast.walk(tree):
+            names: list[str] = []
+            base = root
+            if isinstance(n, ast.Import):
+                names = [a.name for a in n.names]
+            elif isinstance(n, ast.ImportFrom):
+                if n.level:
+                    base = package
+                    for _ in range(n.level - 1):
+                        base = base.parent
+                mod = n.module or ""
+                names = [f"{mod}.{a.name}" if mod else a.name for a in n.names] + ([mod] if mod else [])
+            for name in names:
+                parts = name.split(".")
+                for k in range(len(parts), 0, -1):
+                    stem = base.joinpath(*parts[:k])
+                    for cand in (stem.with_suffix(".py"), stem / "__init__.py"):
+                        if cand.is_file():
+                            todo.append(cand.resolve())
+                            # ...and the packages it sits in, whose __init__ runs first
+                            todo += [base.joinpath(*parts[:j], "__init__.py").resolve()
+                                     for j in range(1, k)]
+                            break
+                    else:
+                        continue
+                    break
+    return seen
+
+
+def holds_reads(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP):
+    """What a sweep reads that it may not open while it runs: the project's files every
+    witness imports, and what the model declares in `reads` - the data its witnesses use,
+    which an earlier call may have loaded already. A model that declares no `reads` cannot
+    say, and its sweep is run every time."""
+    model = get_node(tree, path)
+    if model is None or model.kind != "model" or model.payload.get("reads") is None:
+        return None
+    root = Path(str(model.payload.get("code_root") or os.environ.get("EPURE_CODE_ROOT") or "."))
+    out: set[Path] = {root / str(p) for p in model.payload.get("reads") or []}
+    for c in model.children:
+        if c.kind != "property":
+            continue
+        codes = list((c.payload.get("calls") or {}).values())
+        codes += [v["from"] for v in (c.payload.get("over") or {}).values()
+                  if isinstance(v, dict) and "from" in v]
+        for code in codes:
+            out |= _import_closure(root, str(code).partition("::")[0])
+    return sorted(out)
+
+
 from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
 
-register_native("model/holds", holds_count, SEMANTIC_MODEL_SPEC["model/holds"])
+register_native("model/holds", holds_count, SEMANTIC_MODEL_SPEC["model/holds"],
+                reads=holds_reads, env=("EPURE_CODE_ROOT",), spawns=True)

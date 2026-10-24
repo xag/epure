@@ -104,6 +104,7 @@ from fnmatch import fnmatch
 from typing import Any, Callable, Iterable
 
 from quern import Node, Quern, TreeStore, register_native
+from quern.cache import OPENS_ONLY
 
 from epure.conformance import _STRUCTURE, Conformance, _automaton, _confront, _named, _normalize
 from epure.prove import _ENV, _LITERALS, _compile, _domain, reachable
@@ -2283,16 +2284,16 @@ def _count_of(fn):
 
 from .spec import CONDUCT_SPEC  # noqa: E402
 
-register_native("conduct/effect", effect_count, CONDUCT_SPEC["conduct/effect"])
-register_native("conduct/faithful", faithful_count, CONDUCT_SPEC["conduct/faithful"])
-register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"])
-register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"])
-register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"])
-register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"])
-register_native("conduct/invariant", invariant_count, CONDUCT_SPEC["conduct/invariant"])
-register_native("conduct/doors", doors_count, CONDUCT_SPEC["conduct/doors"])
+register_native("conduct/effect", effect_count, CONDUCT_SPEC["conduct/effect"], reads=OPENS_ONLY)
+register_native("conduct/faithful", faithful_count, CONDUCT_SPEC["conduct/faithful"], reads=OPENS_ONLY)
+register_native("conduct/frame", frame_count, CONDUCT_SPEC["conduct/frame"], reads=OPENS_ONLY)
+register_native("conduct/refusal", refusal_count, CONDUCT_SPEC["conduct/refusal"], reads=OPENS_ONLY)
+register_native("conduct/checkable", checkable_count, CONDUCT_SPEC["conduct/checkable"], reads=OPENS_ONLY)
+register_native("conduct/agrees", agrees_count, CONDUCT_SPEC["conduct/agrees"], reads=OPENS_ONLY)
+register_native("conduct/invariant", invariant_count, CONDUCT_SPEC["conduct/invariant"], reads=OPENS_ONLY)
+register_native("conduct/doors", doors_count, CONDUCT_SPEC["conduct/doors"], reads=OPENS_ONLY)
 for _name, _fn in (("twice", twice), ("last-write", last_write), ("commute", commute),
                    ("undo", undo), ("durable", durable), ("same-story", same_story),
                    ("constructible", constructible), ("merge", merge), ("stamped", stamped),
                    ("conditional", conditional), ("eventually", eventually)):
-    register_native(f"conduct/{_name}", _count_of(_fn), CONDUCT_SPEC[f"conduct/{_name}"])
+    register_native(f"conduct/{_name}", _count_of(_fn), CONDUCT_SPEC[f"conduct/{_name}"], reads=OPENS_ONLY)

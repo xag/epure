@@ -48,6 +48,7 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 
 from quern import Node, Quern, TreeStore, get_node, register_native
+from quern.cache import OPENS_ONLY
 
 from epure.prove import _ENV, _LITERALS, _compile, _domain
 
@@ -402,6 +403,6 @@ def refines_count(tree: Quern | TreeStore, path: str, rel: str) -> float:
 
 from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
 
-register_native("model/licensed", licensed_count, SEMANTIC_MODEL_SPEC["model/licensed"])
-register_native("model/total", total_count, SEMANTIC_MODEL_SPEC["model/total"])
-register_native("model/refines", refines_count, SEMANTIC_MODEL_SPEC["model/refines"])
+register_native("model/licensed", licensed_count, SEMANTIC_MODEL_SPEC["model/licensed"], reads=OPENS_ONLY)
+register_native("model/total", total_count, SEMANTIC_MODEL_SPEC["model/total"], reads=OPENS_ONLY)
+register_native("model/refines", refines_count, SEMANTIC_MODEL_SPEC["model/refines"], reads=OPENS_ONLY)

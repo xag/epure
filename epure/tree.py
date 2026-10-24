@@ -51,9 +51,42 @@ def build() -> Quern:
                            _COMPUTE_DEBT_2,
                            _PATH_COST_DEBT,
                            _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
+                           _NATIVES_SAY_WHAT_THEY_READ,
                            census(),
                            *CONDUCT_LAWS]
     return quern
+
+
+# --- what a native reads, 2026-10-25 ----------------------------------------------------
+
+_NATIVES_SAY_WHAT_THEY_READ = Node(
+    id="every-native-says-what-it-reads",
+    kind="decision",
+    name="Every native epure registers says what it reads, so a check can keep its answer "
+         "while that is unchanged (quern.cache): the proofs and the conduct natives read the "
+         "tree and what they open; model/bound the files its bounds name; model/holds its "
+         "witnesses' files and what they import, and the data its model declares in `reads`, "
+         "or nothing it can say when the model declares none; model/bites keeps no answer of "
+         "its own",
+    payload={
+        "rationale":
+            "A project's check spends its time in these natives and, while it is being "
+            "edited, asks them what they answered last time. quern keeps an answer with the "
+            "subtrees the native reached and the files it opened, and asks the native for "
+            "what it reads without opening: model/bound parses each file once per content "
+            "and keeps the parse, and a witness may use data an earlier call loaded. "
+            "model/bites kept its verdict in a file named by the drawing's digest, renamed on "
+            "every change of the drawing; it is now one case of the check's cache, and a "
+            "model that names `proofs` gets the record of which mutant refuted which law under "
+            "one name.",
+    },
+    children=[
+        Node(id="alt-bites-keeps-its-own", kind="alternative",
+             name="Leave model/bites its own file named by the drawing's digest",
+             payload={"why": "Two caches of one verdict, and the file was renamed in every "
+                             "commit that touched the drawing."}),
+    ],
+)
 
 
 # --- cost: the complexity layer, 2026-10-04 ----------------------------------------------

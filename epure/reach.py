@@ -190,7 +190,8 @@ def promised_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -
 
 
 from quern import register_native  # noqa: E402
+from quern.cache import OPENS_ONLY  # noqa: E402
 
 from .spec import PROMISED  # noqa: E402
 
-register_native("model/promised", promised_count, PROMISED)
+register_native("model/promised", promised_count, PROMISED, reads=OPENS_ONLY)

@@ -541,4 +541,24 @@ def model_bound_count(tree, path) -> float:
 
 from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
 
-register_native("model/bound", model_bound_count, SEMANTIC_MODEL_SPEC["model/bound"])
+def model_bound_reads(tree: Quern | TreeStore, path: str):
+    """The files a derivation reads: every file a bound under the model names. They are
+    parsed once per content and kept (_module), so a call may read them without opening
+    them."""
+    model = tree.get(path)
+    if model is None or model.kind != "model":
+        return None
+    root = Path(str(model.payload.get("code_root") or os.environ.get("EPURE_CODE_ROOT") or "."))
+    files: set[Path] = set()
+    stack = list(model.children)
+    while stack:
+        n = stack.pop()
+        stack.extend(n.children)
+        code = str(n.payload.get("code") or "")
+        if "::" in code:
+            files.add(root / code.partition("::")[0])
+    return sorted(files)
+
+
+register_native("model/bound", model_bound_count, SEMANTIC_MODEL_SPEC["model/bound"],
+                reads=model_bound_reads, env=("EPURE_CODE_ROOT",))

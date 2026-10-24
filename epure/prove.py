@@ -48,6 +48,7 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 
 from quern import Node, Quantity, Quern, TreeStore, get_node, register_native
+from quern.cache import OPENS_ONLY
 # The store write is reached through the module, not a bound name, so the boundary's
 # declaration of `quern.solver.save_blob` stays true when a recorder patches the seam.
 from quern import solver as _store
@@ -523,27 +524,21 @@ def bites_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> f
     """The native: how many invariants of the model at `path` no mutant of its actions
     refutes. A rule wants `== 0`: every law bites.
 
-    The verdict is a function of the drawing alone, so a model that names a `proofs`
-    directory in its payload keeps it there as `bites-<digest>.json`, keyed by the model's
-    content digest: the mutants run again only when the drawing moves, and the artifact
-    is the record of which mutant refuted which law. Stale artifacts of the same model are
-    removed as the new one is written."""
+    A model that names a `proofs` directory in its payload gets there, on every run that
+    computes it, the record of which mutant refuted which law, as `bites-<model>.json`.
+    Whether a run computes it again is the check's question (quern.cache): the verdict is
+    a function of the drawing alone, which registering it with OPENS_ONLY says, so a check
+    that keeps natives' answers runs the mutants only when the drawing moves."""
     node = get_node(tree, path)
     if node is None:
         raise ValueError(f"no node at '{path}'")
-    proofs = node.payload.get("proofs") if node.kind == "model" else None
-    if not proofs:
-        return float(len(bites(tree, path, cap=int(cap)).vacuous))
-    digest = _model_sha256(node)[:16]
-    folder = Path(str(proofs))
-    kept = folder / f"bites-{node.id}-{digest}.json"
-    if kept.exists():
-        return float(len(json.loads(kept.read_text(encoding="utf-8"))["vacuous"]))
     out = bites(tree, path, cap=int(cap))
-    folder.mkdir(parents=True, exist_ok=True)
-    for stale in folder.glob(f"bites-{node.id}-*.json"):
-        stale.unlink()
-    kept.write_text(json.dumps(out.model_dump(), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    proofs = node.payload.get("proofs") if node.kind == "model" else None
+    if proofs:
+        folder = Path(str(proofs))
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"bites-{node.id}.json").write_text(
+            json.dumps(out.model_dump(), indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return float(len(out.vacuous))
 
 
@@ -557,5 +552,5 @@ def prove_count(tree: Quern | TreeStore, path: str, cap: int = DEFAULT_CAP) -> f
 # code outside the sandbox, and a proof its own package could soften is no proof.
 from .spec import SEMANTIC_MODEL_SPEC  # noqa: E402
 
-register_native("model/prove", prove_count, SEMANTIC_MODEL_SPEC["model/prove"])
-register_native("model/bites", bites_count, SEMANTIC_MODEL_SPEC["model/bites"])
+register_native("model/prove", prove_count, SEMANTIC_MODEL_SPEC["model/prove"], reads=OPENS_ONLY)
+register_native("model/bites", bites_count, SEMANTIC_MODEL_SPEC["model/bites"], reads=OPENS_ONLY)
