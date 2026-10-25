@@ -52,7 +52,7 @@ def build() -> Quern:
                            _COMPUTE_DEBT_2,
                            _PATH_COST_DEBT,
                            _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
-                           _NATIVES_SAY_WHAT_THEY_READ,
+                           _NATIVES_SAY_WHAT_THEY_READ, _LOOP_BY_ITS_ITERABLE,
                            census(),
                            *CONDUCT_LAWS]
     return quern
@@ -86,6 +86,36 @@ _NATIVES_SAY_WHAT_THEY_READ = Node(
              name="Leave model/bites its own file named by the drawing's digest",
              payload={"why": "Two caches of one verdict, and the file was renamed in every "
                              "commit that touched the drawing."}),
+    ],
+)
+
+
+_LOOP_BY_ITS_ITERABLE = Node(
+    id="a-loop-line-names-the-loop-by-what-it-runs-over",
+    kind="decision",
+    name="A derivation's loop line matches a loop by what it runs over: `for h in heads` "
+         "covers `for head in heads`, and not `for h in heads[1:]`",
+    links={"refines": ["the-class-is-proven-over-the-code-the-constants-on-the-tape"]},
+    payload={
+        "rationale":
+            "A loop's size is its iterable's; the name it gives each item costs nothing and "
+            "says nothing of the size. Matched on the whole header, a renamed loop variable "
+            "turned a bound red until its line was rewritten, and the rewritten line moved "
+            "the bound's digest, so an edit that changed no cost asked for an amendment. "
+            "Matched on the iterable, the line stands while the size it states can still be "
+            "true, and goes red when what the loop runs over changes.",
+    },
+    children=[
+        Node(id="alt-the-whole-header", kind="alternative",
+             name="Keep matching the line to the loop's whole header",
+             payload={"why": "It refuses a rename that changes no size, and each refusal is "
+                             "an edit and an amendment of the drawing."}),
+        Node(id="alt-sizes-by-position", kind="alternative",
+             name="Read the loops from the syntax tree and state only a size per loop, by "
+                  "its position in the function",
+             payload={"why": "A position moves with every loop added above it, so an "
+                             "unrelated edit reassigns the sizes; the iterable is what the "
+                             "size belongs to."}),
     ],
 )
 

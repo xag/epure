@@ -172,3 +172,24 @@ def test_an_amortized_loop_is_its_total_not_the_product(tmp_path):
     model.children[-1].payload["derivation"][1] = {"at": "for row in h.rows", "size": "rows"}
     out = model_bound(_tree(model), "m")
     assert out.violations == 1 and "derived heads * rows" in out.diagnostics[0]
+
+
+def test_a_loop_line_names_the_loop_by_what_it_runs_over(tmp_path):
+    """The size is the iterable's, so the name the loop gives each item is not the line's:
+    a renamed loop variable leaves the bound standing, and a changed iterable does not."""
+    (tmp_path / "scan.py").write_text(
+        "def scan(heads):\n"
+        "    for head in heads:\n"
+        "        touch(head)\n", encoding="utf-8")
+    model = Node(id="m", kind="model", payload={"code_root": str(tmp_path)}, children=[
+        Node(id="heads", kind="size-var", payload={"holds": ["heads"]}),
+        Node(id="scan", kind="bound", payload={
+            "code": "scan.py::scan", "claims": {"compute": "heads"},
+            "derivation": [{"at": "for h in heads", "size": "heads"},
+                           {"calls": "touch", "bound": "1"}]}),
+    ])
+    out = model_bound(_tree(model), "m")
+    assert out.violations == 0, out.diagnostics
+    model.children[-1].payload["derivation"][0] = {"at": "for h in heads[1:]", "size": "heads"}
+    out = model_bound(_tree(model), "m")
+    assert out.violations == 2 and "uncovered loop" in out.diagnostics[0]

@@ -304,11 +304,20 @@ def resolve(code: str, root: Path) -> ast.AST:
 # --- the derivation ------------------------------------------------------------------------
 
 
+def _over(key: str) -> str | None:
+    """What a loop runs over, from its key or a line's `at` (`for h in heads` -> `heads`): a
+    loop's size is its iterable's, so the name it gives each item is not part of the line,
+    and renaming it leaves the bound standing. None for anything but a `for` loop."""
+    head, sep, over = key.partition(" in ")
+    return over if sep and head.startswith("for ") else None
+
+
 def _matches(line: dict, c: Construct) -> bool:
     at = line.get("at")
     if at is not None:
         at = str(at)
-        if not (c.key == at or c.key.startswith(at) or (c.kind == "call" and c.callee == at)):
+        if not (c.key == at or c.key.startswith(at) or (c.kind == "call" and c.callee == at)
+                or (c.kind == "loop" and _over(c.key) is not None and _over(c.key) == _over(at))):
             return False
     calls = line.get("calls")
     if calls is not None and c.callee != str(calls):
