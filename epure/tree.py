@@ -22,6 +22,7 @@ import epure.reach  # noqa: F401 -- model/promised, the liveness half
 import epure.bound  # noqa: F401
 import epure.cost  # noqa: F401 -- model/cost and conduct/cost, the complexity layer
 import epure.prove  # noqa: F401 -- semantic-model@'s contracts need their natives in-process
+import epure.holds  # noqa: F401 -- model/holds, which semantic-model@ declares native
 from quern import Quern, Node
 from quern.library import consume
 from quern.provenance import Quantity
