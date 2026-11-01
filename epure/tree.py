@@ -53,6 +53,7 @@ def build() -> Quern:
                            _PATH_COST_DEBT,
                            _GROWTH_DISCOVERY_DEBT, _WITNESS_DEBT, _COST_DRAFT_DEBT,
                            _NATIVES_SAY_WHAT_THEY_READ, _LOOP_BY_ITS_ITERABLE,
+                           _STATEMENT_BELONGS_TO_WHO_CAN_CHANGE,
                            census(),
                            *CONDUCT_LAWS]
     return quern
@@ -2098,5 +2099,52 @@ _EXPLICIT_STATE_SUFFICES = Node(
                     "when it dies nobody argues about whether it was ever believed.",
             },
         ),
+    ],
+)
+
+
+# --- whose statement is it, 2026-11-01 ----------------------------------------------------
+
+_STATEMENT_BELONGS_TO_WHO_CAN_CHANGE = Node(
+    id="a-statement-belongs-to-the-act-that-could-change-it",
+    kind="decision",
+    name="A statement made inside another act is that act's world after only when that act "
+         "may change the variable - some action it can bind (or, for a call, any span it "
+         "encloses can bind) updates it; inside a pure read it is the earlier act's world "
+         "after, and the pure read began in the world it states",
+    payload={
+        "rationale":
+            "12637cb made an act's own statement its world after, and gave every statement "
+            "inside another act to that act. Right where the next act moves the variable (its "
+            "test: a status that sets `told` is judged by its own word), and wrong where the "
+            "next act is a pure read: an app states its world only when read, so an act that "
+            "changes a variable and says nothing - a tick, a completion - had no world after "
+            "at all, and was noted unwitnessed instead of judged. Measured on the first "
+            "consumer's calibration (chores, tools.induce), bisected over e88d5f7..d93e3f6: "
+            "12637cb alone took met 74 to 46, and three induced faults - the machine-day "
+            "clock, the tick without its updates, done-wash keeping its day - stopped reaching "
+            "any tape. With this rule they read 4 and 7+2, 6 and 2 again, as before 12637cb.",
+        "consequence":
+            "_Model.changes maps each witnessed kind to the variables its actions update; "
+            "_read_after takes a statement inside another act only when that act cannot "
+            "change the variable, and _read_before stops at an unsaid act between that may "
+            "change it, as it stops at a write. A pure read's frame is judged from its own "
+            "statement on both sides, so one silent change is convicted once, on the act that "
+            "made it. The calibration then reads 70 / 59 / 56: the four reds 12637cb removed "
+            "from put-it-back that convicted pure reads (show_board and its board-read span, "
+            "at call14 before the change was made and at call18 for reporting it) stay "
+            "removed - they were counted right and were not.",
+    },
+    children=[
+        Node(id="alt-every-statement-is-its-acts", kind="alternative",
+             name="Keep 12637cb's rule: a statement inside another act is always that act's",
+             payload={"why": "It hides every fault an act commits silently before the app is "
+                             "next read, and that is the ordinary case: chores states its "
+                             "board only when a call reads it."}),
+        Node(id="alt-the-first-read-after", kind="alternative",
+             name="Go back to the first read after the act, whoever made it",
+             payload={"why": "It convicts a pure read of a change made two calls after it, "
+                             "and the read that reports a change for reporting it: four of "
+                             "the nine reds on put-it-back, all counted as named right."}),
     ],
 )

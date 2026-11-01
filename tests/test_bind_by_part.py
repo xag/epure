@@ -109,3 +109,52 @@ def test_an_acts_own_statement_is_its_world_after_and_the_next_acts_is_not():
     t.root.children = [model, session]
     out = agrees(t, "s", "model")
     assert out.violations == 1 and "quiet" in out.diagnostics[0], out.diagnostics
+
+
+def _stated_model(done_updates: bool) -> Node:
+    """`told` is shown only by the app's statement; `undo` changes it and says nothing, `look`
+    is a pure read that states it. With `done_updates` False the drawing drops undo's update -
+    the fault a calibration induces on purpose."""
+    updates = [{"var": "told", "expr": "true"}] if done_updates else []
+    return Node(id="m", kind="model", children=[
+        Node(id="told", kind="state-var",
+             payload={"type": "bool", "init": False,
+                      "shown": {"door": {"event": "sem", "where": {"name": "said"}}, "expr": "at('done', false)"}}),
+        Node(id="look", kind="event-kind", payload={"args": {}},
+             children=[Node(id="look-license", kind="license", payload={"expr": "true", "note": ""})]),
+        Node(id="undo", kind="event-kind", payload={"args": {}},
+             children=[Node(id="undo-license", kind="license", payload={"expr": "true", "note": ""})]),
+        Node(id="read", kind="action", payload={"guard": "true", "updates": []},
+             children=[Node(id="read-by", kind="observation", payload={"event": "look"})]),
+        Node(id="done", kind="action", payload={"guard": "true", "updates": updates},
+             children=[Node(id="done-by", kind="observation", payload={"event": "undo"})]),
+    ])
+
+
+def test_a_pure_reads_statement_is_the_world_the_act_before_it_left():
+    """The app states its world only when it is read. An act that changes the variable and says
+    nothing is judged by the statement of the read after it, when that read cannot change the
+    variable: a pure read shows the world as the earlier act left it. 12637cb gave every
+    statement inside another act to that act, so an undo whose update the drawing dropped was
+    never judged - and chores' calibration lost three of its induced faults with it."""
+    def said(done: bool, sid: int) -> dict:
+        return {"k": "sem", "name": "said", "phase": "point", "sid": sid, "data": {"done": done}}
+
+    calls = [
+        {"seq": 1, "fn": "look", "kwargs": {}, "events": [said(False, 1)]},
+        {"seq": 2, "fn": "undo", "kwargs": {}, "events": []},
+        {"seq": 3, "fn": "look", "kwargs": {}, "events": [said(True, 3)]},
+    ]
+
+    def judged(done_updates: bool):
+        t = Quern()
+        session = Node(id="s", kind="session", links={"model": ["m"]}, children=[_scenario(c) for c in calls])
+        t.root.children = [_stated_model(done_updates), session]
+        return agrees(t, "s", "model")
+
+    right = judged(True)
+    assert right.violations == 0, right.diagnostics
+    dropped = judged(False)
+    assert dropped.violations >= 1, dropped.notes[:6]
+    # the act that changed the variable is convicted, and the reads around it are not
+    assert all("'undo' (done)" in d for d in dropped.diagnostics), dropped.diagnostics

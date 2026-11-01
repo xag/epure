@@ -437,6 +437,7 @@ class _Action:
         args = node.payload.get("args") or {}
         self.args = {n: _domain(args[n], f"action '{node.id}' arg '{n}'") for n in args}
         self.events = [o.payload.get("event") for o in node.children if o.kind == "observation"]
+        self.updates = {str(u.get("var")) for u in node.payload.get("updates") or []}
         self.effects = [_Effect(node.id, c) for c in node.children if c.kind in EFFECTS]
         touches = [c for c in node.children if c.kind == "touches"]
         self.touches: Node | None = touches[0] if touches else None
@@ -462,6 +463,12 @@ class _Model:
         # the event kinds some action is witnessed by: a point the model never named is no
         # act to judge, and is not noted as one
         self.witnessed: set[str] = {e for a in self.actions for e in a.events}
+        # what an act of each witnessed kind may change: the variables some action it can bind
+        # updates. A kind no action updating `v` is witnessed by is a pure read of `v`
+        self.changes: dict[str, set[str]] = {}
+        for a in self.actions:
+            for e in a.events:
+                self.changes.setdefault(e, set()).update(a.updates)
         # Every door the model knows as a write: the frame's universe.
         self.known: list[Door] = []
         for a in self.actions:
@@ -1134,11 +1141,19 @@ class _Worlds:
         self.shown: set[str] = {v for v, proj in self.projections.items()
                                 if any(_through(e, proj.doors) for _, e in self.stream)}
 
-    def _read_before(self, proj: _Projection, at: tuple):
+    def _read_before(self, proj: _Projection, at: tuple, act: "_Act | None" = None):
         """The latest read of the variable before `at` — unless a write through one of the
         variable's own doors came after it, in which case the read is stale and there is
-        no pre-world for this variable."""
+        no pre-world for this variable. For a statement, an act between the read and this one
+        that may change the variable stands where the write would: what was said before it is
+        not the world this act began in. And an act that cannot change the variable, stating
+        it, began in the world it states: a pure read says what the world already was, which
+        is the earlier act's world after - one fact, judged once, on the act that changed it."""
         hits = self._hits.get(proj.var, [])
+        if proj.stated and act is not None and not self._may_change(act, proj.var):
+            own = [(pos, e) for pos, e in hits if act.at < pos <= act.to]
+            if own:
+                return own[0]
         last = None
         for pos, e in reversed(hits):
             if pos < at:
@@ -1148,6 +1163,10 @@ class _Worlds:
             return None
         if any(last[0] < w < at for w in self._writes_at.get(proj.var, [])):
             return None  # written since: the read is stale, and there is no pre-world
+        if proj.stated and act is not None and any(
+                b is not act and b.is_call == act.is_call and last[0] < b.at and b.to < at
+                and self._may_change(b, proj.var) for b in self.acts):
+            return None  # changed since, unsaid: the statement is stale
         return last
 
     def _stamps(self, act: _Act) -> tuple[Any, Any]:
@@ -1196,16 +1215,27 @@ class _Worlds:
             return None
         if any(to < w < nxt[0] for w in self._writes_at.get(proj.var, [])):
             return None  # written first: the world after this act was never read
-        if proj.stated and act is not None and self._inside_another_act(nxt[0], act):
+        if proj.stated and act is not None and self._inside_another_act(nxt[0], act, proj.var):
             return None  # the next act's own word, not this act's world after
         return nxt
 
-    def _inside_another_act(self, pos: tuple, act: "_Act") -> bool:
+    def _inside_another_act(self, pos: tuple, act: "_Act", var: str) -> bool:
         """Whether a position falls inside the window of an act of the same level as `act`
-        that is not `act`: another call for a call, another top-level span for a span. A
-        call encloses its own spans, so a statement inside it is not another act's for them."""
+        that is not `act` and may change `var`: another call for a call, another top-level
+        span for a span. A call encloses its own spans, so a statement inside it is not
+        another act's for them. An act that cannot change the variable - a pure read, or a
+        point the model never named - says what the world already was: its statement is
+        the earlier act's world after (12637cb took it from every act, and with it every
+        fault an act commits silently before the app is next read)."""
         return any(b is not act and b.is_call == act.is_call and b.at < pos <= b.to
-                   for b in self.acts)
+                   and self._may_change(b, var) for b in self.acts)
+
+    def _may_change(self, b: "_Act", var: str) -> bool:
+        """Whether some action this act can bind updates `var`: an action witnessed by the
+        act's kind, or, for a call, by the kind of any span it encloses."""
+        if var in self.model.changes.get(b.span.kind, ()):
+            return True
+        return b.is_call and any(self._may_change(i, var) for i in b.inner)
 
     def reads_between(self, proj: _Projection, lo: tuple, hi: tuple) -> list[dict]:
         return [e for pos, e in self.stream if lo < pos < hi and _through(e, proj.doors)]
@@ -1290,7 +1320,7 @@ class _Worlds:
             post_at: dict[str, tuple] = {}
             for var, proj in self.projections.items():
                 try:
-                    before = self._read_before(proj, act.at)
+                    before = self._read_before(proj, act.at, act)
                     if before is not None and (v := proj.value(before[1])) is not None:
                         pre[var], pre_at[var] = v, before[0]
                     after = self._read_after(proj, act.to, act.at, act)
