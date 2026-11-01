@@ -17,8 +17,8 @@ dependencies = [
 # Pinned by rev, always. Both are pre-1.0 and quern's own doctrine is fork-or-republish
 # over resolver algebra: a range would let the meaning of a pinned package drift under a
 # repo whose whole subject is that meanings do not drift.
-quern = { git = "https://github.com/xag/quern", rev = "26c650c" }
-xag-flight-recorder = { git = "https://github.com/xag/flight-recorder", rev = "0641722" }
+quern = { git = "https://github.com/xag/quern", rev = "e420ecd4fc7f453510cd58eda51813c7be324298" }
+xag-flight-recorder = { git = "https://github.com/xag/flight-recorder", rev = "4d24784d9e6b7da1cb8c741984b0261fe096b9e7" }
 
 [dependency-groups]
 dev = [
